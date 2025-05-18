@@ -1,38 +1,412 @@
-.App {
+body {
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  background-color: #f6f8fc;
+  color: #333;
+}
+
+.container {
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 0.05rem;
+}
+
+.logo-container {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.hospital-logo {
+  width: 300px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.title-block {
+  flex: 10;
+  text-align: center;
+  justify-content: center;
+}
+
+.title-block h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  margin-bottom: 0;
+  font-style: italic;
+}
+
+.page-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+  justify-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.card {
+  width: 400px;
+  height: 380px;
+  position: relative;
+  border-radius: 16px;
+  background: white;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  animation: fadeInUp 0.5s ease forwards;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.card:hover {
+  transform: rotateY(6deg) rotateX(3deg) scale(1.5);
+  box-shadow: 0 10px 30px rgba(0, 123, 255, 0.3);
+}
+
+.card .content {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.card .app-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  margin-bottom: 1rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.card .title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.card .copy {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.card .btn {
+  margin: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  height: inherit;
+  width: 60px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: #007bff;
+  color: white;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+   text-decoration: none; /* 👈 this line removes the underline */
+}
+
+.card .btn:hover {
+  background-color: #0056b3;
+}
+.app-actions {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card .btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.6rem 1.2rem;
+  line-height: 1;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: #007bff;
+  color: white;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glow-border {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 20px;
+  background: linear-gradient(45deg, #ffffff, #ffffff, #ffffff);
+  background-size: 400% 400%;
+  z-index: 0;
+  animation: borderGlow 4s ease infinite;
+  filter: blur(4px);
+  opacity: 0.7;
+}
+
+@keyframes borderGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 🔄 Responsive Fixes */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .logo-container {
+    justify-content: center;
+  }
+
+  .hospital-logo {
+    width: 200px;
+    height: auto;
+  }
+
+  .title-block h1 {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .card {
+    width: 90%;
+    height: auto;
+  }
+
+  .page-content {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+}
+.card:hover {
+  transform: scale(1.02) rotateZ(0.5deg);
+  animation: bounceHover 0.8s ease, glowPulse 1.6s infinite;
+  box-shadow: 0 20px 40px rgba(0, 123, 255, 0.4);
+  z-index: 2;
+}
+
+@keyframes bounceHover {
+  0% {
+    transform: scale(1) rotateZ(0deg);
+  }
+  30% {
+    transform: scale(1.015) rotateZ(0.05deg);
+  }
+  60% {
+    transform: scale(0.995) rotateZ(-0.05deg);
+  }
+  100% {
+    transform: scale(1.02) rotateZ(0deg);
+  }
+}
+
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
+  }
+}
+
+
+/* Premium Access Button Style for Recorder Buttons */
+button {
+  position: relative;
+  padding: 0.8rem 1.5rem; /* Default padding for larger screens */
+  font-size: 0.9rem; /* Default font size */
   color: white;
+  background: linear-gradient(45deg, #007bff, #4f46e5); /* Gradient background */
+  border: none;
+  border-radius: 6px; /* Slightly smaller radius */
+  cursor: pointer;
+   text-decoration: none; /* 👈 this line removes the underline */
+  overflow: hidden;
+  transition: all 0.3s ease; /* Smooth transitions */
 }
 
-.App-link {
-  color: #61dafb;
+button .shine-content {
+  position: relative;
+  z-index: 1;
 }
 
-@keyframes App-logo-spin {
+button::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+   text-decoration: none; /* 👈 this line removes the underline */
+  transform: rotate(45deg) translateY(-100%);
+  transition: transform 0.5s ease; /* Shine animation */
+}
+
+button:hover::before {
+  transform: rotate(45deg) translateY(100%);
+}
+
+button:hover {
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); /* Slightly reduced glow effect */
+}
+
+#BrushCursor {
+  width: 100%;
+  height: 120px;
+  position: relative;
+  margin-top: 2rem;
+}
+
+.brush-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.p {
+  position: absolute;
+  font-size: 2rem;
+  font-family: sans-serif;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+}
+
+@media only screen and (min-width: 500px) {
+  .p {
+    font-size: 2.5rem;
+  }
+}
+
+@media only screen and (min-width: 700px) {
+  .p {
+    font-size: 4rem;
+  }
+}
+
+.p1 {
+  text-shadow: 1px 1px 1px black, -1px -1px 1px black;
+  color:  #007bff;
+}
+
+.p2 {
+  color: rgb(190, 12, 12);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+  animation: text-animation 30s ease-in-out forwards alternate infinite;
+  text-shadow: 1px 1px 1px black, -1px -1px 1px black;
+}
+
+.p3 {
+  height: 20%;
+  color: transparent;
+}
+
+@keyframes text-animation {
   from {
-    transform: rotate(0deg);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
   }
   to {
-    transform: rotate(360deg);
+    clip-path: polygon(0 0, 0% 1%, 0% 100%, 0% 100%);
   }
 }
+
+.cursor {
+  position: absolute;
+  top: 50%;
+  height: 100%;
+  width: 100%;
+  transform: translate(0, -50%);
+  border-right: 2px solid rgb(190, 12, 12);
+  animation: cursor-animation 30s ease-in-out forwards alternate infinite;
+}
+
+@keyframes cursor-animation {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
+}
+@media (max-width: 480px) {
+  .app-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .card .btn {
+    width: 100%;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .card {
+    width: 95%;
+    padding: 1rem;
+  }
+}
+
