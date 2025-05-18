@@ -1,5 +1,6 @@
 import React from "react";
 import "./App.css";
+import ChatBot from "./components/Chatbot";
 
 const apps = [
   {
@@ -13,7 +14,7 @@ const apps = [
     name: "📋 Medical Transcription App",
     description: "Generate structured medical notes from consultations , capture the essence of patient doctor conversation",
     icon: "/icons/hospital.svg",
-    link: "/https://medicaltranscription-version2-tests.onrender.com/",
+    link: "https://medicaltranscription-version2-tests.onrender.com",
     helpVideo: "https://your-hospital.com/videos/transcription-help.mp4",
   },
   {
@@ -80,10 +81,10 @@ const App = () => {
         <div className="title-block">
           <div id="BrushCursor">
               <div className="container">
-                <div className="p p1">DSAH AI PLATFORM</div>
-                <div className="p p2">DSAH AI PLATFORM</div>
+                <div className="p p1">DSAH AI PLATFORM 🤖</div>
+                <div className="p p2">DSAH AI PLATFORM 🤖</div>
                 <div className="p p3">
-                  DSAH AI PLATFORM
+                  DSAH AI PLATFORM 🤖
                   <div className="cursor"></div>
                 </div>
               </div>
@@ -96,6 +97,7 @@ const App = () => {
           <AppCard key={app.name} app={app} />
         ))}
       </div>
+      <ChatBot/>
     </div>
   );
 };
