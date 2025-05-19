@@ -76,7 +76,7 @@ const App = () => {
     <div className="container">
       <div className="header">
         <div className="logo-container">
-          <img src="./logo.png" alt="Hospital Logo" className="hospital-logo" />
+          <img src="/assets/logo.png" alt="Hospital Logo" className="hospital-logo" />
         </div>
         <div className="title-block">
           <div id="BrushCursor">
