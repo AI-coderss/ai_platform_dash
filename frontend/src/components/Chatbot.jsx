@@ -56,7 +56,21 @@ const ChatBot = () => {
           <div className="chat-header">AI Assistant</div>
           <div className="chat-body" ref={chatBodyRef}>
             {messages.map((msg, idx) => (
-              <div key={idx} className={`chat-msg ${msg.type}`}>
+              <div
+                key={idx}
+                className={`chat-msg ${msg.type}`}
+                style={{
+                  maxWidth: "70%",
+                  alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
+                  background: msg.type === "user" ? "#dcf8c6" : "#ffffff",
+                  padding: "8px 12px",
+                  margin:  msg.type === "user" ? "6px" : "0px 15px",
+                  borderRadius: "14px",
+                  fontSize: "14px",
+                  lineHeight: 1.4,
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                }}
+              >
                 {msg.type === "bot" ? (
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 ) : (
@@ -65,7 +79,7 @@ const ChatBot = () => {
               </div>
             ))}
             {loading && (
-              <div className="chat-msg bot loader">
+              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
