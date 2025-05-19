@@ -35,7 +35,7 @@ const apps = [
     name: "🧠 IVF Virtual Training Assistant",
     description: "designed to assist fellowships of IVF at DSAH based retrieval augmented generation (RAG)",
     icon: "/icons/ivf.svg",
-    link: "/https://dsahivffellowship.onrender.com/",
+    link: "https://dsahivffellowship.onrender.com/",
     helpVideo: "https://your-hospital.com/videos/ai-second-opinion.mp4",
   },
   {
