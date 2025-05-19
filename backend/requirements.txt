@@ -1,11 +1,12 @@
-flask
-requests
-gunicorn
+# requirements.txt
 langchain
-langchain_community
-langchain_core
-langchain_openai
-python-dotenv
-tiktoken
-qdrant-client
+langchain-community
+langchain-core
+langchain-qdrant
+langchain
 openai
+python-dotenv
+flask
+flask-cors
+gunicorn
+tiktoken

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import "../styles/ChatBot.css";
 
 const ChatBot = () => {
@@ -7,6 +8,7 @@ const ChatBot = () => {
     { type: "bot", text: "Hi! Ask me anything about these AI tools." }
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -14,18 +16,13 @@ const ChatBot = () => {
     const userMsg = { type: "user", text: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setLoading(true);
 
     try {
-      const res = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input })
-      });
-
-      const data = await res.json();
+      const res = await axios.post("http://127.0.0.1:5050/chat", { message: input });
       const botMsg = {
         type: "bot",
-        text: data.reply || "🤖 Sorry, I didn't catch that."
+        text: res.data.response || "🤖 Sorry, I didn't catch that."
       };
       setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
@@ -33,6 +30,8 @@ const ChatBot = () => {
         ...prev,
         { type: "bot", text: "⚠️ Error contacting server." }
       ]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,6 +54,13 @@ const ChatBot = () => {
                 {msg.text}
               </div>
             ))}
+            {loading && (
+              <div className="chat-msg bot loader">
+                <span className="dot"></span>
+                <span className="dot"></span>
+                <span className="dot"></span>
+              </div>
+            )}
           </div>
           <div className="chat-input">
             <input
@@ -75,6 +81,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
