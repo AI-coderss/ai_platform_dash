@@ -3,6 +3,7 @@ langchain
 langchain-community
 langchain-core
 langchain-qdrant
+langchain-openai
 langchain
 openai
 python-dotenv
