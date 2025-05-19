@@ -19,7 +19,7 @@ const ChatBot = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:5050/chat", { message: input });
+      const res = await axios.post("https://ai-platform-dsah-backend-chatbot.onrender.com/chat", { message: input });
       const botMsg = {
         type: "bot",
         text: res.data.response || "🤖 Sorry, I didn't catch that."
