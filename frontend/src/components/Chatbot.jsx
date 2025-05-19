@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import ReactMarkdown from "react-markdown"; // ✅ Import markdown renderer
 import "../styles/ChatBot.css";
 
 const ChatBot = () => {
@@ -19,7 +20,10 @@ const ChatBot = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("https://ai-platform-dsah-backend-chatbot.onrender.com/chat", { message: input });
+      const res = await axios.post(
+        "https://ai-platform-dsah-backend-chatbot.onrender.com/chat",
+        { message: input }
+      );
       const botMsg = {
         type: "bot",
         text: res.data.response || "🤖 Sorry, I didn't catch that."
@@ -51,7 +55,11 @@ const ChatBot = () => {
           <div className="chat-body">
             {messages.map((msg, idx) => (
               <div key={idx} className={`chat-msg ${msg.type}`}>
-                {msg.text}
+                {msg.type === "bot" ? (
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                ) : (
+                  msg.text
+                )}
               </div>
             ))}
             {loading && (
@@ -81,6 +89,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
