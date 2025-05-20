@@ -333,6 +333,7 @@ button:hover {
   white-space: nowrap;
   margin: 0;
   padding: 0;
+  perspective: 500px;
 }
 
 @media only screen and (min-width: 500px) {
@@ -350,13 +351,21 @@ button:hover {
 .p1 {
   text-shadow: 1px 1px 1px black, -1px -1px 1px black;
   color:  #007bff;
+   transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
+  perspective: 500px;
 }
 
 .p2 {
-  color: rgb(190, 12, 12);
+  color: #A81E22;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-  animation: text-animation 30s ease-in-out forwards alternate infinite;
+  animation: text-animation 8s ease-in-out forwards alternate infinite;
   text-shadow: 1px 1px 1px black, -1px -1px 1px black;
+  perspective: 500px;
+  text-shadow:
+    1px 1px 2px #000,
+    2px 2px 4px rgba(0, 0, 0, 0.4),
+    3px 3px 6px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
 }
 
 .p3 {
@@ -379,8 +388,8 @@ button:hover {
   height: 100%;
   width: 100%;
   transform: translate(0, -50%);
-  border-right: 2px solid rgb(190, 12, 12);
-  animation: cursor-animation 30s ease-in-out forwards alternate infinite;
+  border-right: 2px solid #A81E22;
+  animation: cursor-animation 8s ease-in-out forwards alternate infinite;
 }
 
 @keyframes cursor-animation {
