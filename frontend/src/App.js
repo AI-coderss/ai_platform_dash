@@ -15,7 +15,7 @@ const apps = [
     description: "Generate structured medical notes from consultations , capture the essence of patient doctor conversation",
     icon: "/icons/hospital.svg",
     link: "https://medicaltranscription-version2-tests.onrender.com",
-    helpVideo: "https://your-hospital.com/videos/transcription-help.mp4",
+    helpVideo: "/videos/transcription.mp4",
   },
   {
     name: "📊 AI-Powered Data Analyst",
