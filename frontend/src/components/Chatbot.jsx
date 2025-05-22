@@ -61,7 +61,7 @@ const ChatBot = () => {
       )}
 
       {open && (
-        <div className="chat-box" style={{ border: "1px solid #2563eb", boxShadow: "0 4px 24px rgba(37,99,235,0.10)" }}>
+        <div className="chat-box" >
           <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
             AI Assistant
           </div>
@@ -81,7 +81,6 @@ const ChatBot = () => {
                   borderRadius: "14px",
                   fontSize: "14px",
                   lineHeight: 1.4,
-                  boxShadow: "0 1px 3px rgba(37,99,235,0.08)"
                 }}
               >
                 {msg.type === "bot" ? (
