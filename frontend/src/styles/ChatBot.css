@@ -101,14 +101,15 @@
 }
 
 .chat-body {
-  flex-grow: 2;
+  flex-grow: 1; /* was 2 or fixed before */
   overflow-y: auto;
   width: 100%;
-  max-height: 400px; /* or any height suitable for your layout */
-  padding-right: 8px;
-  margin-bottom: 10px; /* for spacing above input */
-  scroll-behavior: smooth; /* enables smooth scroll on update */
+  padding: 0 8px;
+  margin-bottom: 10px;
+  scroll-behavior: smooth;
+  min-height: 0; /* Important for flex containers */
 }
+
 .chat-body::-webkit-scrollbar {
   width: 8px;
 }

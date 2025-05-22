@@ -11,6 +11,7 @@ const ChatBot = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
+  const scrollRef = useRef(null); // ✅ Added scroll anchor
 
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
@@ -40,9 +41,8 @@ const ChatBot = () => {
   };
 
   useEffect(() => {
-    if (chatBodyRef.current) {
-      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-    }
+    // ✅ Smooth scroll into view on update
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   return (
@@ -69,7 +69,8 @@ const ChatBot = () => {
                 style={{
                   maxWidth: "70%",
                   alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
-                  background: msg.type === "user" ? "#dcf8c6" : "#ffffff",
+                  background: msg.type === "user" ? "#007bff" : "#ffffff",
+                  color: msg.type === "user" ? "#ffffff" : "#000000",
                   padding: "8px 12px",
                   margin: msg.type === "user" ? "6px" : "0px 15px",
                   borderRadius: "14px",
@@ -93,7 +94,11 @@ const ChatBot = () => {
                 <span className="dot"></span>
               </div>
             )}
+
+            {/* ✅ Scroll anchor at bottom */}
+            <div ref={scrollRef} />
           </div>
+
           <ChatInputWidget onSendMessage={handleSendMessage} />
         </div>
       )}
@@ -102,6 +107,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
