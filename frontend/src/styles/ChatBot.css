@@ -224,8 +224,10 @@
   }
 
   .chat-body {
-    max-height: 300px !important;
-    padding: 0 8px;
+     max-height: none !important;
+    padding: 8px;
+    font-size: 14px;
+  
   }
 
   .chat-msg {
@@ -241,7 +243,8 @@
   }
 
   .chat-body {
-    max-height: 250px !important;
+   max-height: none !important;
+    padding: 6px;
     font-size: 13px;
   }
 
@@ -274,4 +277,13 @@
   .chat-close-mobile {
     display: block;
   }
+  .chat-body {
+  flex-grow: 1; /* was 2 or fixed before */
+  overflow-y: auto;
+  width: 100%;
+  padding: 0 8px;
+  margin-bottom: 10px;
+  scroll-behavior: smooth;
+  min-height: 0; /* Important for flex containers */
+}
 }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "./ChatInputWidget";
@@ -11,7 +11,6 @@ const ChatBot = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
-  const scrollRef = useRef(null); // ✅ Added scroll anchor
 
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
@@ -40,9 +39,13 @@ const ChatBot = () => {
     }
   };
 
-  useEffect(() => {
-    // ✅ Smooth scroll into view on update
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  // ✅ Scroll to bottom smoothly after message or loading state updates
+  useLayoutEffect(() => {
+    if (chatBodyRef.current) {
+      requestAnimationFrame(() => {
+        chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+      });
+    }
   }, [messages, loading]);
 
   return (
@@ -51,7 +54,6 @@ const ChatBot = () => {
         <img src="/icons/chat.svg" alt="Chat" className="chat-icon" />
       </button>
 
-      {/* ✖ Close button for mobile */}
       {open && window.innerWidth <= 768 && (
         <button className="chat-close-mobile" onClick={() => setOpen(false)}>
           ✖
@@ -59,8 +61,11 @@ const ChatBot = () => {
       )}
 
       {open && (
-        <div className="chat-box">
-          <div className="chat-header">AI Assistant</div>
+        <div className="chat-box" style={{ border: "1px solid #2563eb", boxShadow: "0 4px 24px rgba(37,99,235,0.10)" }}>
+          <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
+            AI Assistant
+          </div>
+
           <div className="chat-body" ref={chatBodyRef}>
             {messages.map((msg, idx) => (
               <div
@@ -69,14 +74,14 @@ const ChatBot = () => {
                 style={{
                   maxWidth: "70%",
                   alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
-                  background: msg.type === "user" ? "#007bff" : "#ffffff",
-                  color: msg.type === "user" ? "#ffffff" : "#000000",
+                  background: msg.type === "user" ? "#2563eb" : "#f1f6fd",
+                  color: msg.type === "user" ? "#fff" : "#222",
                   padding: "8px 12px",
                   margin: msg.type === "user" ? "6px" : "0px 15px",
                   borderRadius: "14px",
                   fontSize: "14px",
                   lineHeight: 1.4,
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                  boxShadow: "0 1px 3px rgba(37,99,235,0.08)"
                 }}
               >
                 {msg.type === "bot" ? (
@@ -88,15 +93,15 @@ const ChatBot = () => {
             ))}
 
             {loading && (
-              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
+              <div
+                className="chat-msg bot loader"
+                style={{ alignSelf: "flex-start" }}
+              >
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
               </div>
             )}
-
-            {/* ✅ Scroll anchor at bottom */}
-            <div ref={scrollRef} />
           </div>
 
           <ChatInputWidget onSendMessage={handleSendMessage} />
@@ -107,6 +112,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
