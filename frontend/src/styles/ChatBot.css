@@ -250,3 +250,27 @@
   }
 }
 
+.chat-close-mobile {
+  position: fixed;
+  bottom: calc(100% - 200px); /* ⬇ Lower than before */
+  left: 50%;
+  transform: translateX(-50%);
+  background:#007bff;
+  color: #fffdfd;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 1001;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  display: none; /* default hidden */
+}
+
+@media (max-width: 768px) {
+  .chat-close-mobile {
+    display: block;
+  }
+}

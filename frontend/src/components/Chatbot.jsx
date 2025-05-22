@@ -51,6 +51,13 @@ const ChatBot = () => {
         <img src="/icons/chat.svg" alt="Chat" className="chat-icon" />
       </button>
 
+      {/* ✖ Close button for mobile */}
+      {open && window.innerWidth <= 768 && (
+        <button className="chat-close-mobile" onClick={() => setOpen(false)}>
+          ✖
+        </button>
+      )}
+
       {open && (
         <div className="chat-box">
           <div className="chat-header">AI Assistant</div>
@@ -64,7 +71,7 @@ const ChatBot = () => {
                   alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
                   background: msg.type === "user" ? "#dcf8c6" : "#ffffff",
                   padding: "8px 12px",
-                  margin:  msg.type === "user" ? "6px" : "0px 15px",
+                  margin: msg.type === "user" ? "6px" : "0px 15px",
                   borderRadius: "14px",
                   fontSize: "14px",
                   lineHeight: 1.4,
@@ -78,6 +85,7 @@ const ChatBot = () => {
                 )}
               </div>
             ))}
+
             {loading && (
               <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
                 <span className="dot"></span>
@@ -94,6 +102,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
