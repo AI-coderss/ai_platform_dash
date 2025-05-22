@@ -4,9 +4,15 @@ body {
   background-color: #f6f8fc;
   color: #333;
 }
-
 .container {
-  padding: 1rem;
+  position: relative; /* Required to scope absolute positioning correctly */
+  z-index: 1 !important; /* Base layer */
+}
+
+.page-content {
+  position: relative; /* Ensure cards are behind modal */
+  z-index: 1;
+  overflow: visible; /* Prevent hiding the video */
 }
 
 .header {
@@ -74,6 +80,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  z-index: 1;
 }
 
 .card:hover {
@@ -418,4 +425,45 @@ button:hover {
     padding: 1rem;
   }
 }
+.video-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(30, 34, 90, 0.35);
+  backdrop-filter: blur(5px) saturate(180%);
+  -webkit-backdrop-filter: blur(5px) saturate(180%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
 
+.video-wrapper {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  height: 560px; /* Increase height here */
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-wrapper iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close-video {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 20px;
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1001;
+}
