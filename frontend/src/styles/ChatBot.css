@@ -255,22 +255,40 @@
 }
 
 .chat-close-mobile {
-  position: fixed;
-  bottom: calc(100% - 200px); /* ⬇ Lower than before */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: sticky;
+  bottom: calc(100% - min(22vh, 180px));
   left: 50%;
   transform: translateX(-50%);
-  background:#007bff;
+  background: #007bff;
   color: #fffdfd;
   border: none;
-  border-radius: 50%;
   width: 36px;
   height: 36px;
-  font-size: 18px;
+  border-radius: 50%;
+  font-size: 20px; /* slightly larger for better centering */
   font-weight: bold;
   z-index: 1001;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  line-height: 1; /* ensures vertical centering */
+  padding: 0;     /* removes extra space */
   display: none; /* default hidden */
+}
+
+/* Adjust chat-toggle vertical position based on screen height */
+@media (max-height: 700px) {
+  .chat-toggle {
+    bottom: 12px;
+  }
+  .chat-box {
+    bottom: 60px;
+    height: 60vh;
+    max-height: 420px;
+  }
 }
 
 @media (max-width: 768px) {
