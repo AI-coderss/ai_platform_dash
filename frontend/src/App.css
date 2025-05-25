@@ -20,7 +20,7 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  margin-bottom: 0.05rem;
+  margin-bottom: 10px;
 }
 
 .logo-container {
@@ -32,7 +32,7 @@ body {
 
 .hospital-logo {
   width: 300px;
-  height: 120px;
+  height: 100px;
   object-fit: contain;
 }
 
@@ -40,11 +40,12 @@ body {
   flex: 10;
   text-align: center;
   justify-content: center;
+  margin-bottom: 20px;
 }
 
 .title-block h1 {
   font-size: 2.5rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 10px;
 }
 
 .subtitle {
@@ -62,7 +63,7 @@ body {
   justify-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1rem 1rem 2rem 1rem; /* Reduced top padding */
 }
 
 .card {
@@ -91,7 +92,7 @@ body {
 .card .content {
   position: relative;
   z-index: 1;
-  padding: 1.5rem;
+  padding: 1rem;
   text-align: center;
 }
 
@@ -466,4 +467,11 @@ button:hover {
   border: none;
   cursor: pointer;
   z-index: 1001;
+}
+@media (max-width: 480px) {
+  .video-modal {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

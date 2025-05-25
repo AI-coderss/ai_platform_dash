@@ -29,6 +29,7 @@
   flex-direction: column;
   z-index: 999;
   overflow: hidden;
+  padding-bottom: 80px;
 }
 /* Default: fixed on bottom right */
 .chat-toggle {
@@ -240,6 +241,7 @@
     width: 98% !important;
     left: 1%;
     bottom: 8px;
+    padding-bottom: 80px;
   }
 
   .chat-body {
@@ -288,6 +290,7 @@
     bottom: 60px;
     height: 60vh;
     max-height: 420px;
+    padding-bottom: 80px;
   }
 }
 
@@ -304,4 +307,12 @@
   scroll-behavior: smooth;
   min-height: 0; /* Important for flex containers */
 }
+  .chat-box {
+    width: 95% !important;
+    bottom: 10px;
+    left: 2.5%;
+    height: 80vh; /* Adjusted for better mobile view */
+    max-height: 600px; /* Ensures it doesn't exceed a certain height */
+    padding-bottom: 80px;
+  }
 }
