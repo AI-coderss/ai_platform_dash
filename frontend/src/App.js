@@ -49,7 +49,7 @@ const App = () => {
       description: "Enhance the quality of the generated Medical reports by leveraging AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/YOUR_VIDEO_ID_3?autoplay=1&mute=1",
+      helpVideo: "https://www.youtube.com/embed/1amAKukvQ2Q?autoplay=1&mute=1",
     },
     {
       name: "🧠 IVF Virtual Training Assistant",
