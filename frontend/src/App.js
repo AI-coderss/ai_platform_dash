@@ -41,7 +41,7 @@ const App = () => {
       name: "📊 AI-Powered Data Analyst",
       description: "Upload and analyze hospital data instantly, visualize the results, generate AI insights",
       icon: "/icons/dashboard.svg",
-      link: "https://youtu.be/FbEV-LrmZl0",
+      link: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
@@ -62,7 +62,7 @@ const App = () => {
       name: "💬 Patient Assistant",
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
-      link: "https://youtu.be/FbEV-LrmZl0",
+      link: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
   ];
