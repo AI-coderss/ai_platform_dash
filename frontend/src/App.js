@@ -28,7 +28,7 @@ const App = () => {
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://dsahdoctoraiassistantbot.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/fT0iiUQ0I0U?autoplay=1&mute=1",
+      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
       name: "📋 Medical Transcription App",
@@ -41,8 +41,8 @@ const App = () => {
       name: "📊 AI-Powered Data Analyst",
       description: "Upload and analyze hospital data instantly, visualize the results, generate AI insights",
       icon: "/icons/dashboard.svg",
-      link: "https://youtu.be/fT0iiUQ0I0U",
-      helpVideo: "https://www.youtube.com/embed/fT0iiUQ0I0U?autoplay=1&mute=1",
+      link: "https://youtu.be/FbEV-LrmZl0",
+      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
       name: "🧠 Medical Report Enhancement App",
@@ -56,14 +56,14 @@ const App = () => {
       description: "designed to assist fellowships of IVF at DSAH based retrieval augmented generation (RAG)",
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/fT0iiUQ0I0U?autoplay=1&mute=1",
+      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
       name: "💬 Patient Assistant",
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
-      link: "https://youtu.be/fT0iiUQ0I0U",
-      helpVideo: "https://www.youtube.com/embed/fT0iiUQ0I0U?autoplay=1&mute=1",
+      link: "https://youtu.be/FbEV-LrmZl0",
+      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
   ];
 
