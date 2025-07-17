@@ -3,16 +3,30 @@ body {
   margin: 0;
   background-color: #f6f8fc;
   color: #333;
+   overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+}
+
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 .container {
-  position: relative; /* Required to scope absolute positioning correctly */
-  z-index: 1 !important; /* Base layer */
+  position: relative;
+  z-index: 1 !important;
 }
 
 .page-content {
-  position: relative; /* Ensure cards are behind modal */
+  position: relative;
   z-index: 1;
-  overflow: visible; /* Prevent hiding the video */
+  overflow: visible;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.8rem;
+  justify-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0rem 1rem 2rem 1rem; /* Top padding reduced from 0.5rem to 0rem */
 }
 
 .header {
@@ -20,7 +34,8 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  margin-bottom: 10px;
+  margin-top: 10px;
+  margin-bottom: 5px;
 }
 
 .logo-container {
@@ -31,7 +46,7 @@ body {
 }
 
 .hospital-logo {
-  width: 300px;
+  width: 250px;
   height: 100px;
   object-fit: contain;
 }
@@ -40,12 +55,13 @@ body {
   flex: 10;
   text-align: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-top: 10px;
+   margin-bottom: 0px !important;
 }
 
 .title-block h1 {
   font-size: 2.5rem;
-  margin-bottom: 10px;
+  margin-bottom: 4px; /* reduced from 10px */
 }
 
 .subtitle {
@@ -56,19 +72,9 @@ body {
   font-style: italic;
 }
 
-.page-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
-  justify-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem 1rem 2rem 1rem; /* Reduced top padding */
-}
-
 .card {
   width: 400px;
-  height: 380px;
+  height: 370px;
   position: relative;
   border-radius: 16px;
   background: white;
@@ -82,11 +88,14 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 1;
+  margin-bottom: 1px;
 }
 
 .card:hover {
-  transform: rotateY(6deg) rotateX(3deg) scale(1.5);
-  box-shadow: 0 10px 30px rgba(0, 123, 255, 0.3);
+  transform: scale(1.02) rotateZ(0.5deg);
+  animation: bounceHover 0.8s ease, glowPulse 1.6s infinite;
+  box-shadow: 0 20px 40px rgba(0, 123, 255, 0.4);
+  z-index: 2;
 }
 
 .card .content {
@@ -128,12 +137,13 @@ body {
   color: white;
   transition: background-color 0.3s ease;
   cursor: pointer;
-   text-decoration: none; /* 👈 this line removes the underline */
+  text-decoration: none;
 }
 
 .card .btn:hover {
   background-color: #0056b3;
 }
+
 .app-actions {
   display: flex;
   justify-content: center;
@@ -200,48 +210,6 @@ body {
   }
 }
 
-/* 🔄 Responsive Fixes */
-@media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .logo-container {
-    justify-content: center;
-  }
-
-  .hospital-logo {
-    width: 200px;
-    height: auto;
-  }
-
-  .title-block h1 {
-    font-size: 2rem;
-  }
-
-  .subtitle {
-    font-size: 1rem;
-  }
-
-  .card {
-    width: 90%;
-    height: auto;
-  }
-
-  .page-content {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-  }
-}
-.card:hover {
-  transform: scale(1.02) rotateZ(0.5deg);
-  animation: bounceHover 0.8s ease, glowPulse 1.6s infinite;
-  box-shadow: 0 20px 40px rgba(0, 123, 255, 0.4);
-  z-index: 2;
-}
-
 @keyframes bounceHover {
   0% {
     transform: scale(1) rotateZ(0deg);
@@ -257,7 +225,6 @@ body {
   }
 }
 
-
 @keyframes glowPulse {
   0% {
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
@@ -270,20 +237,19 @@ body {
   }
 }
 
-
-/* Premium Access Button Style for Recorder Buttons */
+/* Buttons for voice recorder and AI platform actions */
 button {
   position: relative;
-  padding: 0.8rem 1.5rem; /* Default padding for larger screens */
-  font-size: 0.9rem; /* Default font size */
+  padding: 0.8rem 1.5rem;
+  font-size: 0.9rem;
   color: white;
-  background: linear-gradient(45deg, #007bff, #4f46e5); /* Gradient background */
+  background: linear-gradient(45deg, #007bff, #4f46e5);
   border: none;
-  border-radius: 6px; /* Slightly smaller radius */
+  border-radius: 6px;
   cursor: pointer;
-   text-decoration: none; /* 👈 this line removes the underline */
+  text-decoration: none;
   overflow: hidden;
-  transition: all 0.3s ease; /* Smooth transitions */
+  transition: all 0.3s ease;
 }
 
 button .shine-content {
@@ -298,15 +264,9 @@ button::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-   text-decoration: none; /* 👈 this line removes the underline */
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   transform: rotate(45deg) translateY(-100%);
-  transition: transform 0.5s ease; /* Shine animation */
+  transition: transform 0.5s ease;
 }
 
 button:hover::before {
@@ -314,7 +274,7 @@ button:hover::before {
 }
 
 button:hover {
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); /* Slightly reduced glow effect */
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
 }
 
 #BrushCursor {
@@ -358,21 +318,18 @@ button:hover {
 
 .p1 {
   text-shadow: 1px 1px 1px black, -1px -1px 1px black;
-  color:  #007bff;
-   transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
-  perspective: 500px;
+  color: #007bff;
+  transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
 }
 
 .p2 {
   color: #A81E22;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
   animation: text-animation 8s ease-in-out forwards alternate infinite;
-  text-shadow: 1px 1px 1px black, -1px -1px 1px black;
-  perspective: 500px;
-  text-shadow:
-    1px 1px 2px #000,
-    2px 2px 4px rgba(0, 0, 0, 0.4),
-    3px 3px 6px rgba(0, 0, 0, 0.2);
+  text-shadow: 1px 1px 1px black, -1px -1px 1px black,
+               1px 1px 2px #000,
+               2px 2px 4px rgba(0, 0, 0, 0.4),
+               3px 3px 6px rgba(0, 0, 0, 0.2);
   transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
 }
 
@@ -408,6 +365,43 @@ button:hover {
     width: 0;
   }
 }
+
+/* Responsive Tweaks */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .logo-container {
+    justify-content: center;
+  }
+
+  .hospital-logo {
+    width: 200px;
+    height: auto;
+  }
+
+  .title-block h1 {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .card {
+    width: 90%;
+    height: auto;
+  }
+
+  .page-content {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+}
+
 @media (max-width: 480px) {
   .app-actions {
     flex-direction: column;
@@ -425,7 +419,15 @@ button:hover {
     width: 95%;
     padding: 1rem;
   }
+
+  .video-modal {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
+
+/* Video Modal Styles */
 .video-modal {
   position: fixed;
   top: 0;
@@ -446,7 +448,7 @@ button:hover {
   position: relative;
   width: 90%;
   max-width: 1000px;
-  height: 560px; /* Increase height here */
+  height: 560px;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -467,11 +469,4 @@ button:hover {
   border: none;
   cursor: pointer;
   z-index: 1001;
-}
-@media (max-width: 480px) {
-  .video-modal {
-    background: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
 }

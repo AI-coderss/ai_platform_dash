@@ -33,6 +33,8 @@ const ChatBot = () => {
     if (question.includes("features")) return "✨";
     if (question.includes("mobile")) return "📱";
     if (question.includes("PDF")) return "📄";
+    if (question.includes("AI")) return "🤖";
+    if (question.includes("tools")) return "🛠️";
     return "❓";
   };
 
