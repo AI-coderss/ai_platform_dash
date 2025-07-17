@@ -217,6 +217,102 @@
    
   }
 }
+/* ==== Predefined Questions Container ==== */
+.predefined-questions-container {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 0 0 14px 14px;
+  margin-top: -1px;
+}
+
+/* ==== Accordion Header ==== */
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  color: #1e3a8a;
+  background: rgba(226, 240, 255, 0.5);
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.accordion-header:hover {
+  background: rgba(200, 230, 255, 0.6);
+}
+
+/* ==== Chevron Rotation ==== */
+.chevron {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.chevron.rotate {
+  transform: rotate(180deg);
+}
+
+/* ==== Accordion Body Transition ==== */
+.accordion-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.accordion-body.open {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* ==== Accordion Content ==== */
+.accordion-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+/* ==== Predefined Question Buttons ==== */
+.predefined-q {
+  padding: 6px 14px;
+  background-color: #b9bbc0;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+  animation: fadeInUp 0.4s ease forwards;
+  opacity: 0;
+}
+
+.predefined-q:hover {
+  background-color: #1e40af;
+}
+
+/* ==== Fade-in Animation ==== */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
 @media (max-width: 768px) {
   .chat-box {
     width: 95% !important;

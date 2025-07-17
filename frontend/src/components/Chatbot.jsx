@@ -3,18 +3,38 @@ import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "./ChatInputWidget";
 import "../styles/ChatBot.css";
 
+const initialQuestions = [
+  "How do I use the medical report platform?",
+  "How does the medical transcription app work?",
+  "What are the key features of these AI tools?",
+  "Is it available on mobile devices?",
+  "Can I download the report as PDF?",
+];
+
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
+  const [accordionOpen, setAccordionOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { type: "bot", text: "Hi! Ask me anything about these AI tools." }
+    { type: "bot", text: "Hi! Ask me anything about these AI tools." },
   ]);
+  const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
+
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
     localStorage.setItem("chatbot-session", id);
     return id;
   });
+
+  const getEmoji = (question) => {
+    if (question.includes("platform")) return "🖥️";
+    if (question.includes("transcription")) return "📝";
+    if (question.includes("features")) return "✨";
+    if (question.includes("mobile")) return "📱";
+    if (question.includes("PDF")) return "📄";
+    return "❓";
+  };
 
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
@@ -29,7 +49,7 @@ const ChatBot = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, session_id: sessionId })
+          body: JSON.stringify({ message: text, session_id: sessionId }),
         }
       );
 
@@ -57,11 +77,19 @@ const ChatBot = () => {
       console.error(err);
       setMessages((prev) => [
         ...prev,
-        { type: "bot", text: "⚠️ Error streaming response." }
+        { type: "bot", text: "⚠️ Error streaming response." },
       ]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQuestionClick = (question) => {
+    handleSendMessage({ text: question });
+    setVisibleQuestions((prev) =>
+      prev.filter((q) => q !== question)
+    );
+    setAccordionOpen(false);
   };
 
   useLayoutEffect(() => {
@@ -124,6 +152,51 @@ const ChatBot = () => {
             )}
           </div>
 
+          {/* ✅ Predefined Questions with Accordion */}
+          {visibleQuestions.length > 0 && (
+            <div className="predefined-questions-container">
+              {visibleQuestions.length > 3 ? (
+                <>
+                  <div
+                    className="accordion-header"
+                    onClick={() => setAccordionOpen((prev) => !prev)}
+                  >
+                    <span>Show Suggested Questions</span>
+                    <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>
+                      ▼
+                    </span>
+                  </div>
+
+                  <div className={`accordion-body ${accordionOpen ? "open" : ""}`}>
+                    <div className="accordion-content">
+                      {visibleQuestions.map((q, i) => (
+                        <button
+                          key={i}
+                          className="predefined-q fade-in"
+                          style={{ animationDelay: `${i * 0.05}s` }}
+                          onClick={() => handleQuestionClick(q)}
+                        >
+                          {getEmoji(q)} {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                visibleQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    className="predefined-q fade-in"
+                    style={{ animationDelay: `${i * 0.05}s` }}
+                    onClick={() => handleQuestionClick(q)}
+                  >
+                    {getEmoji(q)} {q}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
           <ChatInputWidget onSendMessage={handleSendMessage} />
         </div>
       )}
@@ -132,6 +205,8 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
+
 
 
 
