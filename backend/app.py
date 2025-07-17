@@ -15,6 +15,7 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.vectorstores.qdrant import Qdrant
 
 # Load environment variables
 load_dotenv()
@@ -26,13 +27,15 @@ CORS(app, origins=["https://ai-platform-dash.onrender.com"])
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 
+
+
 # === VECTOR DB ===
 def get_vector_store():
     client = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
     )
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
     return Qdrant(client=client, collection_name=collection_name, embeddings=embeddings)
 
 vector_store = get_vector_store()
