@@ -1,157 +1,148 @@
 import os
 import tempfile
 from uuid import uuid4
+from datetime import datetime
+import json
+import re
+import base64
+import random
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
-import openai
 import qdrant_client
-
+from openai import OpenAI
 from prompts.prompt import engineeredprompt
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_community.chat_message_histories.in_memory import ChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_community.vectorstores.qdrant import Qdrant
 
-# Load environment variables
+# Load env vars
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins=["https://ai-platform-dash.onrender.com"])
 
-# === SESSION STATE ===
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 
+# Initialize OpenAI client
+client = OpenAI()
 
-
-# === VECTOR DB ===
+# === VECTOR STORE ===
 def get_vector_store():
-    client = qdrant_client.QdrantClient(
+    qdrant = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
+        timeout=60.0
     )
-    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"))
-    return Qdrant(client=client, collection_name=collection_name, embeddings=embeddings)
+    embeddings = OpenAIEmbeddings()
+    return Qdrant(client=qdrant, collection_name=collection_name, embeddings=embeddings)
 
 vector_store = get_vector_store()
 
-# === CONVERSATIONAL RAG SETUP ===
+# === RAG Chain ===
 def get_context_retriever_chain():
+    llm = ChatOpenAI(model="gpt-4o")
     retriever = vector_store.as_retriever()
     prompt = ChatPromptTemplate.from_messages([
         MessagesPlaceholder("chat_history"),
         ("user", "{input}"),
         ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation"),
     ])
-    return create_history_aware_retriever(ChatOpenAI(), retriever, prompt)
+    return create_history_aware_retriever(llm, retriever, prompt)
 
 def get_conversational_rag_chain():
     retriever_chain = get_context_retriever_chain()
+    llm = ChatOpenAI(model="gpt-4o")
     prompt = ChatPromptTemplate.from_messages([
         ("system", engineeredprompt),
         MessagesPlaceholder("chat_history"),
-        ("user", "{input}")
+        ("user", "{input}"),
     ])
-    return create_retrieval_chain(retriever_chain, create_stuff_documents_chain(ChatOpenAI(), prompt))
+    return create_retrieval_chain(retriever_chain, create_stuff_documents_chain(llm, prompt))
 
-rag_chain = get_conversational_rag_chain()
+conversation_rag_chain = get_conversational_rag_chain()
 
-# === MEMORY WRAPPER ===
-def get_memory(session_id):
-    history = ChatMessageHistory()
-    if session_id in chat_sessions:
-        for msg in chat_sessions[session_id]:
-            if msg["role"] == "user":
-                history.add_user_message(msg["content"])
-            elif msg["role"] == "assistant":
-                history.add_ai_message(msg["content"])
-    return history
-
-chain_with_memory = RunnableWithMessageHistory(
-    rag_chain,
-    lambda session_id: get_memory(session_id),
-    input_messages_key="input",
-    history_messages_key="chat_history",
-)
-
-# === /generate endpoint ===
-@app.route("/generate", methods=["POST"])
-def generate():
-    session_id = request.form.get("session_id") or request.args.get("session_id")
-    data = {}
-
-    if request.content_type.startswith("multipart/form-data"):
-        audio_file = request.files.get("audio")
-        if not audio_file:
-            return jsonify({"response": "No audio file provided"}), 400
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp:
-            audio_path = temp.name
-            audio_file.save(audio_path)
-        with open(audio_path, "rb") as af:
-            transcript = openai.Audio.transcribe("whisper-1", af)["text"]
-        os.remove(audio_path)
-        data["message"] = transcript
-    else:
-        data = request.get_json()
-
-    if not data or not data.get("message"):
-        return jsonify({"response": "No input provided"}), 400
-
-    session_id = session_id or data.get("session_id") or str(uuid4())
-    user_input = data["message"]
-
-    # Invoke the RAG chain
-    response = chain_with_memory.invoke(
-        {"input": user_input},
-        config={"configurable": {"session_id": session_id}},
-    )
-    answer = response["answer"]
-
-    # Store in session memory
-    if session_id not in chat_sessions:
-        chat_sessions[session_id] = []
-    chat_sessions[session_id].append({"role": "user", "content": user_input})
-    chat_sessions[session_id].append({"role": "assistant", "content": answer})
-
-    return jsonify({
-        "response": answer,
-        "session_id": session_id
-    })
-
-# === /stream endpoint ===
+# === /stream ===
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
     session_id = data.get("session_id", str(uuid4()))
     user_input = data.get("message")
-
     if not user_input:
         return jsonify({"error": "No input message"}), 400
 
+    if session_id not in chat_sessions:
+        chat_sessions[session_id] = []
+
     def generate():
         answer = ""
-        for chunk in chain_with_memory.stream(
-            {"input": user_input},
-            config={"configurable": {"session_id": session_id}},
-        ):
-            token = chunk.get("answer", "")
-            answer += token
-            yield token
 
-        # Append to session memory after complete
-        if session_id not in chat_sessions:
-            chat_sessions[session_id] = []
+        # === Pure RAG only ===
+        try:
+            for chunk in conversation_rag_chain.stream(
+                {"chat_history": chat_sessions[session_id], "input": user_input}
+            ):
+                token = chunk.get("answer", "")
+                answer += token
+                yield token
+        except Exception as e:
+            yield f"\n[Vector error: {str(e)}]"
+
+        # Save session
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
-    return Response(generate(), content_type="text/plain")
+    return Response(
+        stream_with_context(generate()),
+        content_type="text/plain",
+        headers={"Access-Control-Allow-Origin": "https://ai-platform-dash.onrender.com"}
+    )
 
-# === /reset endpoint ===
+# === /generate ===
+@app.route("/generate", methods=["POST"])
+def generate():
+    data = request.get_json()
+    session_id = data.get("session_id", str(uuid4()))
+    user_input = data.get("message", "")
+    if not user_input:
+        return jsonify({"error": "No input message"}), 400
+
+    if session_id not in chat_sessions:
+        chat_sessions[session_id] = []
+
+    response = conversation_rag_chain.invoke(
+        {"chat_history": chat_sessions[session_id], "input": user_input}
+    )
+    answer = response["answer"]
+
+    chat_sessions[session_id].append({"role": "user", "content": user_input})
+    chat_sessions[session_id].append({"role": "assistant", "content": answer})
+
+    return jsonify({"response": answer, "session_id": session_id})
+
+# === /tts ===
+@app.route("/tts", methods=["POST"])
+def tts():
+    text = (request.json or {}).get("text", "").strip()
+    if not text:
+        return jsonify({"error": "No text supplied"}), 400
+
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="fable",
+        input=text
+    )
+    audio_file = "temp_audio.mp3"
+    response.stream_to_file(audio_file)
+    with open(audio_file, "rb") as f:
+        audio_bytes = f.read()
+    audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+    return jsonify({"audio_base64": audio_base64})
+
+# === /reset ===
 @app.route("/reset", methods=["POST"])
 def reset():
     session_id = request.json.get("session_id")
@@ -159,5 +150,10 @@ def reset():
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
 
+# === Run ===
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5050, debug=True)
+
+
+
+
