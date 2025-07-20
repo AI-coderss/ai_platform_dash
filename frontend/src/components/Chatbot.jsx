@@ -18,6 +18,7 @@ const ChatBot = () => {
     { type: "bot", text: "Hi! Ask me anything about these AI tools." },
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
+  const [followUps, setFollowUps] = useState([]);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
 
@@ -43,6 +44,7 @@ const ChatBot = () => {
 
     const userMsg = { type: "user", text };
     setMessages((prev) => [...prev, userMsg]);
+    setFollowUps([]); // clear follow-ups when user types
     setLoading(true);
 
     try {
@@ -75,6 +77,22 @@ const ChatBot = () => {
           return updated;
         });
       }
+
+      // Fetch dependent follow-up questions
+      try {
+        const followupRes = await fetch(
+          "https://ai-platform-dsah-backend-chatbot.onrender.com/generate-followups",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ last_answer: botText }),
+          }
+        );
+        const followupJson = await followupRes.json();
+        setFollowUps(followupJson.followups || []);
+      } catch (e) {
+        console.warn("Could not fetch follow-ups", e);
+      }
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -88,10 +106,13 @@ const ChatBot = () => {
 
   const handleQuestionClick = (question) => {
     handleSendMessage({ text: question });
-    setVisibleQuestions((prev) =>
-      prev.filter((q) => q !== question)
-    );
+    setVisibleQuestions((prev) => prev.filter((q) => q !== question));
     setAccordionOpen(false);
+  };
+
+  const handleFollowupClick = (question) => {
+    setFollowUps([]); // Hide follow-ups after use
+    handleSendMessage({ text: question });
   };
 
   useLayoutEffect(() => {
@@ -116,7 +137,10 @@ const ChatBot = () => {
 
       {open && (
         <div className="chat-box">
-          <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
+          <div
+            className="chat-header"
+            style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}
+          >
             AI Assistant
           </div>
 
@@ -146,7 +170,10 @@ const ChatBot = () => {
             ))}
 
             {loading && (
-              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
+              <div
+                className="chat-msg bot loader"
+                style={{ alignSelf: "flex-start" }}
+              >
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
@@ -154,7 +181,25 @@ const ChatBot = () => {
             )}
           </div>
 
-          {/* ✅ Predefined Questions with Accordion */}
+          {/* Follow-up Suggestions */}
+          {followUps.length > 0 && (
+            <div className="followups-container">
+              <p className="followup-label">Suggested follow-up questions:</p>
+              <div className="followup-buttons">
+                {followUps.map((q, i) => (
+                  <button
+                    key={i}
+                    className="predefined-q fade-in"
+                    onClick={() => handleFollowupClick(q)}
+                  >
+                    {getEmoji(q)} {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Initial Suggested Questions */}
           {visibleQuestions.length > 0 && (
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
@@ -164,12 +209,16 @@ const ChatBot = () => {
                     onClick={() => setAccordionOpen((prev) => !prev)}
                   >
                     <span>Show Suggested Questions</span>
-                    <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>
+                    <span
+                      className={`chevron ${accordionOpen ? "rotate" : ""}`}
+                    >
                       ▼
                     </span>
                   </div>
 
-                  <div className={`accordion-body ${accordionOpen ? "open" : ""}`}>
+                  <div
+                    className={`accordion-body ${accordionOpen ? "open" : ""}`}
+                  >
                     <div className="accordion-content">
                       {visibleQuestions.map((q, i) => (
                         <button

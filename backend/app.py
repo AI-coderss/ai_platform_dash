@@ -149,6 +149,39 @@ def reset():
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
+# === /generate-followups ===
+@app.route("/generate-followups", methods=["POST"])
+def generate_followups():
+    data = request.get_json()
+    last_answer = data.get("last_answer", "")
+    if not last_answer:
+        return jsonify({"followups": []})
+
+    followup_prompt = (
+        f"Based on the following assistant response, generate 3 short and helpful follow-up questions "
+        f"that the user might want to ask next:\n\n{last_answer}\n\n"
+        f"Format the response as a JSON array of strings."
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": followup_prompt}
+            ],
+            temperature=0.7
+        )
+
+        text = completion.choices[0].message.content.strip()
+        match = re.search(r'\[(.*?)\]', text, re.DOTALL)
+        questions = json.loads(f"[{match.group(1)}]") if match else []
+        return jsonify({"followups": questions})
+
+    except Exception as e:
+        print(f"Error generating followups: {e}")
+        return jsonify({"followups": []})
+
 
 # === Run ===
 if __name__ == "__main__":

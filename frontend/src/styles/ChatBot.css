@@ -300,6 +300,60 @@
 .predefined-q:hover {
   background-color: #1e40af;
 }
+.followups-container {
+  margin: 10px 15px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 200, 200, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  animation: fadeInUp 0.3s ease-in-out;
+}
+
+.followup-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.followup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.followup-buttons .predefined-q {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background-color: #f0f4ff;
+  color: #1e3a8a;
+  border: 1px solid #dbeafe;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.followup-buttons .predefined-q:hover {
+  background-color: #dbeafe;
+  color: #1e40af;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* ==== Fade-in Animation ==== */
 @keyframes fadeInUp {
