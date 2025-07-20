@@ -28,17 +28,6 @@ const ChatBot = () => {
     return id;
   });
 
-  const getEmoji = (question) => {
-    if (question.includes("platform")) return "🖥️";
-    if (question.includes("transcription")) return "📝";
-    if (question.includes("features")) return "✨";
-    if (question.includes("mobile")) return "📱";
-    if (question.includes("PDF")) return "📄";
-    if (question.includes("AI")) return "🤖";
-    if (question.includes("tools")) return "🛠️";
-    return "❓";
-  };
-
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
 
@@ -181,7 +170,7 @@ const ChatBot = () => {
             )}
           </div>
 
-          {/* ✅ Follow-Up Questions Accordion */}
+          {/* ✅ Follow-Up Questions (No emoji, not bold) */}
           {followUps.length > 0 && (
             <div className="faq-section">
               {followUps.map((q, i) => (
@@ -190,13 +179,13 @@ const ChatBot = () => {
                   className="faq-question clickable"
                   onClick={() => handleFollowupClick(q)}
                 >
-                  {getEmoji(q)} {q}
+                  {q}
                 </div>
               ))}
             </div>
           )}
 
-          {/* ✅ Initial Predefined Questions */}
+          {/* ✅ Initial Suggested Questions */}
           {visibleQuestions.length > 0 && (
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
@@ -224,7 +213,7 @@ const ChatBot = () => {
                           style={{ animationDelay: `${i * 0.05}s` }}
                           onClick={() => handleQuestionClick(q)}
                         >
-                          {getEmoji(q)} {q}
+                          {q}
                         </button>
                       ))}
                     </div>
@@ -238,7 +227,7 @@ const ChatBot = () => {
                     style={{ animationDelay: `${i * 0.05}s` }}
                     onClick={() => handleQuestionClick(q)}
                   >
-                    {getEmoji(q)} {q}
+                    {q}
                   </button>
                 ))
               )}
@@ -253,18 +242,3 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
