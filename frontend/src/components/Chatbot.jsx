@@ -19,6 +19,7 @@ const ChatBot = () => {
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [followUps, setFollowUps] = useState([]);
+  const [openAccordion, setOpenAccordion] = useState(null);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
 
@@ -39,12 +40,17 @@ const ChatBot = () => {
     return "❓";
   };
 
+  const toggleAccordion = (index) => {
+    setOpenAccordion((prev) => (prev === index ? null : index));
+  };
+
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
 
     const userMsg = { type: "user", text };
     setMessages((prev) => [...prev, userMsg]);
-    setFollowUps([]); // clear follow-ups when user types
+    setFollowUps([]);
+    setOpenAccordion(null);
     setLoading(true);
 
     try {
@@ -111,7 +117,7 @@ const ChatBot = () => {
   };
 
   const handleFollowupClick = (question) => {
-    setFollowUps([]); // Hide follow-ups after use
+    setFollowUps([]);
     handleSendMessage({ text: question });
   };
 
@@ -181,25 +187,39 @@ const ChatBot = () => {
             )}
           </div>
 
-          {/* Follow-up Suggestions */}
+          {/* ✅ Accordion-based Follow-up Questions */}
           {followUps.length > 0 && (
-            <div className="followups-container">
-              <p className="followup-label">Suggested follow-up questions:</p>
-              <div className="followup-buttons">
-                {followUps.map((q, i) => (
-                  <button
-                    key={i}
-                    className="predefined-q fade-in"
-                    onClick={() => handleFollowupClick(q)}
-                  >
+            <div className="faq-section">
+              <h2 className="faq-title">Suggested Follow-Up Questions</h2>
+              {followUps.map((q, i) => (
+                <div
+                  key={i}
+                  className={`faq-item ${i === openAccordion ? "active" : ""}`}
+                  onClick={() => toggleAccordion(i)}
+                >
+                  <div className="faq-question">
                     {getEmoji(q)} {q}
-                  </button>
-                ))}
-              </div>
+                  </div>
+                  <div
+                    className="faq-answer"
+                    style={{ display: i === openAccordion ? "block" : "none" }}
+                  >
+                    <button
+                      className="faq-answer-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFollowupClick(q);
+                      }}
+                    >
+                      Ask this
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Initial Suggested Questions */}
+          {/* ✅ Initial Predefined Questions */}
           {visibleQuestions.length > 0 && (
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
@@ -256,6 +276,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
