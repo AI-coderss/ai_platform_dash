@@ -18,7 +18,6 @@ const ChatBot = () => {
     { type: "bot", text: "Hi! Ask me anything about these AI tools." },
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
-  const [followUps, setFollowUps] = useState([]);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
 
@@ -33,7 +32,6 @@ const ChatBot = () => {
 
     const userMsg = { type: "user", text };
     setMessages((prev) => [...prev, userMsg]);
-    setFollowUps([]);
     setAccordionOpen(false);
     setLoading(true);
 
@@ -67,21 +65,6 @@ const ChatBot = () => {
           return updated;
         });
       }
-
-      try {
-        const followupRes = await fetch(
-          "https://ai-platform-dsah-backend-chatbot.onrender.com/generate-followups",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ last_answer: botText }),
-          }
-        );
-        const followupJson = await followupRes.json();
-        setFollowUps(followupJson.followups || []);
-      } catch (e) {
-        console.warn("Could not fetch follow-ups", e);
-      }
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -97,11 +80,6 @@ const ChatBot = () => {
     handleSendMessage({ text: question });
     setVisibleQuestions((prev) => prev.filter((q) => q !== question));
     setAccordionOpen(false);
-  };
-
-  const handleFollowupClick = (question) => {
-    handleSendMessage({ text: question });
-    setFollowUps([]);
   };
 
   useLayoutEffect(() => {
@@ -170,22 +148,7 @@ const ChatBot = () => {
             )}
           </div>
 
-          {/* ✅ Follow-Up Questions (No emoji, not bold) */}
-          {followUps.length > 0 && (
-            <div className="faq-section">
-              {followUps.map((q, i) => (
-                <div
-                  key={i}
-                  className="faq-question clickable"
-                  onClick={() => handleFollowupClick(q)}
-                >
-                  {q}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* ✅ Initial Suggested Questions */}
+          {/* ✅ Initial Predefined Questions */}
           {visibleQuestions.length > 0 && (
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
@@ -242,3 +205,17 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
