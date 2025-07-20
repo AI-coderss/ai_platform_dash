@@ -19,7 +19,6 @@ const ChatBot = () => {
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [followUps, setFollowUps] = useState([]);
-  const [openAccordion, setOpenAccordion] = useState(null);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
 
@@ -40,17 +39,13 @@ const ChatBot = () => {
     return "❓";
   };
 
-  const toggleAccordion = (index) => {
-    setOpenAccordion((prev) => (prev === index ? null : index));
-  };
-
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
 
     const userMsg = { type: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     setFollowUps([]);
-    setOpenAccordion(null);
+    setAccordionOpen(false);
     setLoading(true);
 
     try {
@@ -84,7 +79,6 @@ const ChatBot = () => {
         });
       }
 
-      // Fetch dependent follow-up questions
       try {
         const followupRes = await fetch(
           "https://ai-platform-dsah-backend-chatbot.onrender.com/generate-followups",
@@ -117,8 +111,8 @@ const ChatBot = () => {
   };
 
   const handleFollowupClick = (question) => {
-    setFollowUps([]);
     handleSendMessage({ text: question });
+    setFollowUps([]);
   };
 
   useLayoutEffect(() => {
@@ -187,33 +181,16 @@ const ChatBot = () => {
             )}
           </div>
 
-          {/* ✅ Accordion-based Follow-up Questions */}
+          {/* ✅ Follow-Up Questions Accordion */}
           {followUps.length > 0 && (
             <div className="faq-section">
-              <h2 className="faq-title">Suggested Follow-Up Questions</h2>
               {followUps.map((q, i) => (
                 <div
                   key={i}
-                  className={`faq-item ${i === openAccordion ? "active" : ""}`}
-                  onClick={() => toggleAccordion(i)}
+                  className="faq-question clickable"
+                  onClick={() => handleFollowupClick(q)}
                 >
-                  <div className="faq-question">
-                    {getEmoji(q)} {q}
-                  </div>
-                  <div
-                    className="faq-answer"
-                    style={{ display: i === openAccordion ? "block" : "none" }}
-                  >
-                    <button
-                      className="faq-answer-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFollowupClick(q);
-                      }}
-                    >
-                      Ask this
-                    </button>
-                  </div>
+                  {getEmoji(q)} {q}
                 </div>
               ))}
             </div>
@@ -276,6 +253,8 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
+
 
 
 
