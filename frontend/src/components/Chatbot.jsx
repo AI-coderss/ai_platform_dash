@@ -33,17 +33,19 @@ const ChatBot = () => {
   const triggerCardMatch = (text) => {
     const matchMap = [
       { keywords: ["doctor", "opinion", "ai doctor"], id: 1 },
-      { keywords: ["transcription"], id: 2 },
-      { keywords: ["data", "analyst", "dashboard", "insights"], id: 3 },
+      { keywords: ["transcription", "note"], id: 2 },
+      { keywords: ["analyst", "dashboard", "insights"], id: 3 },
       { keywords: ["report", "enhance"], id: 4 },
       { keywords: ["ivf", "training"], id: 5 },
-      { keywords: ["patient", "navigation", "voice"], id: 6 },
+      { keywords: ["patient", "voice", "navigation"], id: 6 },
     ];
 
+    // Reset active card before trying to find a new match
+    setActiveCardId(null); 
     for (let entry of matchMap) {
       if (entry.keywords.some((kw) => text.toLowerCase().includes(kw))) {
         setActiveCardId(entry.id);
-        break;
+        break; // Stop after the first match
       }
     }
   };
@@ -87,6 +89,7 @@ const ChatBot = () => {
         });
       }
 
+      // Trigger card match after the full response is received
       triggerCardMatch(botText);
     } catch (err) {
       console.error(err);

@@ -470,40 +470,137 @@ button:hover {
   cursor: pointer;
   z-index: 1001;
 }
-/* Highlighted card with radiating dashed border and animated gradient background */
-.highlight {
+/* --- Card Base Styles (Adjust as needed) --- */
+.card {
   position: relative;
-  border: 2px dashed #2563eb;
-  background: linear-gradient(270deg, #eef5ff, #dbeafe, #f0f9ff);
-  background-size: 600% 600%;
-  animation: gradientFlow 6s ease infinite, borderPulse 2s infinite;
+  background: #2a2a3e; /* Darker, slightly purplish background */
+  color: #f0f0f0;
   border-radius: 16px;
-  z-index: 1;
+  padding: 2rem;
+  margin: 1rem;
+  width: 300px; /* Or use flex-basis for responsive grid */
+  border: 1px solid #4a4a6a;
+  overflow: hidden; /* Important for containing animated elements */
   transition: all 0.3s ease-in-out;
-  overflow: hidden;
+  z-index: 1;
 }
 
-/* Glowing color gradient loop */
-@keyframes gradientFlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.card .content {
+  position: relative;
+  z-index: 2; /* Content sits above background pulse */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-/* Optional dashed border pulse */
-@keyframes borderPulse {
-  0%, 100% {
-    box-shadow: 0 0 0px rgba(37, 99, 235, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(37, 99, 235, 0.8);
-  }
+.app-icon {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 1rem;
 }
 
-/* Optional for extra contrast inside the card */
-.highlight .title,
-.highlight .copy {
-  color: #1e3a8a !important;
+.title {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
   font-weight: 600;
 }
 
+.copy {
+  font-size: 0.9rem;
+  color: #a0a0c0;
+  flex-grow: 1;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.app-actions .btn {
+  background-color: #3b82f6; /* Brighter blue */
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  margin: 0 0.25rem;
+  font-weight: 500;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.app-actions .btn:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+/* === ✅ TASK 2: SPOTLIGHT & RIPPLE ANIMATION === */
+
+@keyframes bgPulse {
+  0% { background-color: rgba(59, 130, 246, 0.1); }
+  50% { background-color: rgba(59, 130, 246, 0.25); }
+  100% { background-color: rgba(59, 130, 246, 0.1); }
+}
+
+@keyframes ripple {
+  from {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+.card.highlight {
+  animation: bgPulse 2s infinite ease-in-out;
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.7);
+  border-color: #3b82f6;
+  transform: scale(1.03);
+}
+
+/* The element for the radiating dashed ripple */
+.card.highlight .ripple-border {
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border-radius: 18px; /* Slightly larger than card's radius */
+  border: 2px dashed #5ec8ff;
+  animation: ripple 1.5s infinite linear;
+  z-index: 0;
+  pointer-events: none; /* Make sure it doesn't block clicks */
+}
+
+
+/* === ✅ TASK 4: ANIMATED AUDIO VISUALIZER === */
+
+.visualizer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 10, 20, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 3; /* On top of everything inside the card */
+  border-radius: 16px; /* Match card */
+  pointer-events: none;
+}
+
+.visualizer .bar {
+  width: 6px;
+  height: 40px;
+  background: #ffffff;
+  border-radius: 3px;
+  animation: sound 0.8s infinite ease-in-out alternate;
+}
+
+/* Stagger the animation start for a wave effect */
+.visualizer .bar:nth-child(2) { animation-delay: -0.7s; }
+.visualizer .bar:nth-child(3) { animation-delay: -0.6s; }
+.visualizer .bar:nth-child(4) { animation-delay: -0.5s; }
+.visualizer .bar:nth-child(5) { animation-delay: -0.4s; }
+
+@keyframes sound {
+  0% { transform: scaleY(0.1); opacity: 0.2; }
+  100% { transform: scaleY(1); opacity: 1; }
+}

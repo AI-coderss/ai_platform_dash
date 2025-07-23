@@ -3,23 +3,76 @@ import "./App.css";
 import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
 
+// A simple, reusable audio visualizer component
+const AudioVisualizer = () => (
+  <div className="visualizer">
+    <div className="bar"></div>
+    <div className="bar"></div>
+    <div className="bar"></div>
+    <div className="bar"></div>
+    <div className="bar"></div>
+  </div>
+);
+
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const cardRef = useRef(null);
+  const isHighlighted = activeCardId === app.id;
 
+  // Effect to scroll the highlighted card into view
   useEffect(() => {
-    if (activeCardId === app.id && cardRef.current) {
+    if (isHighlighted && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [activeCardId, app.id]);
+  }, [isHighlighted]);
+
+  // Effect to handle the audio whisper and visualizer state
+  useEffect(() => {
+    if (isHighlighted) {
+      // Cancel any previously running speech to avoid overlaps
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(app.name);
+      utterance.rate = 0.9;
+      utterance.volume = 0.6;
+
+      // Set state to show visualizer on start
+      utterance.onstart = () => setIsSpeaking(true);
+      
+      // Set state to hide visualizer on end
+      utterance.onend = () => setIsSpeaking(false);
+      
+      // Also hide visualizer on error
+      utterance.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Cleanup function runs when component unmounts or dependencies change
+    return () => {
+      // If this card was speaking, ensure its state is reset
+      if (isSpeaking) {
+        setIsSpeaking(false);
+      }
+      // A safety measure to stop speech if the active card changes abruptly
+      window.speechSynthesis.cancel();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHighlighted, app.name]); // isSpeaking is not a dependency to prevent re-triggering
 
   return (
     <div
       ref={cardRef}
-      className={`card animated-card ${activeCardId === app.id ? "highlight" : ""}`}
+      className={`card animated-card ${isHighlighted ? "highlight" : ""}`}
       tabIndex="0"
     >
-      <div className="glow-border"></div>
+      {/* Conditionally render the visualizer when card is highlighted and speaking */}
+      {isHighlighted && isSpeaking && <AudioVisualizer />}
+
+      {/* This div is used for the ripple animation effect */}
+      <div className="ripple-border"></div>
+
       <div className="content">
         <img src={app.icon} alt={app.name} className="app-icon" />
         <h3 className="title">{app.name}</h3>
