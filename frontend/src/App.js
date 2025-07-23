@@ -38,7 +38,7 @@ const App = () => {
 
   const apps = [
     {
-      id: "ai-doctor",
+      id: 1,
       name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
@@ -46,7 +46,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
-      id: "transcription",
+      id: 2,
       name: "📋 Medical Transcription App",
       description: "Generate structured medical notes from consultations , capture the essence of patient doctor conversation",
       icon: "/icons/hospital.svg",
@@ -54,7 +54,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/24T0hx6AfAA?autoplay=1&mute=1",
     },
     {
-      id: "data-analyst",
+      id: 3,
       name: "📊 AI-Powered Data Analyst",
       description: "Upload and analyze hospital data instantly, visualize the results, generate AI insights",
       icon: "/icons/dashboard.svg",
@@ -62,7 +62,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
-      id: "report-enhancer",
+      id: 4,
       name: "🧠 Medical Report Enhancement App",
       description: "Enhance the quality of the generated Medical reports by leveraging AI",
       icon: "/icons/report.svg",
@@ -70,15 +70,15 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/1amAKukvQ2Q?autoplay=1&mute=1",
     },
     {
-      id: "ivf-assistant",
+      id: 5,
       name: "🧠 IVF Virtual Training Assistant",
-      description: "designed to assist fellowships of IVF at DSAH based retrieval augmented generation (RAG)",
+      description: "Designed to assist IVF fellowships at DSAH using RAG technology",
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
-      id: "patient-assistant",
+      id: 6,
       name: "💬 Patient Assistant",
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",

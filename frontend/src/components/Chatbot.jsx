@@ -15,7 +15,7 @@ const initialQuestions = [
 
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
-  const [accordionOpen, setAccordionOpen] = useState(false); // ✅ Important for accordion toggle
+  const [accordionOpen, setAccordionOpen] = useState(false);
   const [messages, setMessages] = useState([
     { type: "bot", text: "Hi! Ask me anything about these AI tools." },
   ]);
@@ -32,12 +32,12 @@ const ChatBot = () => {
 
   const triggerCardMatch = (text) => {
     const matchMap = [
-      { keywords: ["doctor", "opinion", "ai doctor"], id: "ai-doctor" },
-      { keywords: ["transcription"], id: "transcription" },
-      { keywords: ["data", "analyst", "dashboard", "insights"], id: "data-analyst" },
-      { keywords: ["report", "enhance"], id: "report-enhancer" },
-      { keywords: ["ivf", "training"], id: "ivf-assistant" },
-      { keywords: ["patient", "navigation", "voice"], id: "patient-assistant" },
+      { keywords: ["doctor", "opinion", "ai doctor"], id: 1 },
+      { keywords: ["transcription"], id: 2 },
+      { keywords: ["data", "analyst", "dashboard", "insights"], id: 3 },
+      { keywords: ["report", "enhance"], id: 4 },
+      { keywords: ["ivf", "training"], id: 5 },
+      { keywords: ["patient", "navigation", "voice"], id: 6 },
     ];
 
     for (let entry of matchMap) {
@@ -127,7 +127,10 @@ const ChatBot = () => {
 
       {open && (
         <div className="chat-box">
-          <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
+          <div
+            className="chat-header"
+            style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}
+          >
             AI Assistant
           </div>
 
@@ -148,12 +151,19 @@ const ChatBot = () => {
                   lineHeight: 1.4,
                 }}
               >
-                {msg.type === "bot" ? <ReactMarkdown>{msg.text}</ReactMarkdown> : msg.text}
+                {msg.type === "bot" ? (
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                ) : (
+                  msg.text
+                )}
               </div>
             ))}
 
             {loading && (
-              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
+              <div
+                className="chat-msg bot loader"
+                style={{ alignSelf: "flex-start" }}
+              >
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
@@ -170,9 +180,15 @@ const ChatBot = () => {
                     onClick={() => setAccordionOpen((prev) => !prev)}
                   >
                     <span>Show Suggested Questions</span>
-                    <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>▼</span>
+                    <span
+                      className={`chevron ${accordionOpen ? "rotate" : ""}`}
+                    >
+                      ▼
+                    </span>
                   </div>
-                  <div className={`accordion-body ${accordionOpen ? "open" : ""}`}>
+                  <div
+                    className={`accordion-body ${accordionOpen ? "open" : ""}`}
+                  >
                     <div className="accordion-content">
                       {visibleQuestions.map((q, i) => (
                         <button
@@ -210,6 +226,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
