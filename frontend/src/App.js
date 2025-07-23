@@ -4,19 +4,19 @@ import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
 
 const AppCard = ({ app, onPlay }) => {
-  const { activeCardName } = useCardStore();
+  const { activeCardId } = useCardStore();
   const cardRef = useRef(null);
 
   useEffect(() => {
-    if (activeCardName === app.name && cardRef.current) {
+    if (activeCardId === app.id && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [activeCardName, app.name]);
+  }, [activeCardId, app.id]);
 
   return (
     <div
       ref={cardRef}
-      className={`card animated-card ${activeCardName === app.name ? "highlight" : ""}`}
+      className={`card animated-card ${activeCardId === app.id ? "highlight" : ""}`}
       tabIndex="0"
     >
       <div className="glow-border"></div>
@@ -38,13 +38,15 @@ const App = () => {
 
   const apps = [
     {
-      name: "🧠 AI Doctor Assistant ",
+      id: "ai-doctor",
+      name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://dsahdoctoraiassistantbot.onrender.com",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
+      id: "transcription",
       name: "📋 Medical Transcription App",
       description: "Generate structured medical notes from consultations , capture the essence of patient doctor conversation",
       icon: "/icons/hospital.svg",
@@ -52,6 +54,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/24T0hx6AfAA?autoplay=1&mute=1",
     },
     {
+      id: "data-analyst",
       name: "📊 AI-Powered Data Analyst",
       description: "Upload and analyze hospital data instantly, visualize the results, generate AI insights",
       icon: "/icons/dashboard.svg",
@@ -59,6 +62,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
+      id: "report-enhancer",
       name: "🧠 Medical Report Enhancement App",
       description: "Enhance the quality of the generated Medical reports by leveraging AI",
       icon: "/icons/report.svg",
@@ -66,6 +70,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/1amAKukvQ2Q?autoplay=1&mute=1",
     },
     {
+      id: "ivf-assistant",
       name: "🧠 IVF Virtual Training Assistant",
       description: "designed to assist fellowships of IVF at DSAH based retrieval augmented generation (RAG)",
       icon: "/icons/ivf.svg",
@@ -73,6 +78,7 @@ const App = () => {
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
+      id: "patient-assistant",
       name: "💬 Patient Assistant",
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
@@ -118,7 +124,7 @@ const App = () => {
 
       <div className="page-content">
         {apps.map((app) => (
-          <AppCard key={app.name} app={app} onPlay={setVideoUrl} />
+          <AppCard key={app.id} app={app} onPlay={setVideoUrl} />
         ))}
       </div>
 
@@ -128,6 +134,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 

@@ -470,25 +470,40 @@ button:hover {
   cursor: pointer;
   z-index: 1001;
 }
+/* Highlighted card with radiating dashed border and animated gradient background */
 .highlight {
-  background-color: #eef5ff !important; /* subtle background change */
-  outline: 3px solid #2563eb;
-  border-radius: 18px;
-  animation: glowBackground 1.2s ease-in-out 0s 2;
-  transition: background-color 0.3s ease-in-out;
+  position: relative;
+  border: 2px dashed #2563eb;
+  background: linear-gradient(270deg, #eef5ff, #dbeafe, #f0f9ff);
+  background-size: 600% 600%;
+  animation: gradientFlow 6s ease infinite, borderPulse 2s infinite;
+  border-radius: 16px;
+  z-index: 1;
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
 }
 
-@keyframes glowBackground {
-  0% {
-    box-shadow: 0 0 0px rgba(37, 99, 235, 0.6);
-    background-color: #f5f9ff;
+/* Glowing color gradient loop */
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Optional dashed border pulse */
+@keyframes borderPulse {
+  0%, 100% {
+    box-shadow: 0 0 0px rgba(37, 99, 235, 0.4);
   }
   50% {
-    box-shadow: 0 0 18px rgba(37, 99, 235, 0.8);
-    background-color: #dbeafe;
-  }
-  100% {
-    box-shadow: 0 0 0px rgba(37, 99, 235, 0.6);
-    background-color: #eef5ff;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.8);
   }
 }
+
+/* Optional for extra contrast inside the card */
+.highlight .title,
+.highlight .copy {
+  color: #1e3a8a !important;
+  font-weight: 600;
+}
+

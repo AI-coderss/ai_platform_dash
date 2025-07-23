@@ -15,20 +15,38 @@ const initialQuestions = [
 
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
-  const [accordionOpen, setAccordionOpen] = useState(false);
+  const [accordionOpen, setAccordionOpen] = useState(false); // ✅ Important for accordion toggle
   const [messages, setMessages] = useState([
     { type: "bot", text: "Hi! Ask me anything about these AI tools." },
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
-  const { setActiveCardName } = useCardStore();
+  const { setActiveCardId } = useCardStore();
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
     localStorage.setItem("chatbot-session", id);
     return id;
   });
+
+  const triggerCardMatch = (text) => {
+    const matchMap = [
+      { keywords: ["doctor", "opinion", "ai doctor"], id: "ai-doctor" },
+      { keywords: ["transcription"], id: "transcription" },
+      { keywords: ["data", "analyst", "dashboard", "insights"], id: "data-analyst" },
+      { keywords: ["report", "enhance"], id: "report-enhancer" },
+      { keywords: ["ivf", "training"], id: "ivf-assistant" },
+      { keywords: ["patient", "navigation", "voice"], id: "patient-assistant" },
+    ];
+
+    for (let entry of matchMap) {
+      if (entry.keywords.some((kw) => text.toLowerCase().includes(kw))) {
+        setActiveCardId(entry.id);
+        break;
+      }
+    }
+  };
 
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
@@ -78,24 +96,6 @@ const ChatBot = () => {
       ]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const triggerCardMatch = (text) => {
-    const matchMap = [
-      { keywords: ["doctor", "opinion", "ai doctor"], name: "🧠 AI Doctor Assistant " },
-      { keywords: ["transcription"], name: "📋 Medical Transcription App" },
-      { keywords: ["data", "analyst", "dashboard", "insights"], name: "📊 AI-Powered Data Analyst" },
-      { keywords: ["report", "enhance"], name: "🧠 Medical Report Enhancement App" },
-      { keywords: ["ivf", "training"], name: "🧠 IVF Virtual Training Assistant" },
-      { keywords: ["patient", "navigation", "voice"], name: "💬 Patient Assistant" },
-    ];
-
-    for (let entry of matchMap) {
-      if (entry.keywords.some((kw) => text.toLowerCase().includes(kw))) {
-        setActiveCardName(entry.name);
-        break;
-      }
     }
   };
 
@@ -165,7 +165,10 @@ const ChatBot = () => {
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
                 <>
-                  <div className="accordion-header" onClick={() => setAccordionOpen((prev) => !prev)}>
+                  <div
+                    className="accordion-header"
+                    onClick={() => setAccordionOpen((prev) => !prev)}
+                  >
                     <span>Show Suggested Questions</span>
                     <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>▼</span>
                   </div>
@@ -207,6 +210,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 
