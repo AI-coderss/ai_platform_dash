@@ -470,3 +470,25 @@ button:hover {
   cursor: pointer;
   z-index: 1001;
 }
+.highlight {
+  background-color: #eef5ff !important; /* subtle background change */
+  outline: 3px solid #2563eb;
+  border-radius: 18px;
+  animation: glowBackground 1.2s ease-in-out 0s 2;
+  transition: background-color 0.3s ease-in-out;
+}
+
+@keyframes glowBackground {
+  0% {
+    box-shadow: 0 0 0px rgba(37, 99, 235, 0.6);
+    background-color: #f5f9ff;
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(37, 99, 235, 0.8);
+    background-color: #dbeafe;
+  }
+  100% {
+    box-shadow: 0 0 0px rgba(37, 99, 235, 0.6);
+    background-color: #eef5ff;
+  }
+}

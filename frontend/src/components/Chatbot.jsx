@@ -2,13 +2,15 @@ import React, { useState, useRef, useLayoutEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "./ChatInputWidget";
 import "../styles/ChatBot.css";
+import useCardStore from "./store/useCardStore";
 
 const initialQuestions = [
-  "How do I use the medical report platform?",
-  "How does the medical transcription app work?",
-  "What are the key features of these AI tools?",
-  "Is it available on mobile devices?",
-  "Can I download the report as PDF?",
+  "What can the AI Doctor Assistant do?",
+  "How does the Medical Transcription App work?",
+  "Can the Data Analyst show me hospital insights?",
+  "How can I enhance a medical report using AI?",
+  "Tell me more about the IVF Virtual Training Assistant.",
+  "Can the Patient Assistant help with navigation?",
 ];
 
 const ChatBot = () => {
@@ -20,6 +22,7 @@ const ChatBot = () => {
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
+  const { setActiveCardName } = useCardStore();
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
@@ -65,6 +68,8 @@ const ChatBot = () => {
           return updated;
         });
       }
+
+      triggerCardMatch(botText);
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -73,6 +78,24 @@ const ChatBot = () => {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const triggerCardMatch = (text) => {
+    const matchMap = [
+      { keywords: ["doctor", "opinion", "ai doctor"], name: "🧠 AI Doctor Assistant " },
+      { keywords: ["transcription"], name: "📋 Medical Transcription App" },
+      { keywords: ["data", "analyst", "dashboard", "insights"], name: "📊 AI-Powered Data Analyst" },
+      { keywords: ["report", "enhance"], name: "🧠 Medical Report Enhancement App" },
+      { keywords: ["ivf", "training"], name: "🧠 IVF Virtual Training Assistant" },
+      { keywords: ["patient", "navigation", "voice"], name: "💬 Patient Assistant" },
+    ];
+
+    for (let entry of matchMap) {
+      if (entry.keywords.some((kw) => text.toLowerCase().includes(kw))) {
+        setActiveCardName(entry.name);
+        break;
+      }
     }
   };
 
@@ -104,10 +127,7 @@ const ChatBot = () => {
 
       {open && (
         <div className="chat-box">
-          <div
-            className="chat-header"
-            style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}
-          >
+          <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
             AI Assistant
           </div>
 
@@ -128,19 +148,12 @@ const ChatBot = () => {
                   lineHeight: 1.4,
                 }}
               >
-                {msg.type === "bot" ? (
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
-                ) : (
-                  msg.text
-                )}
+                {msg.type === "bot" ? <ReactMarkdown>{msg.text}</ReactMarkdown> : msg.text}
               </div>
             ))}
 
             {loading && (
-              <div
-                className="chat-msg bot loader"
-                style={{ alignSelf: "flex-start" }}
-              >
+              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
@@ -148,26 +161,15 @@ const ChatBot = () => {
             )}
           </div>
 
-          {/* ✅ Initial Predefined Questions */}
           {visibleQuestions.length > 0 && (
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
                 <>
-                  <div
-                    className="accordion-header"
-                    onClick={() => setAccordionOpen((prev) => !prev)}
-                  >
+                  <div className="accordion-header" onClick={() => setAccordionOpen((prev) => !prev)}>
                     <span>Show Suggested Questions</span>
-                    <span
-                      className={`chevron ${accordionOpen ? "rotate" : ""}`}
-                    >
-                      ▼
-                    </span>
+                    <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>▼</span>
                   </div>
-
-                  <div
-                    className={`accordion-body ${accordionOpen ? "open" : ""}`}
-                  >
+                  <div className={`accordion-body ${accordionOpen ? "open" : ""}`}>
                     <div className="accordion-content">
                       {visibleQuestions.map((q, i) => (
                         <button
@@ -205,6 +207,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 

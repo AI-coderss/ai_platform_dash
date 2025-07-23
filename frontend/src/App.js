@@ -1,10 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import ChatBot from "./components/Chatbot";
+import useCardStore from "./components/store/useCardStore";
 
 const AppCard = ({ app, onPlay }) => {
+  const { activeCardName } = useCardStore();
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (activeCardName === app.name && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeCardName, app.name]);
+
   return (
-    <div className="card animated-card" tabIndex="0">
+    <div
+      ref={cardRef}
+      className={`card animated-card ${activeCardName === app.name ? "highlight" : ""}`}
+      tabIndex="0"
+    >
       <div className="glow-border"></div>
       <div className="content">
         <img src={app.icon} alt={app.name} className="app-icon" />
@@ -114,6 +128,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 
