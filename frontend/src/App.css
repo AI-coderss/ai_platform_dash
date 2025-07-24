@@ -173,8 +173,9 @@ body {
 }
 /* 🌟 Expanded Card when Audio Player is Present */
 .card.expanded {
-  height: 600px;
-  margin-bottom: 30px;
+  height: 650px;
+  margin-bottom: 50px;
+  padding: 1.5rem;
   transition: height 0.4s ease;
 }
 
