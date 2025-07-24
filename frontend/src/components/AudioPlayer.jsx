@@ -1,17 +1,11 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "../styles/AudioPlayer.css";
 
-const AudioPlayer = ({ src, onEnd }) => {
+const AudioPlayer = ({ src }) => {
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-  }, [volume]);
+  const [error, setError] = useState(false);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -20,27 +14,28 @@ const AudioPlayer = ({ src, onEnd }) => {
     if (isPlaying) {
       audio.pause();
     } else {
-      audio.play();
+      audio.play().catch((err) => {
+        console.error("Audio playback error:", err);
+        setError(true);
+      });
     }
     setIsPlaying(!isPlaying);
   };
 
-  const skip = (time) => {
+  useEffect(() => {
+    const canvas = canvasRef.current;
     const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime += time;
-  };
 
-  const drawVisualizer = () => {
+    if (!canvas || !audio) return;
+
+    const ctx = canvas.getContext("2d");
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
-    const source = audioCtx.createMediaElementSource(audioRef.current);
+    const source = audioCtx.createMediaElementSource(audio);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
+    analyser.fftSize = 64;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    analyser.fftSize = 128;
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
@@ -48,50 +43,31 @@ const AudioPlayer = ({ src, onEnd }) => {
       requestAnimationFrame(draw);
       analyser.getByteFrequencyData(dataArray);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       dataArray.forEach((value, i) => {
-        const x = i * 4;
-        const height = value / 2;
+        const barHeight = value / 2;
+        const barWidth = 3;
         ctx.fillStyle = "#2563eb";
-        ctx.fillRect(x, canvas.height - height, 3, height);
+        ctx.fillRect(i * (barWidth + 1), canvas.height - barHeight, barWidth, barHeight);
       });
     };
 
     draw();
-  };
-
-  useEffect(() => {
-    drawVisualizer();
-  }, []);
+  }, [src]);
 
   return (
     <div className="audio-player">
-      <audio
-        ref={audioRef}
-        src={src}
-        onEnded={() => {
-          setIsPlaying(false);
-          onEnd?.();
-        }}
-        preload="auto"
-      />
-      <canvas ref={canvasRef} width="300" height="60" />
+      <audio ref={audioRef} src={src} preload="auto" />
+      <canvas ref={canvasRef} width={300} height={80}></canvas>
       <div className="controls">
-        <button onClick={() => skip(-5)}>⏪</button>
-        <button onClick={togglePlay}>{isPlaying ? "⏸" : "▶️"}</button>
-        <button onClick={() => skip(5)}>⏩</button>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={(e) => setVolume(parseFloat(e.target.value))}
-        />
+        <button onClick={togglePlay}>
+          {isPlaying ? "⏸ Pause" : "▶️ Play"}
+        </button>
+        {error && <div className="error-msg">⚠️ Unable to play audio</div>}
       </div>
     </div>
   );
 };
 
 export default AudioPlayer;
+
 
