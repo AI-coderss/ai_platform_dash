@@ -209,8 +209,11 @@ const ChatBot = () => {
           )}
 
           {/* 🎧 Audio playback for matched card */}
-          {currentAudioSrc && <AudioPlayer src={currentAudioSrc} key={currentAudioSrc} />}
-
+          {currentAudioSrc && (
+            <div style={{ padding: "10px", marginTop: "10px" }}>
+              <AudioPlayer src={currentAudioSrc} key={currentAudioSrc} />
+            </div>
+          )}
           <ChatInputWidget onSendMessage={handleSendMessage} />
         </div>
       )}

@@ -2,72 +2,112 @@ import React, { useEffect, useRef, useState } from "react";
 import "../styles/AudioPlayer.css";
 
 const AudioPlayer = ({ src }) => {
-  const audioRef = useRef(null);
   const canvasRef = useRef(null);
+  const audioRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [error, setError] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  const togglePlay = () => {
+  useEffect(() => {
+    const audio = new Audio(src);
+    audio.crossOrigin = "anonymous";
+    audioRef.current = audio;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    canvas.width = canvas.parentElement?.clientWidth || 600;
+    canvas.height = 150;
+
+    const audioContext = new (window.AudioContext ||
+      window.webkitAudioContext)();
+    audioContextRef.current = audioContext;
+
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    analyserRef.current = analyser;
+
+    const source = audioContext.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(audioContext.destination);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      analyser.getByteFrequencyData(dataArray);
+
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, "rgba(255, 25, 255, 0.2)");
+      gradient.addColorStop(0.5, "rgba(25, 255, 255, 0.75)");
+      gradient.addColorStop(1, "rgba(255, 255, 25, 0.2)");
+
+      ctx.beginPath();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = gradient;
+
+      let x = 0;
+      const sliceWidth = canvas.width / dataArray.length;
+
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+
+      ctx.stroke();
+      requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      if (audioContext.state !== "closed") {
+        audioContext.close();
+      }
+    };
+  }, [src]);
+
+  const handlePlayPause = () => {
     const audio = audioRef.current;
     if (!audio) return;
 
     if (isPlaying) {
       audio.pause();
+      setIsPlaying(false);
     } else {
-      audio.play().catch((err) => {
-        console.error("Audio playback error:", err);
-        setError(true);
-      });
+      audio.play();
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
   };
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const audio = audioRef.current;
-
-    if (!canvas || !audio) return;
-
-    const ctx = canvas.getContext("2d");
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioCtx.createAnalyser();
-    const source = audioCtx.createMediaElementSource(audio);
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    analyser.fftSize = 64;
-
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      dataArray.forEach((value, i) => {
-        const barHeight = value / 2;
-        const barWidth = 3;
-        ctx.fillStyle = "#2563eb";
-        ctx.fillRect(i * (barWidth + 1), canvas.height - barHeight, barWidth, barHeight);
-      });
-    };
-
-    draw();
-  }, [src]);
-
   return (
-    <div className="audio-player">
-      <audio ref={audioRef} src={src} preload="auto" />
-      <canvas ref={canvasRef} width={300} height={80}></canvas>
-      <div className="controls">
-        <button onClick={togglePlay}>
-          {isPlaying ? "⏸ Pause" : "▶️ Play"}
+    <div className={`glass-audio-player ${collapsed ? "collapsed" : ""}`}>
+      <div className="audio-controls">
+        <button onClick={handlePlayPause} className="svg-btn">
+          {isPlaying ? (
+            <svg height="20" width="20" viewBox="0 0 20 20">
+              <rect x="4" y="4" width="4" height="12" />
+              <rect x="12" y="4" width="4" height="12" />
+            </svg>
+          ) : (
+            <svg height="20" width="20" viewBox="0 0 20 20">
+              <polygon points="3,2 17,10 3,18" />
+            </svg>
+          )}
         </button>
-        {error && <div className="error-msg">⚠️ Unable to play audio</div>}
+
+        <button onClick={() => setCollapsed(!collapsed)} className="svg-btn">
+          <svg height="20" width="20" viewBox="0 0 20 20">
+            <path d="M6 8l4 4 4-4" stroke="black" strokeWidth="2" fill="none" />
+          </svg>
+        </button>
       </div>
+      {!collapsed && <canvas ref={canvasRef}></canvas>}
     </div>
   );
 };
 
 export default AudioPlayer;
-
-

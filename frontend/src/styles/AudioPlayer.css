@@ -1,31 +1,32 @@
-.audio-player {
-  margin-top: 16px;
-  text-align: center;
+.glass-audio-player {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 10px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
-.audio-player canvas {
-  width: 100%;
-  background: #e0e7ff;
-  border-radius: 4px;
+.glass-audio-player.collapsed canvas {
+  display: none;
+}
+
+.audio-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 8px;
 }
 
-.audio-player .controls {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  align-items: center;
-}
-
-.audio-player button {
-  background: #2563eb;
+.svg-btn {
+  background: transparent;
   border: none;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
   cursor: pointer;
+  padding: 6px;
 }
 
-.audio-player input[type="range"] {
-  width: 100px;
+.svg-btn svg {
+  fill: #000;
 }
