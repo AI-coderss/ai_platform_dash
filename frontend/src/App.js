@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
+import AudioPlayer from "./components/AudioPlayer"; // ✅ your new collapsible glassmorphic player
+
+const audioMap = {
+  1: "/assets/audio/ai_doctor.mp3",
+  2: "/assets/audio/medical_transcription.mp3",
+  3: "/assets/audio/data_analyst.mp3",
+  4: "/assets/audio/report_enhancement.mp3",
+  5: "/assets/audio/ivf_assistant.mp3",
+  6: "/assets/audio/patient_assistant.mp3",
+};
 
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
@@ -21,10 +31,7 @@ const AppCard = ({ app, onPlay }) => {
     >
       {activeCardId === app.id && (
         <>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
+          <span></span><span></span><span></span><span></span>
         </>
       )}
 
@@ -33,11 +40,19 @@ const AppCard = ({ app, onPlay }) => {
         <img src={app.icon} alt={app.name} className="app-icon" />
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
+
+        {/* ✅ AudioPlayer injected per card */}
+        {activeCardId === app.id && (
+          <AudioPlayer src={audioMap[app.id]} key={audioMap[app.id]} />
+        )}
+
         <div className="app-actions">
           <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">
             Launch
           </a>
-          <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
+          <button onClick={() => onPlay(app.helpVideo)} className="btn">
+            Help
+          </button>
         </div>
       </div>
     </div>
@@ -109,10 +124,7 @@ const App = () => {
             <div className="container">
               <div className="p p1">DSAH AI PLATFORM 🤖</div>
               <div className="p p2">DSAH AI PLATFORM 🤖</div>
-              <div className="p p3">
-                DSAH AI PLATFORM 🤖
-                <div className="cursor"></div>
-              </div>
+              <div className="p p3">DSAH AI PLATFORM 🤖<div className="cursor"></div></div>
             </div>
           </div>
           <p className="subtitle">Your single portal for all AI-powered applications</p>
@@ -145,6 +157,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 

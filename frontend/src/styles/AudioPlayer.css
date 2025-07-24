@@ -1,50 +1,104 @@
+/* === AUDIO PLAYER CONTAINER === */
 .audio-player {
-  position: relative;
-  margin: 1rem auto;
-  padding: 1rem;
-  width: 90%;
-  max-width: 640px;
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-  transition: all 0.3s ease-in-out;
-}
-
-.audio-player.collapsed canvas {
-  display: none;
-}
-
-.audio-player .controls {
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+  position: relative;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.audio-player .controls button {
+.audio-player:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* === SVG BUTTON STYLING === */
+.audio-button {
   background: none;
   border: none;
-  font-size: 1.6rem;
   cursor: pointer;
-  color: #ffffffcc;
-  transition: transform 0.2s;
+  position: relative;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
 }
 
-.audio-player .controls button:hover {
+.audio-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.audio-button svg {
+  width: 24px;
+  height: 24px;
+  fill: #ffffff;
+  transition: transform 0.2s ease, fill 0.3s ease;
+}
+
+.audio-button:hover svg {
   transform: scale(1.2);
+  fill: #4fc3f7;
 }
 
-.audio-player input[type="range"] {
+/* === TOOLTIP FOR CONTROLS === */
+.tooltip {
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.audio-button:hover .tooltip {
+  opacity: 1;
+}
+
+/* === VOLUME SLIDER === */
+.audio-slider {
   width: 100px;
-  cursor: pointer;
+  accent-color: #4fc3f7;
+  transition: filter 0.2s ease;
 }
 
-.audio-canvas {
-  margin-top: 10px;
+.audio-slider:hover {
+  filter: brightness(1.2);
+}
+
+/* === CANVAS WAVEFORM === */
+.audio-visualizer {
   width: 100%;
-  height: auto;
+  height: 50px;
+  flex: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .audio-player {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .audio-slider {
+    width: 100%;
+  }
 }
 
