@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
-import AudioPlayer from "./components/AudioPlayer"; // ✅ your new collapsible glassmorphic player
+import AudioPlayer from "./components/AudioPlayer";
 
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -15,21 +15,22 @@ const audioMap = {
 
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
+  const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
 
   useEffect(() => {
-    if (activeCardId === app.id && cardRef.current) {
+    if (isActive && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [activeCardId, app.id]);
+  }, [isActive]);
 
   return (
     <div
       ref={cardRef}
-      className={`card animated-card ${activeCardId === app.id ? "highlight" : ""}`}
+      className={`card animated-card ${isActive ? "highlight expanded" : ""}`}
       tabIndex="0"
     >
-      {activeCardId === app.id && (
+      {isActive && (
         <>
           <span></span><span></span><span></span><span></span>
         </>
@@ -41,11 +42,6 @@ const AppCard = ({ app, onPlay }) => {
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
 
-        {/* ✅ AudioPlayer injected per card */}
-        {activeCardId === app.id && (
-          <AudioPlayer src={audioMap[app.id]} key={audioMap[app.id]} />
-        )}
-
         <div className="app-actions">
           <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">
             Launch
@@ -54,6 +50,13 @@ const AppCard = ({ app, onPlay }) => {
             Help
           </button>
         </div>
+
+        {/* 🎧 Audio Player rendered at the bottom */}
+        {isActive && (
+          <div className="audio-wrapper">
+            <AudioPlayer src={audioMap[app.id]} key={audioMap[app.id]} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -74,7 +77,7 @@ const App = () => {
     {
       id: 2,
       name: "📋 Medical Transcription App",
-      description: "Generate structured medical notes from consultations , capture the essence of patient doctor conversation",
+      description: "Generate structured medical notes from consultations",
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
       helpVideo: "https://www.youtube.com/embed/24T0hx6AfAA?autoplay=1&mute=1",
@@ -82,7 +85,7 @@ const App = () => {
     {
       id: 3,
       name: "📊 AI-Powered Data Analyst",
-      description: "Upload and analyze hospital data instantly, visualize the results, generate AI insights",
+      description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
       link: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
@@ -90,7 +93,7 @@ const App = () => {
     {
       id: 4,
       name: "🧠 Medical Report Enhancement App",
-      description: "Enhance the quality of the generated Medical reports by leveraging AI",
+      description: "Enhance the quality of medical reports using AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
       helpVideo: "https://www.youtube.com/embed/1amAKukvQ2Q?autoplay=1&mute=1",
@@ -124,7 +127,9 @@ const App = () => {
             <div className="container">
               <div className="p p1">DSAH AI PLATFORM 🤖</div>
               <div className="p p2">DSAH AI PLATFORM 🤖</div>
-              <div className="p p3">DSAH AI PLATFORM 🤖<div className="cursor"></div></div>
+              <div className="p p3">
+                DSAH AI PLATFORM 🤖<div className="cursor"></div>
+              </div>
             </div>
           </div>
           <p className="subtitle">Your single portal for all AI-powered applications</p>
@@ -157,6 +162,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 
