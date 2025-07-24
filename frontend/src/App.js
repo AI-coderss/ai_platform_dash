@@ -37,8 +37,7 @@ const AppCard = ({ app, onPlay }) => {
       style={{
         position: isActive ? "absolute" : "relative",
         zIndex: isActive ? 999 : 1,
-        width: isActive ? "100%" : undefined,
-      }}
+              }}
     >
       {isActive && (
         <>
