@@ -174,13 +174,13 @@ body {
 /* 🌟 Expanded Card when Audio Player is Present */
 .card.expanded {
   position: absolute;
-  z-index: 10;
+  z-index: 1001;
   height: 680px;
-  margin-bottom: 25px;
-  padding: 2rem;
+  padding: 2.5rem;
   transition: height 0.4s ease;
   transform: translateY(-50px);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+ 
 }
 
 .audio-wrapper {

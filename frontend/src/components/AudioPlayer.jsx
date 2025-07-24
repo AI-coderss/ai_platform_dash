@@ -96,15 +96,16 @@ const AudioPlayer = ({ src, onEnded }) => {
     audio.addEventListener("ended", () => {
       onEnded?.();
       cancelAnimationFrame(animationIdRef.current);
-      audioCtx.close();
+      setIsPlaying(false);
+      audio.currentTime = 0; // ✅ Reset audio so it can be played again
     });
 
     return () => {
       cancelAnimationFrame(animationIdRef.current);
       audio.pause();
-      audioCtx.close();
+      audioCtx.close(); // cleanup when unmounting
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
   const togglePlayback = () => {
@@ -135,20 +136,12 @@ const AudioPlayer = ({ src, onEnded }) => {
 
   return (
     <div className={`audio-player ${collapsed ? "collapsed" : ""}`}>
-      {/* Top Button Row */}
       <div className="controls">
         <button onClick={() => seek(-10)} title="Rewind 10s">⏪</button>
         <button onClick={togglePlayback} title={isPlaying ? "Pause" : "Play"}>
           {isPlaying ? "⏸️" : "▶️"}
         </button>
         <button onClick={() => seek(10)} title="Forward 10s">⏩</button>
-        <button onClick={() => setCollapsed(!collapsed)} title="Collapse/Expand">
-          {collapsed ? "🔼" : "🔽"}
-        </button>
-      </div>
-
-      {/* Volume Slider */}
-      <div className="slider-container">
         <input
           type="range"
           min={0}
@@ -158,9 +151,11 @@ const AudioPlayer = ({ src, onEnded }) => {
           onChange={handleVolumeChange}
           title="Volume"
         />
+        <button onClick={() => setCollapsed(!collapsed)} title="Collapse">
+          {collapsed ? "🔼" : "🔽"}
+        </button>
       </div>
 
-      {/* Audio Visualizer */}
       {!collapsed && (
         <canvas
           ref={canvasRef}
@@ -174,5 +169,6 @@ const AudioPlayer = ({ src, onEnded }) => {
 };
 
 export default AudioPlayer;
+
 
 

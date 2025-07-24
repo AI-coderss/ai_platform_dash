@@ -14,7 +14,7 @@ const audioMap = {
 };
 
 const AppCard = ({ app, onPlay }) => {
-  const { activeCardId } = useCardStore();
+  const { activeCardId, setActiveCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
 
@@ -24,11 +24,21 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive]);
 
+  const handleHelpClick = () => {
+    onPlay(app.helpVideo);
+    setActiveCardId(app.id);
+  };
+
   return (
     <div
       ref={cardRef}
       className={`card animated-card ${isActive ? "highlight expanded" : ""}`}
       tabIndex="0"
+      style={{
+        position: isActive ? "absolute" : "relative",
+        zIndex: isActive ? 999 : 1,
+        width: isActive ? "100%" : undefined,
+      }}
     >
       {isActive && (
         <>
@@ -46,15 +56,18 @@ const AppCard = ({ app, onPlay }) => {
           <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">
             Launch
           </a>
-          <button onClick={() => onPlay(app.helpVideo)} className="btn">
+          <button onClick={handleHelpClick} className="btn">
             Help
           </button>
         </div>
 
-        {/* 🎧 Audio Player rendered at the bottom */}
         {isActive && (
           <div className="audio-wrapper">
-            <AudioPlayer src={audioMap[app.id]} key={audioMap[app.id]} />
+            <AudioPlayer
+              src={audioMap[app.id]}
+              key={audioMap[app.id]}
+              onEnded={() => setActiveCardId(null)}
+            />
           </div>
         )}
       </div>
@@ -150,7 +163,7 @@ const App = () => {
         </div>
       )}
 
-      <div className="page-content">
+      <div className="page-content" style={{ position: "relative", paddingBottom: "600px" }}>
         {apps.map((app) => (
           <AppCard key={app.id} app={app} onPlay={setVideoUrl} />
         ))}
@@ -162,6 +175,7 @@ const App = () => {
 };
 
 export default App;
+
 
 
 
