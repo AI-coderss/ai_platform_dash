@@ -480,9 +480,9 @@ button:hover {
   transform-style: preserve-3d;
   transition: transform 0.4s ease, box-shadow 0.4s ease;
   animation: fadeInUp 0.5s ease forwards;
-  box-shadow: 0 20px 50px rgb(23, 32, 90); /* deep box shadow */
-  border: 2px solid #2a3cad;
-  background-image: url("https://i.pinimg.com/originals/e5/d0/6e/e5d06e93c3a708bf34dc88f3713c08fb.jpg");
+  box-shadow: 0 20px 50px rgba(0, 60, 150, 0.4); /* softer blue glow */
+  border: 2px solid rgba(42, 60, 173, 0.7); /* semi-transparent blue border */
+  background-image: url("https://img.freepik.com/free-vector/gradient-glassmorphism-background_23-2149489059.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
@@ -492,6 +492,11 @@ button:hover {
   align-items: center;
   z-index: 10;
   margin-right: 20px;
+
+  /* Glassmorphism */
+  background-color: rgba(17, 24, 69, 0.4); /* dark blue tint */
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
 }
 
 /* Hover shimmer effect */
