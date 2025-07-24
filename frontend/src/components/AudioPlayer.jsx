@@ -12,36 +12,33 @@ const AudioPlayer = ({ src, onEnded }) => {
   const analyserRef = useRef(null);
   const animationIdRef = useRef(null);
 
-  const cleanupAudioContext = () => {
-    cancelAnimationFrame(animationIdRef.current);
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close();
-      audioCtxRef.current = null;
-    }
-  };
+  // Store canvas context and gradient for reuse
+  const ctxRef = useRef(null);
+  const gradientRef = useRef(null);
 
-  const setupVisualizer = () => {
-    if (!audioRef.current) return;
-
-    cleanupAudioContext();
-
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-
-    const source = audioCtx.createMediaElementSource(audioRef.current);
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
-
-    audioCtxRef.current = audioCtx;
-    analyserRef.current = analyser;
-
+  const initializeVisualizer = () => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
     gradient.addColorStop(0, "rgba(255, 25, 255, 0.2)");
     gradient.addColorStop(0.5, "rgba(25, 255, 255, 0.75)");
     gradient.addColorStop(1, "rgba(255, 255, 25, 0.2)");
+
+    ctxRef.current = ctx;
+    gradientRef.current = gradient;
+  };
+
+  const startVisualizer = () => {
+    cancelAnimationFrame(animationIdRef.current);
+
+    const ctx = ctxRef.current;
+    const gradient = gradientRef.current;
+    const analyser = analyserRef.current;
+    const canvas = canvasRef.current;
+
+    if (!ctx || !gradient || !analyser || !canvas) return;
 
     const baseLine = canvas.height / 2;
     const maxAmplitude = canvas.height / 3.5;
@@ -49,7 +46,6 @@ const AudioPlayer = ({ src, onEnded }) => {
     let globalTime = 0;
 
     const animate = () => {
-      const analyser = analyserRef.current;
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(dataArray);
 
@@ -95,7 +91,7 @@ const AudioPlayer = ({ src, onEnded }) => {
       animationIdRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    animationIdRef.current = requestAnimationFrame(animate);
   };
 
   useEffect(() => {
@@ -106,50 +102,53 @@ const AudioPlayer = ({ src, onEnded }) => {
     audio.volume = volume;
     audioRef.current = audio;
 
-    setupVisualizer();
-    audio.play();
-    setIsPlaying(true);
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
 
-    const handleEnded = () => {
-      setIsPlaying(false);
+    const source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    audioCtxRef.current = audioCtx;
+    analyserRef.current = analyser;
+
+    initializeVisualizer();
+    startVisualizer();
+
+    audio.play().catch((err) => console.error("Auto-play blocked:", err));
+
+    audio.addEventListener("ended", () => {
       onEnded?.();
-    };
-
-    audio.addEventListener("ended", handleEnded);
+      cancelAnimationFrame(animationIdRef.current);
+      setIsPlaying(false);
+      audio.currentTime = 0;
+    });
 
     return () => {
+      cancelAnimationFrame(animationIdRef.current);
       audio.pause();
-      audio.removeEventListener("ended", handleEnded);
-      cleanupAudioContext();
+      audioCtx.close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  // 👇 Handle toggle playback
-  const togglePlayback = () => {
+  const togglePlayback = async () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    const audioCtx = audioCtxRef.current;
 
-    if (isPlaying) {
-      audio.pause();
-    } else {
+    if (!audio || !audioCtx) return;
+
+    await audioCtx.resume(); // Ensure AudioContext is running
+
+    if (audio.paused) {
       audio.play();
-      setupVisualizer(); // always re-init waveform on play
+      setIsPlaying(true);
+      startVisualizer();
+    } else {
+      audio.pause();
+      setIsPlaying(false);
     }
-
-    setIsPlaying(!isPlaying);
-  };
-
-  // 👇 Handle toggle collapse (and re-animate)
-  const toggleCollapse = () => {
-    setCollapsed((prev) => {
-      const newVal = !prev;
-      if (!newVal) {
-        // re-render waveform when expanded again
-        setupVisualizer();
-      }
-      return newVal;
-    });
   };
 
   const handleVolumeChange = (e) => {
@@ -167,9 +166,15 @@ const AudioPlayer = ({ src, onEnded }) => {
     }
   };
 
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+    if (!collapsed && isPlaying) {
+      startVisualizer(); // Ensure visualizer is active when reopened
+    }
+  };
+
   return (
     <div className={`audio-player ${collapsed ? "collapsed" : ""}`}>
-      {/* 🎛️ Controls Row */}
       <div className="controls">
         <button onClick={() => seek(-10)} title="Rewind 10s">⏪</button>
         <button onClick={togglePlayback} title={isPlaying ? "Pause" : "Play"}>
@@ -181,7 +186,6 @@ const AudioPlayer = ({ src, onEnded }) => {
         </button>
       </div>
 
-      {/* 🔊 Volume Slider */}
       <div className="volume-slider">
         <input
           type="range"
@@ -194,7 +198,6 @@ const AudioPlayer = ({ src, onEnded }) => {
         />
       </div>
 
-      {/* 🎨 Visualizer */}
       {!collapsed && (
         <canvas
           ref={canvasRef}
@@ -208,6 +211,7 @@ const AudioPlayer = ({ src, onEnded }) => {
 };
 
 export default AudioPlayer;
+
 
 
 
