@@ -35,23 +35,19 @@ const ChatBot = () => {
     return id;
   });
 
-  const triggerCardMatch = (text) => {
-    const matchMap = [
-      { keywords: ["doctor", "opinion", "ai doctor"], id: 1 },
-      { keywords: ["transcription", "medical transcription", "ai second opinion"], id: 2 },
-      { keywords: ["analyst", "dashboard", "insights"], id: 3 },
-      { keywords: ["report", "medical report", "enhancement","grammar", "spelling"], id: 4 },
-      { keywords: ["IVF", "training" , "IVF virtual training assistant"], id: 5 },
-      { keywords: ["patient", "voice", "navigation"], id: 6 },
-    ];
-
-    // Reset active card before trying to find a new match
-    setActiveCardId(null); 
-    for (let entry of matchMap) {
-      if (entry.keywords.some((kw) => text.toLowerCase().includes(kw))) {
-        setActiveCardId(entry.id);
-        break; // Stop after the first match
+  const classifyAndHighlightCard = async (userQuestion, aiResponse) => {
+    try {
+      const res = await fetch("https://your-backend-url/classify-card-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: userQuestion, response: aiResponse }),
+      });
+      const data = await res.json();
+      if (data.card_id) {
+        setActiveCardId(data.card_id); // Update Zustand store
       }
+    } catch (err) {
+      console.error("Classification error:", err);
     }
   };
 
@@ -94,8 +90,8 @@ const ChatBot = () => {
         });
       }
 
-      // Trigger card match after the full response is received
-      triggerCardMatch(botText);
+      await classifyAndHighlightCard(text, botText); // 🔥 Call backend to classify response
+
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
