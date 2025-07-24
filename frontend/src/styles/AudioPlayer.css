@@ -1,32 +1,50 @@
-.glass-audio-player {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
+.audio-player {
+  position: relative;
+  margin: 1rem auto;
+  padding: 1rem;
+  width: 90%;
+  max-width: 640px;
   border-radius: 16px;
-  padding: 16px;
-  margin: 10px 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  overflow: hidden;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  transition: all 0.3s ease-in-out;
 }
 
-.glass-audio-player.collapsed canvas {
+.audio-player.collapsed canvas {
   display: none;
 }
 
-.audio-controls {
+.audio-player .controls {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.svg-btn {
-  background: transparent;
+.audio-player .controls button {
+  background: none;
   border: none;
+  font-size: 1.6rem;
   cursor: pointer;
-  padding: 6px;
+  color: #ffffffcc;
+  transition: transform 0.2s;
 }
 
-.svg-btn svg {
-  fill: #000;
+.audio-player .controls button:hover {
+  transform: scale(1.2);
 }
+
+.audio-player input[type="range"] {
+  width: 100px;
+  cursor: pointer;
+}
+
+.audio-canvas {
+  margin-top: 10px;
+  width: 100%;
+  height: auto;
+}
+
