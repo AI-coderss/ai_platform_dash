@@ -33,10 +33,10 @@ const ChatBot = () => {
   const triggerCardMatch = (text) => {
     const matchMap = [
       { keywords: ["doctor", "opinion", "ai doctor"], id: 1 },
-      { keywords: ["transcription", "note"], id: 2 },
+      { keywords: ["transcription", "medical transcription", "ai second opinion"], id: 2 },
       { keywords: ["analyst", "dashboard", "insights"], id: 3 },
-      { keywords: ["report", "enhance"], id: 4 },
-      { keywords: ["ivf", "training"], id: 5 },
+      { keywords: ["report", "medical report", "enhancement","grammar", "spelling"], id: 4 },
+      { keywords: ["ivf", "training" , "ivf virtual training assistant"], id: 5 },
       { keywords: ["patient", "voice", "navigation"], id: 6 },
     ];
 
