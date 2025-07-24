@@ -1,44 +1,43 @@
-/* === AUDIO PLAYER CONTAINER === */
 .audio-player {
   width: 100%;
-  padding: 14px 16px;
+  padding: 18px 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.75);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 0 0 16px 16px;
-  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   transition: all 0.4s ease-in-out;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  z-index: 2;
+  margin-bottom: 20px;
+  overflow: hidden;
 }
 
 .audio-player.collapsed .audio-canvas {
   display: none;
 }
 
-/* === CONTROL PANEL === */
 .controls {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 14px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .controls button {
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   background: #007bff;
   border: none;
   color: white;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .controls button:hover {
@@ -46,71 +45,51 @@
 }
 
 .controls button:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
-/* === VOLUME SLIDER === */
+.slider-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
 .controls input[type="range"] {
-  width: 120px;
+  width: 80%;
   height: 6px;
   accent-color: #007bff;
   cursor: pointer;
   border-radius: 4px;
-  transition: filter 0.2s ease;
 }
 
-.controls input[type="range"]:hover {
-  filter: brightness(1.1);
-}
-
-/* === CANVAS WAVEFORM === */
+/* 🎧 Glassy waveform canvas */
 .audio-canvas {
   width: 100%;
   max-width: 620px;
-  height: 120px;
+  height: 100px;
   border-radius: 12px;
-  background-color: #f4f4f4;
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease-in-out;
-  overflow: hidden;
 }
 
-/* === TOOLTIP (OPTIONAL) === */
-.tooltip {
-  position: absolute;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
-  color: #fff;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 4px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-
-.controls button:hover .tooltip {
-  opacity: 1;
-}
-
-/* === MOBILE OPTIMIZATION === */
+/* 📱 Mobile */
 @media (max-width: 768px) {
   .controls {
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .controls input[type="range"] {
-    width: 80%;
+    width: 100%;
   }
 
   .audio-canvas {
-    height: 100px;
+    height: 90px;
   }
 }
+
 
 
