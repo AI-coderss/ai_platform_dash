@@ -1,6 +1,7 @@
 import React, { useState, useRef, useLayoutEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "./ChatInputWidget";
+import AudioPlayer from "./AudioPlayer";
 import "../styles/ChatBot.css";
 import useCardStore from "./store/useCardStore";
 
@@ -15,6 +16,15 @@ const initialQuestions = [
   "How does the IVF Virtual Training Assistant work?",
 ];
 
+const audioMap = {
+  1: "/assets/audio/ai_doctor.mp3",
+  2: "/assets/audio/medical_transcription.mp3",
+  3: "/assets/audio/data_analyst.mp3",
+  4: "/assets/audio/report_enhancement.mp3",
+  5: "/assets/audio/ivf_assistant.mp3",
+  6: "/assets/audio/patient_assistant.mp3",
+};
+
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
@@ -23,6 +33,7 @@ const ChatBot = () => {
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [loading, setLoading] = useState(false);
+  const [currentAudioSrc, setCurrentAudioSrc] = useState(null);
   const chatBodyRef = useRef(null);
   const { setActiveCardId } = useCardStore();
 
@@ -77,6 +88,7 @@ const ChatBot = () => {
         const data = await classifyRes.json();
         if (data.card_id) {
           setActiveCardId(data.card_id);
+          setCurrentAudioSrc(audioMap[data.card_id]); // ✅ Set corresponding audio
         }
       } else {
         console.warn("Classification request failed");
@@ -195,6 +207,9 @@ const ChatBot = () => {
               )}
             </div>
           )}
+
+          {/* 🎧 Audio playback for matched card */}
+          {currentAudioSrc && <AudioPlayer src={currentAudioSrc} key={currentAudioSrc} />}
 
           <ChatInputWidget onSendMessage={handleSendMessage} />
         </div>
