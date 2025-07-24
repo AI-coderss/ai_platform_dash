@@ -12,9 +12,6 @@ const initialQuestions = [
   "Tell me more about the IVF Virtual Training Assistant.",
   "Can the Patient Assistant help with navigation?",
   "How to use the AI Doctor Assistant?",
-  "What features does the Medical Transcription App offer?",
-  "How can I view hospital insights with the Data Analyst?",
-  "What are the benefits of using AI for medical report enhancement?",
   "How does the IVF Virtual Training Assistant work?",
 ];
 
