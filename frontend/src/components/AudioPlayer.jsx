@@ -12,19 +12,24 @@ const AudioPlayer = ({ src, onEnded }) => {
   const analyserRef = useRef(null);
   const animationIdRef = useRef(null);
 
-  useEffect(() => {
-    if (!src) return;
+  const cleanupAudioContext = () => {
+    cancelAnimationFrame(animationIdRef.current);
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+  };
 
-    const audio = new Audio(src);
-    audio.crossOrigin = "anonymous";
-    audio.volume = volume;
-    audioRef.current = audio;
+  const setupVisualizer = () => {
+    if (!audioRef.current) return;
+
+    cleanupAudioContext();
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
 
-    const source = audioCtx.createMediaElementSource(audio);
+    const source = audioCtx.createMediaElementSource(audioRef.current);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
 
@@ -91,32 +96,60 @@ const AudioPlayer = ({ src, onEnded }) => {
     };
 
     animate();
-    audio.play();
+  };
 
-    audio.addEventListener("ended", () => {
-      onEnded?.();
-      cancelAnimationFrame(animationIdRef.current);
+  useEffect(() => {
+    if (!src) return;
+
+    const audio = new Audio(src);
+    audio.crossOrigin = "anonymous";
+    audio.volume = volume;
+    audioRef.current = audio;
+
+    setupVisualizer();
+    audio.play();
+    setIsPlaying(true);
+
+    const handleEnded = () => {
       setIsPlaying(false);
-      audio.currentTime = 0; // ✅ Reset audio so it can be played again
-    });
+      onEnded?.();
+    };
+
+    audio.addEventListener("ended", handleEnded);
 
     return () => {
-      cancelAnimationFrame(animationIdRef.current);
       audio.pause();
-      audioCtx.close(); // cleanup when unmounting
+      audio.removeEventListener("ended", handleEnded);
+      cleanupAudioContext();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
+  // 👇 Handle toggle playback
   const togglePlayback = () => {
     const audio = audioRef.current;
     if (!audio) return;
+
     if (isPlaying) {
       audio.pause();
     } else {
       audio.play();
+      setupVisualizer(); // always re-init waveform on play
     }
+
     setIsPlaying(!isPlaying);
+  };
+
+  // 👇 Handle toggle collapse (and re-animate)
+  const toggleCollapse = () => {
+    setCollapsed((prev) => {
+      const newVal = !prev;
+      if (!newVal) {
+        // re-render waveform when expanded again
+        setupVisualizer();
+      }
+      return newVal;
+    });
   };
 
   const handleVolumeChange = (e) => {
@@ -136,12 +169,20 @@ const AudioPlayer = ({ src, onEnded }) => {
 
   return (
     <div className={`audio-player ${collapsed ? "collapsed" : ""}`}>
+      {/* 🎛️ Controls Row */}
       <div className="controls">
         <button onClick={() => seek(-10)} title="Rewind 10s">⏪</button>
         <button onClick={togglePlayback} title={isPlaying ? "Pause" : "Play"}>
           {isPlaying ? "⏸️" : "▶️"}
         </button>
         <button onClick={() => seek(10)} title="Forward 10s">⏩</button>
+        <button onClick={toggleCollapse} title="Collapse/Expand">
+          {collapsed ? "🔼" : "🔽"}
+        </button>
+      </div>
+
+      {/* 🔊 Volume Slider */}
+      <div className="volume-slider">
         <input
           type="range"
           min={0}
@@ -151,11 +192,9 @@ const AudioPlayer = ({ src, onEnded }) => {
           onChange={handleVolumeChange}
           title="Volume"
         />
-        <button onClick={() => setCollapsed(!collapsed)} title="Collapse">
-          {collapsed ? "🔼" : "🔽"}
-        </button>
       </div>
 
+      {/* 🎨 Visualizer */}
       {!collapsed && (
         <canvas
           ref={canvasRef}
