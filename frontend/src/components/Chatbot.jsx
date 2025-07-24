@@ -35,22 +35,6 @@ const ChatBot = () => {
     return id;
   });
 
-  const classifyAndHighlightCard = async (userQuestion, aiResponse) => {
-    try {
-      const res = await fetch("https://your-backend-url/classify-card-id", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: userQuestion, response: aiResponse }),
-      });
-      const data = await res.json();
-      if (data.card_id) {
-        setActiveCardId(data.card_id); // Update Zustand store
-      }
-    } catch (err) {
-      console.error("Classification error:", err);
-    }
-  };
-
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
 
@@ -59,23 +43,18 @@ const ChatBot = () => {
     setAccordionOpen(false);
     setLoading(true);
 
+    let botText = "";
     try {
-      const response = await fetch(
-        "https://ai-platform-dsah-backend-chatbot.onrender.com/stream",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, session_id: sessionId }),
-        }
-      );
+      const response = await fetch("https://ai-platform-dsah-backend-chatbot.onrender.com/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, session_id: sessionId }),
+      });
 
-      if (!response.ok || !response.body) {
-        throw new Error("Streaming failed");
-      }
+      if (!response.ok || !response.body) throw new Error("Streaming failed");
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let botText = "";
       setMessages((prev) => [...prev, { type: "bot", text: "" }]);
 
       while (true) {
@@ -90,8 +69,21 @@ const ChatBot = () => {
         });
       }
 
-      await classifyAndHighlightCard(text, botText); // 🔥 Call backend to classify response
+      // 🔁 Call /classify to get the appropriate card ID
+      const classifyRes = await fetch("https://ai-platform-dsah-backend-chatbot.onrender.com/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, ai_response: botText }),
+      });
 
+      if (classifyRes.ok) {
+        const data = await classifyRes.json();
+        if (data.card_id) {
+          setActiveCardId(data.card_id);
+        }
+      } else {
+        console.warn("Classification request failed");
+      }
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -131,10 +123,7 @@ const ChatBot = () => {
 
       {open && (
         <div className="chat-box">
-          <div
-            className="chat-header"
-            style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}
-          >
+          <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
             AI Assistant
           </div>
 
@@ -164,10 +153,7 @@ const ChatBot = () => {
             ))}
 
             {loading && (
-              <div
-                className="chat-msg bot loader"
-                style={{ alignSelf: "flex-start" }}
-              >
+              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
                 <span className="dot"></span>
                 <span className="dot"></span>
                 <span className="dot"></span>
@@ -179,20 +165,11 @@ const ChatBot = () => {
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
                 <>
-                  <div
-                    className="accordion-header"
-                    onClick={() => setAccordionOpen((prev) => !prev)}
-                  >
+                  <div className="accordion-header" onClick={() => setAccordionOpen((prev) => !prev)}>
                     <span>Show Suggested Questions</span>
-                    <span
-                      className={`chevron ${accordionOpen ? "rotate" : ""}`}
-                    >
-                      ▼
-                    </span>
+                    <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>▼</span>
                   </div>
-                  <div
-                    className={`accordion-body ${accordionOpen ? "open" : ""}`}
-                  >
+                  <div className={`accordion-body ${accordionOpen ? "open" : ""}`}>
                     <div className="accordion-content">
                       {visibleQuestions.map((q, i) => (
                         <button
@@ -230,6 +207,8 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
+
 
 
 

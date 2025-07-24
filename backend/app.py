@@ -12,7 +12,6 @@ from flask_cors import CORS
 import qdrant_client
 from openai import OpenAI
 from prompts.prompt import engineeredprompt
-from prompts.system_prompts import system_prompt
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -183,38 +182,43 @@ def generate_followups():
         print(f"Error generating followups: {e}")
         return jsonify({"followups": []})
     
-@app.route("/classify-card-id", methods=["POST"])
-def classify_card():
+@app.route("/classify", methods=["POST"])
+def classify_question():
     data = request.get_json()
-    user_question = data.get("question", "")
-    ai_response = data.get("response", "")
-
-    if not user_question or not ai_response:
-        return jsonify({"error": "Missing question or response"}), 400
+    question = data.get("question")
+    ai_response = data.get("ai_response")
 
     prompt = f"""
-User Question: {user_question}
-AI Response: {ai_response}
-Which of the following card IDs is most relevant to this content?
-Return ONLY the number:
-1. AI Doctor Assistant
-2. Medical Transcription App
-3. Data Analyst Dashboard
-4. Medical Report Enhancement App
-5. IVF Virtual Training Assistant
-6. Patient Assistant for Navigation
+You are an intelligent AI routing assistant. Given a user's question and AI response,
+determine the most relevant card ID from the following:
+
+1: AI Doctor Assistant
+2: Medical Transcription App
+3: Data Analyst Dashboard
+4: Medical Report Enhancement Tool
+5: IVF Virtual Training Assistant
+6: Patient Navigation Assistant
+
+Return only the ID as a number (1-6). No text, no explanation.
+
+Question: {question}
+Response: {ai_response}
 """
 
-    response = client.chat.completions.create(
+    completion = client.chat.completions.create(
         model="gpt-4o",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-        ]
+        messages=[{"role": "system", "content": prompt}],
+        temperature=0.0,
     )
 
-    content = response.choices[0].message.content.strip()
-    return jsonify({"card_id": int(content)})
+    result = completion.choices[0].message.content.strip()
+    try:
+        card_id = int(result)
+    except:
+        card_id = None
+
+    return jsonify({"card_id": card_id})
+
 
 # === Run ===
 if __name__ == "__main__":
