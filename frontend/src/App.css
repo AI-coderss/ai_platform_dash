@@ -103,6 +103,8 @@ body {
   z-index: 1;
   padding: 1rem;
   text-align: center;
+  margin-top: 4rem;
+  margin-bottom: 2rem;
 }
 
 .card .app-icon {
