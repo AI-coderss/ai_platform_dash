@@ -11,21 +11,17 @@ const AudioPlayer = ({ src, onEnded }) => {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const animationIdRef = useRef(null);
-
-  // Store canvas context and gradient for reuse
   const ctxRef = useRef(null);
   const gradientRef = useRef(null);
 
-  const initializeVisualizer = () => {
+  const initializeCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
     gradient.addColorStop(0, "rgba(255, 25, 255, 0.2)");
     gradient.addColorStop(0.5, "rgba(25, 255, 255, 0.75)");
     gradient.addColorStop(1, "rgba(255, 255, 25, 0.2)");
-
     ctxRef.current = ctx;
     gradientRef.current = gradient;
   };
@@ -70,7 +66,8 @@ const AudioPlayer = ({ src, onEnded }) => {
           const amplitude = maxAmplitude * dampFactor * (1 - distanceFromMid);
           const isWaveInverted = j % 2 ? 1 : -1;
           const frequency = isWaveInverted * (0.05 + 0.25);
-          const y = baseLine + Math.sin(i * frequency + globalTime + j) * amplitude * v;
+          const y =
+            baseLine + Math.sin(i * frequency + globalTime + j) * amplitude * v;
 
           if (i === 0) ctx.moveTo(x, y);
           else {
@@ -113,10 +110,10 @@ const AudioPlayer = ({ src, onEnded }) => {
     audioCtxRef.current = audioCtx;
     analyserRef.current = analyser;
 
-    initializeVisualizer();
+    initializeCanvas();
     startVisualizer();
 
-    audio.play().catch((err) => console.error("Auto-play blocked:", err));
+    audio.play().catch((err) => console.warn("Autoplay error:", err));
 
     audio.addEventListener("ended", () => {
       onEnded?.();
@@ -133,13 +130,20 @@ const AudioPlayer = ({ src, onEnded }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
+  // 👇 Re-initialize canvas each time collapse state changes
+  useEffect(() => {
+    if (!collapsed && canvasRef.current && isPlaying) {
+      initializeCanvas();
+      startVisualizer();
+    }
+  }, [collapsed, isPlaying]);
+
   const togglePlayback = async () => {
     const audio = audioRef.current;
     const audioCtx = audioCtxRef.current;
-
     if (!audio || !audioCtx) return;
 
-    await audioCtx.resume(); // Ensure AudioContext is running
+    await audioCtx.resume();
 
     if (audio.paused) {
       audio.play();
@@ -168,19 +172,20 @@ const AudioPlayer = ({ src, onEnded }) => {
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
-    if (!collapsed && isPlaying) {
-      startVisualizer(); // Ensure visualizer is active when reopened
-    }
   };
 
   return (
     <div className={`audio-player ${collapsed ? "collapsed" : ""}`}>
       <div className="controls">
-        <button onClick={() => seek(-10)} title="Rewind 10s">⏪</button>
+        <button onClick={() => seek(-10)} title="Rewind 10s">
+          ⏪
+        </button>
         <button onClick={togglePlayback} title={isPlaying ? "Pause" : "Play"}>
           {isPlaying ? "⏸️" : "▶️"}
         </button>
-        <button onClick={() => seek(10)} title="Forward 10s">⏩</button>
+        <button onClick={() => seek(10)} title="Forward 10s">
+          ⏩
+        </button>
         <button onClick={toggleCollapse} title="Collapse/Expand">
           {collapsed ? "🔼" : "🔽"}
         </button>
@@ -211,6 +216,7 @@ const AudioPlayer = ({ src, onEnded }) => {
 };
 
 export default AudioPlayer;
+
 
 
 

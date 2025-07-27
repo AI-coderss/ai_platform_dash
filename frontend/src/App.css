@@ -111,7 +111,7 @@ body {
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  margin-bottom: 1rem;
+  margin-top: 3rem;
 }
 
 .card .title {
@@ -175,12 +175,14 @@ body {
 }
 /* 🌟 Expanded Card when Audio Player is Present */
 .card.expanded {
-  position: absolute;
-  z-index: 999;
-  height: 680px;
-  padding: 2rem;
-  transition: height 0.4s ease;
+    margin-top: 4rem;
+    margin-bottom: 3rem;
+    padding: 1rem;
+    position: relative;
+    text-align: center;
+    z-index: 1;
 }
+
 
 .audio-wrapper {
   width: 100%;

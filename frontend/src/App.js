@@ -27,7 +27,7 @@ const AppCard = ({ app, onPlay }) => {
   return (
     <div
       ref={cardRef}
-      className={`card animated-card ${isActive ? "highlight" : ""}`}
+      className={`card animated-card ${isActive ? "highlight expanded" : ""}`}
       tabIndex="0"
     >
       {isActive && (
