@@ -1,5 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+
 body {
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   margin: 0;
   background-color: #f6f8fc;
   color: #333;
@@ -103,8 +105,7 @@ body {
   z-index: 1;
   padding: 1rem;
   text-align: center;
-  margin-top: 4rem;
-  margin-bottom: 2rem;
+  margin-bottom: 4rem;
 }
 
 .card .app-icon {
@@ -306,7 +307,7 @@ button:hover {
 .p {
   position: absolute;
   font-size: 2rem;
-  font-family: sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: bold;
   top: 50%;
   left: 50%;
@@ -333,6 +334,7 @@ button:hover {
   text-shadow: 1px 1px 1px black, -1px -1px 1px black;
   color: #007bff;
   transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
+
 }
 
 .p2 {
