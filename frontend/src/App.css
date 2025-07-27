@@ -173,15 +173,6 @@ body {
   align-items: center;
   justify-content: center;
 }
-/* 🌟 Expanded Card when Audio Player is Present */
-.card.expanded {
-    margin-top: 4rem;
-    margin-bottom: 3rem;
-    padding: 1rem;
-    position: relative;
-    text-align: center;
-    z-index: 1;
-}
 
 
 .audio-wrapper {
