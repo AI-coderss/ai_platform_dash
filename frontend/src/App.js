@@ -4,6 +4,7 @@ import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
 import AudioPlayer from "./components/AudioPlayer";
 
+
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
   2: "/assets/audio/medical_transcription.mp3",
@@ -23,6 +24,7 @@ const AppCard = ({ app, onPlay }) => {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [isActive]);
+
 
   return (
     <div
@@ -132,7 +134,7 @@ const App = () => {
               </div>
             </div>
           </div>
-          <p className="subtitle">Your single portal for all AI-powered applications</p>
+          
         </div>
       </div>
 
