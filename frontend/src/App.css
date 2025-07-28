@@ -639,3 +639,64 @@ button a:hover {
   50.1%{ transform: scaleX(1); transform-origin: right; }
   100% { transform: scaleX(0); transform-origin: right; }
 }
+/* Add or replace this in your App.css file */
+
+.survey-fab-button {
+  /* --- Color and Style --- */
+  background: linear-gradient(45deg, #007bff, #0056b3); /* Blue gradient */
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 50px; /* Pill shape */
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+
+  /* --- Positioning --- */
+  position: fixed;
+  right: 120px;
+  bottom: 20px; /* Adjust this value to position it above your chatbot */
+  z-index: 999;
+  
+  /* --- Animation & Transition --- */
+  transform: scale(1);
+  transition: all 0.3s ease-in-out;
+  animation: pulse-blue 2.5s infinite; /* Applying the pulse animation */
+}
+
+/* --- Hover Effect --- */
+.survey-fab-button:hover {
+  transform: scale(1.05); /* Enlarge the button slightly */
+  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.6);
+  cursor: pointer;
+  animation-play-state: paused; /* Pause the pulse on hover for a smoother feel */
+}
+
+/* --- Keyframes for the pulse animation --- */
+@keyframes pulse-blue {
+  0% {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+  }
+  70% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+  }
+  100% {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+  }
+}
+
+
+/* --- Cross-Platform Responsiveness --- */
+/* For smaller screens like mobile phones */
+@media (max-width: 768px) {
+  .survey-fab-button {
+    /* Make the button slightly smaller and adjust position */
+    padding: 10px 20px;
+    font-size: 14px;
+    right: 15px;
+    bottom: 90px; /* Adjust if it overlaps with your chatbot button */
+  }
+}

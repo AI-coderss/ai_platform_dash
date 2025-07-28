@@ -67,6 +67,9 @@ const AppCard = ({ app, onPlay }) => {
 const App = () => {
   const [videoUrl, setVideoUrl] = useState(null);
 
+  // 1. UPDATED the Visme survey URL
+  const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
+
   const apps = [
     {
       id: 1,
@@ -134,8 +137,8 @@ const App = () => {
               </div>
             </div>
           </div>
-          
         </div>
+        {/* Survey button has been moved from here */}
       </div>
 
       {videoUrl && (
@@ -157,6 +160,17 @@ const App = () => {
           <AppCard key={app.id} app={app} onPlay={setVideoUrl} />
         ))}
       </div>
+      
+      {/* 2. ADD THIS FLOATING SURVEY BUTTON */}
+      <a
+        href={surveyUrl}
+        className="btn survey-fab-button" /* Use new class for positioning */
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Take our Survey"
+      >
+        Take Survey 📝
+      </a>
 
       <ChatBot />
     </div>
