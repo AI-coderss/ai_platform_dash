@@ -9,13 +9,12 @@ const initialQuestions = [
   "How does the Medical Transcription App work?",
   "Can the Data Analyst show me hospital insights?",
   "How can I enhance a medical report using AI?",
+  "how to use the medical transcription app?",
   "Tell me more about the IVF Virtual Training Assistant.",
   "Can the Patient Assistant help with navigation?",
   "How to use the AI Doctor Assistant?",
   "How does the IVF Virtual Training Assistant work?",
 ];
-
-
 
 const ChatBot = () => {
   const [open, setOpen] = useState(false);
@@ -43,6 +42,8 @@ const ChatBot = () => {
     setLoading(true);
 
     let botText = "";
+    let detectedCardId = null;
+
     try {
       const response = await fetch("https://ai-platform-dsah-backend-chatbot.onrender.com/stream", {
         method: "POST",
@@ -78,12 +79,25 @@ const ChatBot = () => {
       if (classifyRes.ok) {
         const data = await classifyRes.json();
         if (data.card_id) {
-          setActiveCardId(data.card_id);
-         
+          detectedCardId = data.card_id;
+          setActiveCardId(detectedCardId);
         }
       } else {
         console.warn("Classification request failed");
       }
+
+      // 🔁 Check if question requests a demo or usage help
+      if (
+        /demo|how to use|show me/i.test(text) &&
+        detectedCardId
+      ) {
+        await fetch("https://ai-platform-dsah-backend-chatbot.onrender.com/launch-agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ app_id: detectedCardId }),
+        });
+      }
+
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -199,7 +213,6 @@ const ChatBot = () => {
             </div>
           )}
 
-          
           <ChatInputWidget onSendMessage={handleSendMessage} />
         </div>
       )}

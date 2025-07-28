@@ -11,3 +11,6 @@ flask
 flask-cors
 gunicorn
 tiktoken
+browser_use
+playwright
+
