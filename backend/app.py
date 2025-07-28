@@ -219,45 +219,6 @@ Response: {ai_response}
 
     return jsonify({"card_id": card_id})
 
-# === /launch-agent ===
-@app.route("/launch-agent", methods=["POST"])
-def launch_agent():
-    data = request.get_json()
-    app_id = str(data.get("app_id"))
-
-    # Map card ID to application URLs
-    app_links = {
-        "1": "https://dsahdoctoraiassistantbot.onrender.com",
-        "2": "https://medicaltranscription-version2-tests.onrender.com",
-        "3": "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
-        "4": "https://medical-report-editor-ai-powered-dsah.onrender.com",
-        "5": "https://ivf-virtual-training-assistant-dsah.onrender.com",
-        "6": "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
-    }
-
-    url = app_links.get(app_id)
-    if not url:
-        return jsonify({"error": "Invalid app ID"}), 400
-
-    try:
-        import asyncio
-        from browser_use import Agent
-        from browser_use.llm import ChatOpenAI
-
-        async def launch_browser_agent():
-            agent = Agent(
-                task=f"Open this URL and scroll a little bit: {url}",
-                llm=ChatOpenAI(model="o4-mini", temperature=0.3),
-            )
-            await agent.run()
-
-        asyncio.run(launch_browser_agent())
-        return jsonify({"status": "launched", "url": url})
-
-    except Exception as e:
-        print(f"[Launch Agent Error] {e}")
-        return jsonify({"error": str(e)}), 500
-
 
 
 # === Run ===
