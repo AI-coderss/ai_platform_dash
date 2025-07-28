@@ -581,7 +581,6 @@ button a:hover {
   justify-content: center;
   align-items: center;
   z-index: 10;
-  margin-right: 20px;
 
   /* Glassmorphism */
   background-color: rgba(17, 24, 69, 0.4); /* dark blue tint */
