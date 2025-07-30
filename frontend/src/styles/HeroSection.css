@@ -1,0 +1,76 @@
+.hero-section {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  /* Use theme variable for the primary background */
+  background-color: var(--bg-primary); 
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-normal);
+}
+
+.hero-canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: block;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(6px);
+  /* Use theme variable for the glass effect */
+  background: var(--bg-glass); 
+  z-index: 1;
+  transition: var(--transition-normal);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 2rem;
+  max-width: 720px;
+}
+
+.hero-content h1 {
+  font-size: 2.5rem;
+  /* Use theme variable for primary text */
+  color: var(--text-primary); 
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  /* Use theme variable for secondary text */
+  color: var(--text-secondary); 
+  margin-bottom: 2rem;
+}
+
+.cta-button {
+  /* Use theme variables for button background and text */
+  background: var(--btn-bg);
+  color: var(--btn-text); 
+  padding: 0.8rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  /* Use theme variable for transitions */
+  transition: var(--transition-normal); 
+}
+
+.cta-button:hover {
+  /* Use theme variable for button hover state */
+  background: var(--btn-bg-hover); 
+  box-shadow: var(--shadow-button);
+}

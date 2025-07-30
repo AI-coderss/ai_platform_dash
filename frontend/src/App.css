@@ -1,8 +1,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
 
-/* Theme System - Two Themes Only */
+/* ==========================================================================
+   Theme System - Two Themes Only
+   ========================================================================== */
 
-/* Light Theme (Default - Current App Style) */
+/* --------------------------------------------------------------------------
+   Light Theme (Default)
+   -------------------------------------------------------------------------- */
 :root {
   /* Background Colors */
   --bg-primary: #f6f8fc;
@@ -55,7 +59,9 @@
   --grid-line: transparent;
 }
 
-/* Dark Theme (CodePen-inspired) */
+/* --------------------------------------------------------------------------
+   Dark Theme (CodePen-inspired)
+   -------------------------------------------------------------------------- */
 [data-theme="dark"] {
   /* Background Colors */
   --bg-primary: #111827;
@@ -95,9 +101,6 @@
   --video-modal-bg: rgba(17, 24, 39, 0.8);
   --video-close-text: #f3f4f6;
   
-  /* Font Family */
-  --font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
-  
   /* Background Elements (visible in dark theme) */
   --bg-blur-1: rgba(99, 102, 241, 0.1);
   --bg-blur-2: rgba(168, 85, 247, 0.1);
@@ -105,23 +108,26 @@
   --grid-line: rgba(6, 182, 212, 0.05);
 }
 
-/* Apply theme variables to existing styles */
 
+/* ==========================================================================
+   Base & Layout Styles
+   ========================================================================== */
 
 body {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   margin: 0;
-  background-color: #f6f8fc;
- 
-  color: #333;
-   overflow-y: scroll;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-y: scroll;
   scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  -ms-overflow-style: none;  /* IE 10+ */
+  transition: var(--transition-normal);
 }
 
 ::-webkit-scrollbar {
   display: none; /* Chrome, Safari, and Opera */
 }
+
 .container {
   position: relative;
   z-index: 1 !important;
@@ -137,7 +143,7 @@ body {
   justify-items: center;
   max-width: 1200px;
   margin: 0 auto !important;
-  padding: 0rem 1rem 2rem 0.5rem; /* Top padding reduced from 0.5rem to 0rem */
+  padding: 0rem 1rem 2rem 0.5rem;
 }
 
 .header {
@@ -145,13 +151,13 @@ body {
   align-items: center;
   justify-content: space-evenly;
   flex-wrap: wrap;
-  height: 120px;
+  height: 100px;
   margin-top: 5px;
   margin-bottom: 5px;
   background-image: url('../public/assets/Background.gif');
   background-size: cover;
   object-fit: fill;
-  background-repeat: no-repeat
+  background-repeat: no-repeat;
 }
 
 .logo-container {
@@ -166,7 +172,7 @@ body {
   width: 250px;
   height: 100px;
   object-fit: contain;
-  margin-bottom: 120px; /* Adjusted to match header height */
+  margin-bottom: 250px;
 }
 
 .title-block {
@@ -174,34 +180,38 @@ body {
   text-align: center;
   justify-content: center;
   margin-top: 5px;
-   margin-bottom: 0px !important;
+  margin-bottom: 0px !important;
 }
 
 .title-block h1 {
   font-size: 2.5rem;
-  margin-bottom: 4px; /* reduced from 10px */
+  margin-bottom: 4px;
 }
 
 .subtitle {
   font-size: 1.1rem;
-  color: #666;
+  color: var(--text-secondary);
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-  margin-bottom: 0;
   font-style: italic;
-  margin-bottom: 150px; /* Adjusted to match header height */
+  margin-bottom: 150px;
 }
+
+/* ==========================================================================
+   Card Styles
+   ========================================================================== */
 
 .card {
   width: 400px;
   height: 370px;
   position: relative;
   border-radius: 16px;
-  background: white;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   overflow: hidden;
   transform-style: preserve-3d;
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  transition: var(--transition-normal);
   animation: fadeInUp 0.5s ease forwards;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -213,7 +223,7 @@ body {
 .card:hover {
   transform: scale(1.02) rotateZ(0.5deg);
   animation: bounceHover 0.8s ease, glowPulse 1.6s infinite;
-  box-shadow: 0 20px 40px rgba(0, 123, 255, 0.4);
+  box-shadow: var(--shadow-card-hover);
   z-index: 2;
 }
 
@@ -236,40 +246,13 @@ body {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0.5rem 0;
+  color: var(--text-primary);
 }
 
 .card .copy {
   font-size: 0.95rem;
-  color: #555;
+  color: var(--text-accent);
   margin-bottom: 1rem;
-}
-
-.card .btn {
-  margin: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  height: inherit;
-  width: 60px;
-  border-radius: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: #007bff;
-  color: white;
-  transition: background-color 0.3s ease;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.card .btn:hover {
-  background-color: #0056b3;
-}
-
-.app-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
 }
 
 .card .btn {
@@ -281,9 +264,9 @@ body {
   border-radius: 8px;
   font-weight: 600;
   text-transform: uppercase;
-  background-color: #007bff;
-  color: white;
-  transition: background-color 0.3s ease;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  transition: var(--transition-normal);
   cursor: pointer;
   text-decoration: none;
   text-align: center;
@@ -292,6 +275,17 @@ body {
   justify-content: center;
 }
 
+.card .btn:hover {
+  background: var(--btn-bg-hover);
+}
+
+.app-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
 
 .audio-wrapper {
   width: 100%;
@@ -302,93 +296,35 @@ body {
   flex-direction: column;
 }
 
+/* ==========================================================================
+   Button Styles
+   ========================================================================== */
 
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.glow-border {
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  border-radius: 20px;
-  background: linear-gradient(45deg, #ffffff, #ffffff, #ffffff);
-  background-size: 400% 400%;
-  z-index: 0;
-  animation: borderGlow 4s ease infinite;
-  filter: blur(4px);
-  opacity: 0.7;
-}
-
-@keyframes borderGlow {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes bounceHover {
-  0% {
-    transform: scale(1) rotateZ(0deg);
-  }
-  30% {
-    transform: scale(1.015) rotateZ(0.05deg);
-  }
-  60% {
-    transform: scale(0.995) rotateZ(-0.05deg);
-  }
-  100% {
-    transform: scale(1.02) rotateZ(0deg);
-  }
-}
-
-@keyframes glowPulse {
-  0% {
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(0, 123, 255, 0.25);
-  }
-  100% {
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
-  }
-}
-
-/* Buttons for voice recorder and AI platform actions */
-button {
+button, .app-actions a {
   position: relative;
   padding: 0.8rem 1.5rem;
   font-size: 0.9rem;
-  color: white;
-  background: linear-gradient(45deg, #007bff, #4f46e5);
+  color: var(--btn-text);
+  background: var(--btn-bg);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: var(--transition-normal);
 }
 
-button .shine-content {
+button:hover, .app-actions a:hover {
+  background: var(--btn-bg-hover);
+  box-shadow: var(--shadow-button);
+}
+
+button .shine-content, .app-actions a .shine-content {
   position: relative;
   z-index: 1;
 }
 
-button::before {
+button::before, .app-actions a::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -400,48 +336,13 @@ button::before {
   transition: transform 0.5s ease;
 }
 
-button:hover::before {
+button:hover::before, .app-actions a:hover::before {
   transform: rotate(45deg) translateY(100%);
 }
 
-button:hover {
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
-}
-.app-actions a{
-   position: relative;
-  padding: 0.8rem 1.5rem;
-  font-size: 0.9rem;
-  color: white;
-  background: linear-gradient(45deg, #007bff, #4f46e5);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  text-decoration: none;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.app-actions a .shine-content {
-  position: relative;
-  z-index: 1;
-}
-button a::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transform: rotate(45deg) translateY(-100%);
-  transition: transform 0.5s ease;
-}
-button a:hover::before {
-  transform: rotate(45deg) translateY(100%);
-}
-button a:hover {
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
-}
+/* ==========================================================================
+   Animated Title ("BrushCursor")
+   ========================================================================== */
 #BrushCursor {
   width: 100%;
   height: 120px;
@@ -458,7 +359,7 @@ button a:hover {
 .p {
   position: absolute;
   font-size: 2rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-weight: bold;
   top: 50%;
   left: 50%;
@@ -483,13 +384,12 @@ button a:hover {
 
 .p1 {
   text-shadow: 1px 1px 1px black, -1px -1px 1px black;
-  color: #007bff;
+  color: var(--title-primary);
   transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
-
 }
 
 .p2 {
-  color: #A81E22;
+  color: var(--title-accent);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
   animation: text-animation 8s ease-in-out forwards alternate infinite;
   text-shadow: 1px 1px 1px black, -1px -1px 1px black,
@@ -504,133 +404,118 @@ button a:hover {
   color: transparent;
 }
 
-@keyframes text-animation {
-  from {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-  }
-  to {
-    clip-path: polygon(0 0, 0% 1%, 0% 100%, 0% 100%);
-  }
-}
-
 .cursor {
   position: absolute;
   top: 50%;
   height: 100%;
   width: 100%;
   transform: translate(0, -50%);
-  border-right: 2px solid #A81E22;
+  border-right: 2px solid var(--title-accent);
   animation: cursor-animation 8s ease-in-out forwards alternate infinite;
 }
 
-@keyframes cursor-animation {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0;
-  }
-}
-/* === Layout wrapper to embed cube beside cards === */
-.layout-with-cube {
-  display: flex;
-  align-items: flex-start;
-  position: relative;
-}
+/* ==========================================================================
+   Highlight Card & Glassmorphism
+   ========================================================================== */
 
-.left-fixed-cube {
-  flex: 0 0 150px;
-  padding-left: 20px;
-  margin-top: 120px;
-  z-index: 0;
+.card.highlight {
+  border-radius: 16px;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  box-shadow: var(--highlight-shadow);
+  border: 2px solid var(--highlight-border);
+  background-image: url("https://img.freepik.com/free-vector/gradient-glassmorphism-background_23-2149489059.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 10;
+  background-color: var(--highlight-bg-1);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
 }
 
-.main-platform-content {
-  flex-grow: 1;
-  padding-right: 40px;
-  position: relative;
-  z-index: 1;
+.card.highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: 0.5s ease-in-out;
+  pointer-events: none;
 }
 
-@media (max-width: 768px) {
-  .left-fixed-cube {
-    display: none;
-  }
-
-  .layout-with-cube {
-    flex-direction: column;
-  }
+.card.highlight:hover::before {
+  left: -50%;
+  transform: skewX(-5deg);
 }
 
-/* Responsive Tweaks */
-@media (max-width: 768px) {
-  .header {
-  
-    justify-content: center;
-    height: 150px;
-  }
-
-  .logo-container {
-    display: none;
-  }
-
-  .hospital-logo {
-    width: 200px;
-    height: auto;
-  }
-
-  .title-block h1 {
-    font-size: 2rem;
-  }
-
-  .subtitle {
-    font-size: 1rem;
-  }
-
-  .card {
-    width: 90%;
-    height: auto;
-  }
-
-  .page-content {
-    grid-template-columns: 1fr;
-    padding: 0.5rem;
-  }
+.card.highlight span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
-@media (max-width: 480px) {
-  .app-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-  }
+.card.highlight span:nth-child(1) { transform: rotate(0deg); }
+.card.highlight span:nth-child(2) { transform: rotate(90deg); }
+.card.highlight span:nth-child(3) { transform: rotate(180deg); }
+.card.highlight span:nth-child(4) { transform: rotate(270deg); }
 
-  .card .btn {
-    width: 100%;
-    padding: 0.6rem;
-    font-size: 0.9rem;
-  }
-
-  .card {
-    width: 95%;
-    padding: 1rem;
-  }
-
-  .video-modal {
-    background: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+.card.highlight span::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #50dfdb; /* Kept as a specific decorative color */
+  animation: animate 4s linear infinite;
 }
 
-/* Video Modal Styles */
+/* ==========================================================================
+   Floating Action Button (FAB)
+   ========================================================================== */
+.survey-fab-button {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  padding: 12px 24px;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-button);
+  position: fixed;
+  right: 120px;
+  bottom: 20px;
+  z-index: 999;
+  transform: scale(1);
+  transition: var(--transition-normal);
+  animation: pulse-blue 2.5s infinite;
+}
+
+.survey-fab-button:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-card-hover); /* A bigger shadow on hover */
+  background: var(--btn-bg-hover);
+  cursor: pointer;
+  animation-play-state: paused;
+}
+
+/* ==========================================================================
+   Video Modal
+   ========================================================================== */
+
 .video-modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(30, 34, 90, 0.35);
+  background: var(--video-modal-bg);
   backdrop-filter: blur(5px) saturate(180%);
   -webkit-backdrop-filter: blur(5px) saturate(180%);
   display: flex;
@@ -660,82 +545,65 @@ button a:hover {
   top: 10px;
   right: 15px;
   font-size: 20px;
-  color: white;
+  color: var(--video-close-text);
   background: none;
   border: none;
   cursor: pointer;
   z-index: 1001;
 }
-
-.card.highlight {
-  width: 400px;
-  height: 370px;
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
-  transform-style: preserve-3d;
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
-  animation: fadeInUp 0.5s ease forwards;
-  box-shadow: 0 20px 50px rgba(0, 60, 150, 0.4); /* softer blue glow */
-  border: 2px solid rgba(42, 60, 173, 0.7); /* semi-transparent blue border */
-  background-image: url("https://img.freepik.com/free-vector/gradient-glassmorphism-background_23-2149489059.jpg");
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
-
-  /* Glassmorphism */
-  background-color: rgba(17, 24, 69, 0.4); /* dark blue tint */
-  backdrop-filter: blur(8px) saturate(160%);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
-}
-
-/* Hover shimmer effect */
-.card.highlight::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  transition: 0.5s ease-in-out;
+/* Avatar Canvas Container (Chatbot) */
+.avatar-canvas-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 300px;
+  height: 400px;
+  z-index: 1000;
   pointer-events: none;
 }
 
-.card.highlight:hover::before {
-  left: -50%;
-  transform: skewX(-5deg);
+.avatar-canvas-container canvas {
+  pointer-events: auto;
+  width: 100% !important;
+  height: 100% !important;
 }
 
-/* Inner glowing animated frame */
-.card.highlight span {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  box-sizing: border-box;
-  pointer-events: none;
+/* ==========================================================================
+   Keyframe Animations
+   ========================================================================== */
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-.card.highlight span:nth-child(1) { transform: rotate(0deg); }
-.card.highlight span:nth-child(2) { transform: rotate(90deg); }
-.card.highlight span:nth-child(3) { transform: rotate(180deg); }
-.card.highlight span:nth-child(4) { transform: rotate(270deg); }
+@keyframes borderGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 
-.card.highlight span::before {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  background: #50dfdb;
-  animation: animate 4s linear infinite;
+@keyframes bounceHover {
+  0% { transform: scale(1) rotateZ(0deg); }
+  30% { transform: scale(1.015) rotateZ(0.05deg); }
+  60% { transform: scale(0.995) rotateZ(-0.05deg); }
+  100% { transform: scale(1.02) rotateZ(0deg); }
+}
+
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 5px rgba(0, 123, 255, 0.1); }
+  50% { box-shadow: 0 0 12px rgba(0, 123, 255, 0.25); }
+  100% { box-shadow: 0 0 5px rgba(0, 123, 255, 0.1); }
+}
+
+@keyframes text-animation {
+  from { clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
+  to { clip-path: polygon(0 0, 0% 1%, 0% 100%, 0% 100%); }
+}
+
+@keyframes cursor-animation {
+  from { width: 100%; }
+  to { width: 0; }
 }
 
 @keyframes animate {
@@ -744,64 +612,66 @@ button a:hover {
   50.1%{ transform: scaleX(1); transform-origin: right; }
   100% { transform: scaleX(0); transform-origin: right; }
 }
-/* Add or replace this in your App.css file */
 
-.survey-fab-button {
-  /* --- Color and Style --- */
-  background: linear-gradient(45deg, #007bff, #0056b3); /* Blue gradient */
-  color: white;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 50px; /* Pill shape */
-  font-weight: 600;
-  text-decoration: none;
-  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
-
-  /* --- Positioning --- */
-  position: fixed;
-  right: 120px;
-  bottom: 20px; /* Adjust this value to position it above your chatbot */
-  z-index: 999;
-  
-  /* --- Animation & Transition --- */
-  transform: scale(1);
-  transition: all 0.3s ease-in-out;
-  animation: pulse-blue 2.5s infinite; /* Applying the pulse animation */
-}
-
-/* --- Hover Effect --- */
-.survey-fab-button:hover {
-  transform: scale(1.05); /* Enlarge the button slightly */
-  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.6);
-  cursor: pointer;
-  animation-play-state: paused; /* Pause the pulse on hover for a smoother feel */
-}
-
-/* --- Keyframes for the pulse animation --- */
 @keyframes pulse-blue {
-  0% {
-    transform: scale(0.98);
-    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
-  }
-  70% {
-    transform: scale(1.02);
-    box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
-  }
-  100% {
-    transform: scale(0.98);
-    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
-  }
+  0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+  100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
 }
 
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
 
-/* --- Cross-Platform Responsiveness --- */
-/* For smaller screens like mobile phones */
 @media (max-width: 768px) {
+  .header {
+    justify-content: center;
+    height: 150px;
+  }
+  .logo-container {
+    display: none;
+  }
+  .title-block h1 {
+    font-size: 2rem;
+  }
+  .subtitle {
+    font-size: 1rem;
+  }
+  .card {
+    width: 90%;
+    height: auto;
+  }
+  .page-content {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+  .p {
+    font-size: 2.5rem;
+  }
   .survey-fab-button {
-    /* Make the button slightly smaller and adjust position */
     padding: 10px 20px;
     font-size: 14px;
     right: 15px;
-    bottom: 90px; /* Adjust if it overlaps with your chatbot button */
+    bottom: 90px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .card .btn {
+    width: 100%;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  .card {
+    width: 95%;
+    padding: 1rem;
+  }
+  .p {
+    font-size: 2rem;
   }
 }

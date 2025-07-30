@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import ChatBot from "./components/Chatbot";
+import HeroSection from "./components/HeroSection";
+import ThemeToggle from "./components/ThemeToggle";
 import useCardStore from "./components/store/useCardStore";
 import AudioPlayer from "./components/AudioPlayer";
-import ContactSection from "./components/ContactSection";
 
+import ContactSection from "./components/ContactSection";
 
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -19,13 +21,24 @@ const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     if (isActive && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      const handleStart = () => setIsSpeaking(true);
+      const handleEnd = () => setIsSpeaking(false);
+
+      window.speechSynthesis.addEventListener("start", handleStart);
+      window.speechSynthesis.addEventListener("end", handleEnd);
+
+      return () => {
+        window.speechSynthesis.removeEventListener("start", handleStart);
+        window.speechSynthesis.removeEventListener("end", handleEnd);
+      };
     }
   }, [isActive]);
-
 
   return (
     <div
@@ -33,10 +46,12 @@ const AppCard = ({ app, onPlay }) => {
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
     >
-      {isActive && (
-        <>
-          <span></span><span></span><span></span><span></span>
-        </>
+      {isSpeaking && isActive && (
+        <div className="audio-visualizer">
+          {[...Array(6)].map((_, i) => (
+            <span key={i} className="bar"></span>
+          ))}
+        </div>
       )}
 
       <div className="glow-border"></div>
@@ -54,7 +69,6 @@ const AppCard = ({ app, onPlay }) => {
           </button>
         </div>
 
-        {/* 🎧 Audio Player rendered at the bottom */}
         {isActive && (
           <div className="audio-wrapper">
             <AudioPlayer src={audioMap[app.id]} key={audioMap[app.id]} />
@@ -67,9 +81,8 @@ const AppCard = ({ app, onPlay }) => {
 
 const App = () => {
   const [videoUrl, setVideoUrl] = useState(null);
-
-  // 1. UPDATED the Visme survey URL
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
+  const cardsRef = useRef(null); // For scrolling into view
 
   const apps = [
     {
@@ -83,7 +96,7 @@ const App = () => {
     {
       id: 2,
       name: "📋 Medical Transcription App",
-      description: "Generate structured medical notes from consultations",
+      description: "Generate structured medical notes from consultations, capture the essence of patient doctor conversation",
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
       helpVideo: "https://www.youtube.com/embed/24T0hx6AfAA?autoplay=1&mute=1",
@@ -91,7 +104,7 @@ const App = () => {
     {
       id: 3,
       name: "📊 AI-Powered Data Analyst",
-      description: "Upload and analyze hospital data instantly, visualize the results",
+      description: "Upload and analyze hospital data instantly, visualize the results, generate AI insights",
       icon: "/icons/dashboard.svg",
       link: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
@@ -99,7 +112,7 @@ const App = () => {
     {
       id: 4,
       name: "🧠 Medical Report Enhancement App",
-      description: "Enhance the quality of medical reports using AI",
+      description: "Enhance the quality of the generated Medical reports by leveraging AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
       helpVideo: "https://www.youtube.com/embed/1amAKukvQ2Q?autoplay=1&mute=1",
@@ -124,6 +137,21 @@ const App = () => {
 
   return (
     <div className="container">
+      {/* Background Effects */}
+      <div className="background-elements">
+        <div className="bg-blur bg-blur-1"></div>
+        <div className="bg-blur bg-blur-2"></div>
+        <div className="bg-blur bg-blur-3"></div>
+        <div className="decorative-grid">
+          {[...Array(12)].map((_, i) => (
+            <div key={i} className="grid-line"></div>
+          ))}
+        </div>
+      </div>
+
+      <ThemeToggle />
+
+      {/* Header */}
       <div className="header">
         <div className="logo-container">
           <img src="/assets/logo.png" alt="Hospital Logo" className="hospital-logo" />
@@ -138,10 +166,11 @@ const App = () => {
               </div>
             </div>
           </div>
+          <p className="subtitle">Your single portal for all AI-powered applications</p>
         </div>
-        {/* Survey button has been moved from here */}
       </div>
 
+      {/* Help Video Modal */}
       {videoUrl && (
         <div className="video-modal">
           <div className="video-wrapper">
@@ -156,16 +185,22 @@ const App = () => {
         </div>
       )}
 
-      <div className="page-content">
+      {/* Hero Section with scroll handler */}
+      <HeroSection onExploreClick={() => {
+        cardsRef.current?.scrollIntoView({ behavior: "smooth" });
+      }} />
+
+      {/* Cards Section */}
+      <div className="page-content" ref={cardsRef}>
         {apps.map((app) => (
           <AppCard key={app.id} app={app} onPlay={setVideoUrl} />
         ))}
       </div>
-      
-      {/* 2. ADD THIS FLOATING SURVEY BUTTON */}
+
+      {/* Survey Floating Button */}
       <a
         href={surveyUrl}
-        className="btn survey-fab-button" /* Use new class for positioning */
+        className="btn survey-fab-button"
         target="_blank"
         rel="noopener noreferrer"
         title="Take our Survey"
@@ -174,9 +209,15 @@ const App = () => {
       </a>
 
       <ChatBot />
+    
+      
+
+      {/* Contact Section */}
       <ContactSection />
 
       {/* Footer */}
+
+
     </div>
   );
 };
