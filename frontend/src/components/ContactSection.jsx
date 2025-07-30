@@ -41,7 +41,6 @@ const ContactSection = () => {
         "https://ai-platform-dash-mailing-server-services.onrender.com/contact",
         formData
       );
-      alert("✅ Message sent successfully!");
       triggerConfetti();
       setFormData({ name: "", email: "", message: "" });
     } catch (err) {
