@@ -262,9 +262,6 @@ body {
   text-decoration: none;
 }
 
-.card .btn:hover {
-  background-color: #0056b3;
-}
 
 .app-actions {
   display: flex;
