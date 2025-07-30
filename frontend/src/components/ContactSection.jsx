@@ -5,8 +5,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import "../styles/ContactSection.css";
-import SendButton from "./SendButton";
-import ParticleThankYou from "./ParticleThankYou"; // ✅ NEW: Import thank-you orb
+import SendButton from "./SendButton"; // ✅ Import custom button
 
 const ContactSection = () => {
   const canvasRef = useRef(null);
@@ -18,8 +17,8 @@ const ContactSection = () => {
     message: "",
   });
 
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
-  const [showThanks, setShowThanks] = useState(false); // ✅ NEW: for conditional render
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,8 +42,6 @@ const ContactSection = () => {
         formData
       );
       triggerConfetti();
-      setShowThanks(true); // ✅ trigger thank-you particle animation
-      setTimeout(() => setShowThanks(false), 6000); // ✅ auto-hide after 6 sec
       setFormData({ name: "", email: "", message: "" });
     } catch (err) {
       console.error("❌ Error:", err);
@@ -76,7 +73,7 @@ const ContactSection = () => {
     const controls = new OrbitControls(camera, canvasRef.current);
     controls.enableDamping = true;
 
-  const parameters = {
+    const parameters = {
       count: 80000,
       size: 0.01,
       radius: 5,
@@ -87,7 +84,6 @@ const ContactSection = () => {
       insideColor: "#ff6030",
       outsideColor: "#1b3984",
     };
-
 
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(parameters.count * 3);
@@ -222,20 +218,17 @@ const ContactSection = () => {
                 value={formData.message}
                 onChange={handleChange}
               />
-              <SendButton loading={loading} />
+              {/* ✅ Use animated button */}
+              <SendButton />
             </form>
           </div>
         </motion.div>
       </div>
-
-      {/* ✅ New: Particle Thank You Animation */}
-      {showThanks && <ParticleThankYou message="Thank you for your message!" />}
     </section>
   );
 };
 
 export default ContactSection;
-
 
 
 
