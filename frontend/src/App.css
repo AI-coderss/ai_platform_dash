@@ -1,12 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
 
-/* ==========================================================================
-   Theme System - Two Themes Only
-   ========================================================================== */
+/* Theme System - Two Themes Only */
 
-/* --------------------------------------------------------------------------
-   Light Theme (Default)
-   -------------------------------------------------------------------------- */
+/* Light Theme (Default - Current App Style) */
 :root {
   /* Background Colors */
   --bg-primary: #f6f8fc;
@@ -59,9 +55,7 @@
   --grid-line: transparent;
 }
 
-/* --------------------------------------------------------------------------
-   Dark Theme (CodePen-inspired)
-   -------------------------------------------------------------------------- */
+/* Dark Theme (CodePen-inspired) */
 [data-theme="dark"] {
   /* Background Colors */
   --bg-primary: #111827;
@@ -101,6 +95,9 @@
   --video-modal-bg: rgba(17, 24, 39, 0.8);
   --video-close-text: #f3f4f6;
   
+  /* Font Family */
+  --font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  
   /* Background Elements (visible in dark theme) */
   --bg-blur-1: rgba(99, 102, 241, 0.1);
   --bg-blur-2: rgba(168, 85, 247, 0.1);
@@ -108,26 +105,23 @@
   --grid-line: rgba(6, 182, 212, 0.05);
 }
 
+/* Apply theme variables to existing styles */
 
-/* ==========================================================================
-   Base & Layout Styles
-   ========================================================================== */
 
 body {
-  font-family: var(--font-family);
+  font-family: 'Space Grotesk', sans-serif;
   margin: 0;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  overflow-y: scroll;
+  background-color: #f6f8fc;
+ 
+  color: #333;
+   overflow-y: scroll;
   scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none;  /* IE 10+ */
-  transition: var(--transition-normal);
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
 }
 
 ::-webkit-scrollbar {
   display: none; /* Chrome, Safari, and Opera */
 }
-
 .container {
   position: relative;
   z-index: 1 !important;
@@ -143,7 +137,7 @@ body {
   justify-items: center;
   max-width: 1200px;
   margin: 0 auto !important;
-  padding: 0rem 1rem 2rem 0.5rem;
+  padding: 0rem 1rem 2rem 0.5rem; /* Top padding reduced from 0.5rem to 0rem */
 }
 
 .header {
@@ -151,13 +145,13 @@ body {
   align-items: center;
   justify-content: space-evenly;
   flex-wrap: wrap;
-  height: 100px;
+  height: 120px;
   margin-top: 5px;
   margin-bottom: 5px;
   background-image: url('../public/assets/Background.gif');
   background-size: cover;
   object-fit: fill;
-  background-repeat: no-repeat;
+  background-repeat: no-repeat
 }
 
 .logo-container {
@@ -172,7 +166,7 @@ body {
   width: 250px;
   height: 100px;
   object-fit: contain;
-  margin-bottom: 250px;
+  margin-bottom: 120px; /* Adjusted to match header height */
 }
 
 .title-block {
@@ -180,38 +174,34 @@ body {
   text-align: center;
   justify-content: center;
   margin-top: 5px;
-  margin-bottom: 0px !important;
+   margin-bottom: 0px !important;
 }
 
 .title-block h1 {
   font-size: 2.5rem;
-  margin-bottom: 4px;
+  margin-bottom: 4px; /* reduced from 10px */
 }
 
 .subtitle {
   font-size: 1.1rem;
-  color: var(--text-secondary);
+  color: #666;
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  margin-bottom: 0;
   font-style: italic;
-  margin-bottom: 150px;
+  margin-bottom: 150px; /* Adjusted to match header height */
 }
-
-/* ==========================================================================
-   Card Styles
-   ========================================================================== */
 
 .card {
   width: 400px;
   height: 370px;
   position: relative;
   border-radius: 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: white;
   overflow: hidden;
   transform-style: preserve-3d;
-  transition: var(--transition-normal);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
   animation: fadeInUp 0.5s ease forwards;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -223,7 +213,7 @@ body {
 .card:hover {
   transform: scale(1.02) rotateZ(0.5deg);
   animation: bounceHover 0.8s ease, glowPulse 1.6s infinite;
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 20px 40px rgba(0, 123, 255, 0.4);
   z-index: 2;
 }
 
@@ -246,13 +236,40 @@ body {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0.5rem 0;
-  color: var(--text-primary);
 }
 
 .card .copy {
   font-size: 0.95rem;
-  color: var(--text-accent);
+  color: #555;
   margin-bottom: 1rem;
+}
+
+.card .btn {
+  margin: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  height: inherit;
+  width: 60px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: #007bff;
+  color: white;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.card .btn:hover {
+  background-color: #0056b3;
+}
+
+.app-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .card .btn {
@@ -264,9 +281,9 @@ body {
   border-radius: 8px;
   font-weight: 600;
   text-transform: uppercase;
-  background: var(--btn-bg);
-  color: var(--btn-text);
-  transition: var(--transition-normal);
+  background-color: #007bff;
+  color: white;
+  transition: background-color 0.3s ease;
   cursor: pointer;
   text-decoration: none;
   text-align: center;
@@ -275,17 +292,6 @@ body {
   justify-content: center;
 }
 
-.card .btn:hover {
-  background: var(--btn-bg-hover);
-}
-
-.app-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
 
 .audio-wrapper {
   width: 100%;
@@ -296,35 +302,93 @@ body {
   flex-direction: column;
 }
 
-/* ==========================================================================
-   Button Styles
-   ========================================================================== */
 
-button, .app-actions a {
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glow-border {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 20px;
+  background: linear-gradient(45deg, #ffffff, #ffffff, #ffffff);
+  background-size: 400% 400%;
+  z-index: 0;
+  animation: borderGlow 4s ease infinite;
+  filter: blur(4px);
+  opacity: 0.7;
+}
+
+@keyframes borderGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes bounceHover {
+  0% {
+    transform: scale(1) rotateZ(0deg);
+  }
+  30% {
+    transform: scale(1.015) rotateZ(0.05deg);
+  }
+  60% {
+    transform: scale(0.995) rotateZ(-0.05deg);
+  }
+  100% {
+    transform: scale(1.02) rotateZ(0deg);
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
+  }
+}
+
+/* Buttons for voice recorder and AI platform actions */
+button {
   position: relative;
   padding: 0.8rem 1.5rem;
   font-size: 0.9rem;
-  color: var(--btn-text);
-  background: var(--btn-bg);
+  color: white;
+  background: linear-gradient(45deg, #007bff, #4f46e5);
   border: none;
   border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
   overflow: hidden;
-  transition: var(--transition-normal);
+  transition: all 0.3s ease;
 }
 
-button:hover, .app-actions a:hover {
-  background: var(--btn-bg-hover);
-  box-shadow: var(--shadow-button);
-}
-
-button .shine-content, .app-actions a .shine-content {
+button .shine-content {
   position: relative;
   z-index: 1;
 }
 
-button::before, .app-actions a::before {
+button::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -336,13 +400,48 @@ button::before, .app-actions a::before {
   transition: transform 0.5s ease;
 }
 
-button:hover::before, .app-actions a:hover::before {
+button:hover::before {
   transform: rotate(45deg) translateY(100%);
 }
 
-/* ==========================================================================
-   Animated Title ("BrushCursor")
-   ========================================================================== */
+button:hover {
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+}
+.app-actions a{
+   position: relative;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.9rem;
+  color: white;
+  background: linear-gradient(45deg, #007bff, #4f46e5);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.app-actions a .shine-content {
+  position: relative;
+  z-index: 1;
+}
+button a::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: rotate(45deg) translateY(-100%);
+  transition: transform 0.5s ease;
+}
+button a:hover::before {
+  transform: rotate(45deg) translateY(100%);
+}
+button a:hover {
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+}
 #BrushCursor {
   width: 100%;
   height: 120px;
@@ -359,7 +458,7 @@ button:hover::before, .app-actions a:hover::before {
 .p {
   position: absolute;
   font-size: 2rem;
-  font-family: var(--font-family);
+  font-family: 'Space Grotesk', sans-serif;
   font-weight: bold;
   top: 50%;
   left: 50%;
@@ -384,12 +483,13 @@ button:hover::before, .app-actions a:hover::before {
 
 .p1 {
   text-shadow: 1px 1px 1px black, -1px -1px 1px black;
-  color: var(--title-primary);
+  color: #007bff;
   transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
+
 }
 
 .p2 {
-  color: var(--title-accent);
+  color: #A81E22;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
   animation: text-animation 8s ease-in-out forwards alternate infinite;
   text-shadow: 1px 1px 1px black, -1px -1px 1px black,
@@ -404,19 +504,168 @@ button:hover::before, .app-actions a:hover::before {
   color: transparent;
 }
 
+@keyframes text-animation {
+  from {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+  }
+  to {
+    clip-path: polygon(0 0, 0% 1%, 0% 100%, 0% 100%);
+  }
+}
+
 .cursor {
   position: absolute;
   top: 50%;
   height: 100%;
   width: 100%;
   transform: translate(0, -50%);
-  border-right: 2px solid var(--title-accent);
+  border-right: 2px solid #A81E22;
   animation: cursor-animation 8s ease-in-out forwards alternate infinite;
 }
 
-/* ==========================================================================
-   Highlight Card & Glassmorphism
-   ========================================================================== */
+@keyframes cursor-animation {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
+}
+/* === Layout wrapper to embed cube beside cards === */
+.layout-with-cube {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.left-fixed-cube {
+  flex: 0 0 150px;
+  padding-left: 20px;
+  margin-top: 120px;
+  z-index: 0;
+}
+
+.main-platform-content {
+  flex-grow: 1;
+  padding-right: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .left-fixed-cube {
+    display: none;
+  }
+
+  .layout-with-cube {
+    flex-direction: column;
+  }
+}
+
+/* Responsive Tweaks */
+@media (max-width: 768px) {
+  .header {
+  
+    justify-content: center;
+    height: 150px;
+  }
+
+  .logo-container {
+    display: none;
+  }
+
+  .hospital-logo {
+    width: 200px;
+    height: auto;
+  }
+
+  .title-block h1 {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .card {
+    width: 90%;
+    height: auto;
+  }
+
+  .page-content {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .card .btn {
+    width: 100%;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .card {
+    width: 95%;
+    padding: 1rem;
+  }
+
+  .video-modal {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Video Modal Styles */
+.video-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(30, 34, 90, 0.35);
+  backdrop-filter: blur(5px) saturate(180%);
+  -webkit-backdrop-filter: blur(5px) saturate(180%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.video-wrapper {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  height: 560px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-wrapper iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close-video {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 20px;
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1001;
+}
 
 .card.highlight {
   border-radius: 16px;
@@ -475,203 +724,64 @@ button:hover::before, .app-actions a:hover::before {
   background: #50dfdb; /* Kept as a specific decorative color */
   animation: animate 4s linear infinite;
 }
+/* Add or replace this in your App.css file */
 
-/* ==========================================================================
-   Floating Action Button (FAB)
-   ========================================================================== */
 .survey-fab-button {
-  background: var(--btn-bg);
-  color: var(--btn-text);
+  /* --- Color and Style --- */
+  background: linear-gradient(45deg, #007bff, #0056b3); /* Blue gradient */
+  color: white;
   padding: 12px 24px;
   border: none;
-  border-radius: 50px;
+  border-radius: 50px; /* Pill shape */
   font-weight: 600;
   text-decoration: none;
-  box-shadow: var(--shadow-button);
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+
+  /* --- Positioning --- */
   position: fixed;
   right: 120px;
-  bottom: 20px;
+  bottom: 20px; /* Adjust this value to position it above your chatbot */
   z-index: 999;
+  
+  /* --- Animation & Transition --- */
   transform: scale(1);
-  transition: var(--transition-normal);
-  animation: pulse-blue 2.5s infinite;
+  transition: all 0.3s ease-in-out;
+  animation: pulse-blue 2.5s infinite; /* Applying the pulse animation */
 }
 
+/* --- Hover Effect --- */
 .survey-fab-button:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-card-hover); /* A bigger shadow on hover */
-  background: var(--btn-bg-hover);
+  transform: scale(1.05); /* Enlarge the button slightly */
+  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.6);
   cursor: pointer;
-  animation-play-state: paused;
+  animation-play-state: paused; /* Pause the pulse on hover for a smoother feel */
 }
 
-/* ==========================================================================
-   Video Modal
-   ========================================================================== */
-
-.video-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--video-modal-bg);
-  backdrop-filter: blur(5px) saturate(180%);
-  -webkit-backdrop-filter: blur(5px) saturate(180%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-}
-
-.video-wrapper {
-  position: relative;
-  width: 90%;
-  max-width: 1000px;
-  height: 560px;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.video-wrapper iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-.close-video {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 20px;
-  color: var(--video-close-text);
-  background: none;
-  border: none;
-  cursor: pointer;
-  z-index: 1001;
-}
-/* Avatar Canvas Container (Chatbot) */
-.avatar-canvas-container {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  width: 300px;
-  height: 400px;
-  z-index: 1000;
-  pointer-events: none;
-}
-
-.avatar-canvas-container canvas {
-  pointer-events: auto;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* ==========================================================================
-   Keyframe Animations
-   ========================================================================== */
-
-@keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes borderGlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes bounceHover {
-  0% { transform: scale(1) rotateZ(0deg); }
-  30% { transform: scale(1.015) rotateZ(0.05deg); }
-  60% { transform: scale(0.995) rotateZ(-0.05deg); }
-  100% { transform: scale(1.02) rotateZ(0deg); }
-}
-
-@keyframes glowPulse {
-  0% { box-shadow: 0 0 5px rgba(0, 123, 255, 0.1); }
-  50% { box-shadow: 0 0 12px rgba(0, 123, 255, 0.25); }
-  100% { box-shadow: 0 0 5px rgba(0, 123, 255, 0.1); }
-}
-
-@keyframes text-animation {
-  from { clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
-  to { clip-path: polygon(0 0, 0% 1%, 0% 100%, 0% 100%); }
-}
-
-@keyframes cursor-animation {
-  from { width: 100%; }
-  to { width: 0; }
-}
-
-@keyframes animate {
-  0%   { transform: scaleX(0); transform-origin: left; }
-  50%  { transform: scaleX(1); transform-origin: left; }
-  50.1%{ transform: scaleX(1); transform-origin: right; }
-  100% { transform: scaleX(0); transform-origin: right; }
-}
-
+/* --- Keyframes for the pulse animation --- */
 @keyframes pulse-blue {
-  0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
-  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
-  100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+  0% {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+  }
+  70% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+  }
+  100% {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+  }
 }
 
-/* ==========================================================================
-   Responsive Design
-   ========================================================================== */
 
+/* --- Cross-Platform Responsiveness --- */
+/* For smaller screens like mobile phones */
 @media (max-width: 768px) {
-  .header {
-    justify-content: center;
-    height: 150px;
-  }
-  .logo-container {
-    display: none;
-  }
-  .title-block h1 {
-    font-size: 2rem;
-  }
-  .subtitle {
-    font-size: 1rem;
-  }
-  .card {
-    width: 90%;
-    height: auto;
-  }
-  .page-content {
-    grid-template-columns: 1fr;
-    padding: 0.5rem;
-  }
-  .p {
-    font-size: 2.5rem;
-  }
   .survey-fab-button {
+    /* Make the button slightly smaller and adjust position */
     padding: 10px 20px;
     font-size: 14px;
     right: 15px;
-    bottom: 90px;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-  }
-  .card .btn {
-    width: 100%;
-    padding: 0.6rem;
-    font-size: 0.9rem;
-  }
-  .card {
-    width: 95%;
-    padding: 1rem;
-  }
-  .p {
-    font-size: 2rem;
+    bottom: 90px; /* Adjust if it overlaps with your chatbot button */
   }
 }
