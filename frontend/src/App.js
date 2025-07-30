@@ -5,7 +5,6 @@ import HeroSection from "./components/HeroSection";
 import ThemeToggle from "./components/ThemeToggle";
 import useCardStore from "./components/store/useCardStore";
 import AudioPlayer from "./components/AudioPlayer";
-
 import ContactSection from "./components/ContactSection";
 
 const audioMap = {
@@ -30,6 +29,9 @@ const AppCard = ({ app, onPlay }) => {
       const handleStart = () => setIsSpeaking(true);
       const handleEnd = () => setIsSpeaking(false);
 
+      // Note: This listens to the browser's speech synthesis API,
+      // not the <audio> element. If the visualizer should sync
+      // with AudioPlayer, a different approach is needed.
       window.speechSynthesis.addEventListener("start", handleStart);
       window.speechSynthesis.addEventListener("end", handleEnd);
 
@@ -82,7 +84,7 @@ const AppCard = ({ app, onPlay }) => {
 const App = () => {
   const [videoUrl, setVideoUrl] = useState(null);
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
-  const cardsRef = useRef(null); // For scrolling into view
+  const cardsRef = useRef(null); // For scrolling to the cards section
 
   const apps = [
     {
@@ -209,21 +211,16 @@ const App = () => {
       </a>
 
       <ChatBot />
-    
+     
       
-
       {/* Contact Section */}
       <ContactSection />
-
-      {/* Footer */}
-
 
     </div>
   );
 };
 
 export default App;
-
 
 
 
