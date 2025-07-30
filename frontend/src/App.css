@@ -673,7 +673,6 @@ button a:hover {
   border-radius: 16px;
   overflow: hidden;
   transform-style: preserve-3d;
-  box-shadow: var(--highlight-shadow);
   border: 2px solid var(--highlight-border);
   background-image: url("https://img.freepik.com/free-vector/gradient-glassmorphism-background_23-2149489059.jpg");
   background-size: cover;
