@@ -3,20 +3,16 @@ import { motion } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
-import confetti from "canvas-confetti"; // 🎉 Confetti library
+import confetti from "canvas-confetti";
 import "../styles/ContactSection.css";
 
 const ContactSection = () => {
   const canvasRef = useRef(null);
-  const formCardRef = useRef(null);
+  const formRef = useRef(null);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    message: "",
-  });
-
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
+  const [envelopeClosed, setEnvelopeClosed] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,30 +20,25 @@ const ContactSection = () => {
   };
 
   const triggerConfetti = () => {
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("https://ai-platform-dash-mailing-server-services.onrender.com/contact", formData); // Replace with your backend
-      alert("✅ Message sent successfully!");
-      triggerConfetti(); // 🎉 Show confetti
-      setFormData({ name: "", email: "", message: "" });
+      await axios.post("https://ai-platform-dash-mailing-server-services.onrender.com/contact", formData);
+      triggerConfetti();
+      setEnvelopeClosed(true);
     } catch (err) {
-      console.error("❌ Error:", err);
-      alert("❌ Failed to send message. Please try again.");
+      console.error(err);
+      alert("❌ Failed to send.");
     } finally {
       setLoading(false);
     }
   };
 
-  // [Three.js galaxy code remains unchanged...]
+  // Init 3D background
   useEffect(() => {
     const scene = new THREE.Scene();
     const sizes = { width: window.innerWidth, height: window.innerHeight };
@@ -63,15 +54,9 @@ const ContactSection = () => {
     controls.enableDamping = true;
 
     const parameters = {
-      count: 80000,
-      size: 0.01,
-      radius: 5,
-      branches: 3,
-      spin: 1,
-      randomness: 0.2,
-      randomnessPower: 3,
-      insideColor: "#ff6030",
-      outsideColor: "#1b3984",
+      count: 80000, size: 0.01, radius: 5, branches: 3, spin: 1,
+      randomness: 0.2, randomnessPower: 3,
+      insideColor: "#ff6030", outsideColor: "#1b3984",
     };
 
     const geometry = new THREE.BufferGeometry();
@@ -132,80 +117,71 @@ const ContactSection = () => {
     return () => renderer.dispose();
   }, []);
 
-  // Tilt effect
-  useEffect(() => {
-    const handleTilt = (e) => {
-      const card = formCardRef.current;
-      const bounds = card.getBoundingClientRect();
-      const x = e.clientX - bounds.left;
-      const y = e.clientY - bounds.top;
-      const rotateY = ((x / bounds.width) - 0.5) * 20;
-      const rotateX = ((y / bounds.height) - 0.5) * -20;
-      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    };
-
-    const resetTilt = () => {
-      formCardRef.current.style.transform = "rotateX(0deg) rotateY(0deg)";
-    };
-
-    const card = formCardRef.current;
-    card.addEventListener("mousemove", handleTilt);
-    card.addEventListener("mouseleave", resetTilt);
-
-    return () => {
-      card.removeEventListener("mousemove", handleTilt);
-      card.removeEventListener("mouseleave", resetTilt);
-    };
-  }, []);
-
   return (
     <section className="contact-section">
       <canvas ref={canvasRef} className="webgl" />
-      <div className="contact-content">
+
+      <div className={`envelope-wrapper ${envelopeClosed ? "closed" : ""}`}>
         <motion.div
-          ref={formCardRef}
-          className="contact-form-wrapper"
-          initial={{ opacity: 0, y: 60 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
+          className={`contact-form-container ${envelopeClosed ? "slide-in" : ""}`}
+          drag
+          dragMomentum
+          dragElastic={0.5}
+          whileTap={{ cursor: "grabbing" }}
         >
-          <h2 className="contact-title">Contact Us</h2>
-          <form className="contact-form" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Your Name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Your Email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-            />
-            <textarea
-              name="message"
-              placeholder="Your Message"
-              rows="5"
-              required
-              value={formData.message}
-              onChange={handleChange}
-            />
-            <button type="submit" disabled={loading}>
-              {loading ? "Sending..." : "Send Message"}
-            </button>
-          </form>
+          {!envelopeClosed ? (
+            <form className="contact-form" onSubmit={handleSubmit} ref={formRef}>
+              <h2>Contact Us</h2>
+              <input
+                type="text"
+                name="name"
+                placeholder="Your Name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="Your Email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+              />
+              <textarea
+                name="message"
+                placeholder="Your Message"
+                rows="5"
+                required
+                value={formData.message}
+                onChange={handleChange}
+              />
+              <button type="submit" disabled={loading}>
+                {loading ? "Sending..." : "Send Message"}
+              </button>
+            </form>
+          ) : (
+            <div className="confirmation-message">
+              <h2>✉️ Message Sent!</h2>
+              <p>Thank you, {formData.name}</p>
+            </div>
+          )}
         </motion.div>
+
+        <div className="envelope-base">
+          <div className="envelope-top" />
+          <div className="envelope-body" />
+        </div>
       </div>
     </section>
   );
 };
 
 export default ContactSection;
+
+
+
+
 
 
 
