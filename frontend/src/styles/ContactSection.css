@@ -97,6 +97,16 @@
   transform: scale(0.96);
 }
 
+.thankyou-canvas {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  width: 300px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 999;
+  background: transparent;
+}
 
 
 @media (max-width: 768px) {
