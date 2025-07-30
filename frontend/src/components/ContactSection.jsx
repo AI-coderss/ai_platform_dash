@@ -5,6 +5,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import "../styles/ContactSection.css";
+import SendButton from "./SendButton"; // ✅ Import custom button
 
 const ContactSection = () => {
   const canvasRef = useRef(null);
@@ -16,6 +17,7 @@ const ContactSection = () => {
     message: "",
   });
 
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -180,7 +182,6 @@ const ContactSection = () => {
     <section className="contact-section">
       <canvas ref={canvasRef} className="webgl" />
       <div className="contact-content">
-        {/* Draggable outer wrapper, no style */}
         <motion.div
           style={{ display: "inline-block" }}
           drag
@@ -191,7 +192,6 @@ const ContactSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
         >
-          {/* Inner card with tilt and full styles */}
           <div ref={formCardRef} className="contact-form-wrapper">
             <h2 className="contact-title">Contact Us</h2>
             <form className="contact-form" onSubmit={handleSubmit}>
@@ -219,9 +219,8 @@ const ContactSection = () => {
                 value={formData.message}
                 onChange={handleChange}
               />
-              <button type="submit" disabled={loading}>
-                {loading ? "Sending..." : "Send Message"}
-              </button>
+              {/* ✅ Use animated button */}
+              <SendButton />
             </form>
           </div>
         </motion.div>
@@ -231,6 +230,7 @@ const ContactSection = () => {
 };
 
 export default ContactSection;
+
 
 
 

@@ -1,0 +1,107 @@
+.button {
+  --text: #000000;
+  --plane: #414FEA;
+  --background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 0;
+  padding: 0;
+  width: 140px;
+  height: 60px;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.button .btn-layer {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  z-index: 2;
+  pointer-events: none;
+  fill: var(--background);
+}
+
+.button .plane {
+  z-index: 3;
+  position: absolute;
+  left: 32px;
+  width: 26px;
+  height: 28px;
+  fill: var(--plane);
+  transform: translate3d(0, 0, 0);
+  perspective: 500px;
+}
+
+.button > ul {
+  list-style: none;
+  padding: 0 5px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.button > ul > li {
+  display: inline-block;
+  position: relative;
+  z-index: 2;
+  padding-left: 40px;
+  font: 400 16px "Varela Round", sans-serif;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.button > ul > li:first-child {
+  opacity: 1;
+}
+
+.button > ul > li:last-child {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  opacity: 0;
+}
+
+.button.active .plane {
+  animation: orbit 1.5s alternate linear;
+}
+
+.button.active > ul > li {
+  transform: translateY(-100%);
+  transition: transform 0.3s ease 1.2s, opacity 0.3s ease 1.2s;
+}
+
+.button.active > ul > li:first-child {
+  opacity: 0;
+}
+
+.button.active > ul > li:last-child {
+  opacity: 1;
+}
+
+@keyframes orbit {
+  0% {
+    transform: rotate3d(1, 0, 0, 0deg) translateZ(60px) scale3d(1, 1, 1);
+  }
+  10% {
+    transform: rotate3d(1, 0.6, 0, -10deg) translateZ(60px) scale3d(1, 1, 1);
+  }
+  20% {
+    transform: rotate3d(1, 0.6, 0, 30deg) translateZ(60px) scale3d(1, 1, 1);
+  }
+  30% {
+    transform: rotate3d(1, 0.6, 0, 35deg) translateZ(60px) scale3d(1, 1, 1);
+  }
+  40% {
+    transform: rotate3d(1, 0.6, 0, 120deg) translateZ(60px) scale3d(0.7, 0.7, 1);
+  }
+  70% {
+    transform: rotate3d(1, 0.6, 0, 240deg) translateZ(60px) scale3d(0.7, 0.7, 1);
+  }
+  100% {
+    transform: rotate3d(1, 0, 0, 360deg) translateZ(60px) scale3d(1, 1, 1);
+  }
+}

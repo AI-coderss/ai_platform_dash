@@ -53,6 +53,8 @@
   --bg-blur-2: transparent;
   --bg-blur-3: transparent;
   --grid-line: transparent;
+  --bg-glass: rgba(255, 255, 255, 0.1);
+  --shadow-card-hover: 0 8px 32px rgba(31, 38, 135, 0.3);
 }
 
 /* Dark Theme (CodePen-inspired) */

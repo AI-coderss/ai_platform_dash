@@ -33,7 +33,7 @@
   max-width: 950px; /* 🔄 Increased from 480px */
   padding: 2rem;
   border-radius: 16px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
   background: var(--bg-glass);
   box-shadow: var(--shadow-card-hover);
   transform-style: preserve-3d;
@@ -66,21 +66,38 @@
 }
 
 .contact-form button {
-  padding: 0.8rem 1.2rem;
-  border-radius: 8px;
-  background: var(--btn-bg);
-  color: var(--btn-text);
+  padding: 0.9rem 1.5rem;
+  border-radius: 10px;
   border: none;
-  font-size: 1rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-button);
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: #ffffff;
+  color: #222;
+  box-shadow: 0 8px 0 #c9c9c9, 0 12px 25px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  transition: var(--transition-normal);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  top: 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
+/* Hover: lift and glow */
 .contact-form button:hover {
-  background: var(--btn-bg-hover);
+  top: -4px;
+  box-shadow: 0 10px 0 #b4b4b4, 0 18px 30px rgba(0, 0, 0, 0.3);
+  transform: scale(1.05);
+  filter: brightness(1.1);
 }
+
+/* Active: press down */
+.contact-form button:active {
+  top: 5px;
+  box-shadow: 0 3px 0 #b4b4b4, 0 5px 10px rgba(0, 0, 0, 0.15);
+  transform: scale(0.96);
+}
+
+
 
 @media (max-width: 768px) {
   .contact-section {
