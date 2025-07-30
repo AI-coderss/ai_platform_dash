@@ -26,7 +26,7 @@ const ContactSection = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/contact", formData); // Replace with deployed backend URL
+      await axios.post("https://ai-platform-dash-mailing-server-services.onrender.com/contact", formData); // Replace with deployed backend URL
       alert("✅ Message sent successfully!");
       setFormData({ name: "", email: "", message: "" });
     } catch (err) {
