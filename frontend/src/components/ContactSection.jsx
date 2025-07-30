@@ -8,11 +8,15 @@ import "../styles/ContactSection.css";
 
 const ContactSection = () => {
   const canvasRef = useRef(null);
-  const formRef = useRef(null);
+  const formCardRef = useRef(null);
 
-  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+
   const [loading, setLoading] = useState(false);
-  const [envelopeClosed, setEnvelopeClosed] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,33 +24,48 @@ const ContactSection = () => {
   };
 
   const triggerConfetti = () => {
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("https://ai-platform-dash-mailing-server-services.onrender.com/contact", formData);
+      await axios.post(
+        "https://ai-platform-dash-mailing-server-services.onrender.com/contact",
+        formData
+      );
+      alert("✅ Message sent successfully!");
       triggerConfetti();
-      setEnvelopeClosed(true);
+      setFormData({ name: "", email: "", message: "" });
     } catch (err) {
-      console.error(err);
-      alert("❌ Failed to send.");
+      console.error("❌ Error:", err);
+      alert("❌ Failed to send message. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Init 3D background
   useEffect(() => {
     const scene = new THREE.Scene();
     const sizes = { width: window.innerWidth, height: window.innerHeight };
-    const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      sizes.width / sizes.height,
+      0.1,
+      100
+    );
     camera.position.set(3, 3, 3);
     scene.add(camera);
 
-    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      alpha: true,
+    });
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -54,9 +73,15 @@ const ContactSection = () => {
     controls.enableDamping = true;
 
     const parameters = {
-      count: 80000, size: 0.01, radius: 5, branches: 3, spin: 1,
-      randomness: 0.2, randomnessPower: 3,
-      insideColor: "#ff6030", outsideColor: "#1b3984",
+      count: 80000,
+      size: 0.01,
+      radius: 5,
+      branches: 3,
+      spin: 1,
+      randomness: 0.2,
+      randomnessPower: 3,
+      insideColor: "#ff6030",
+      outsideColor: "#1b3984",
     };
 
     const geometry = new THREE.BufferGeometry();
@@ -69,16 +94,25 @@ const ContactSection = () => {
       const i3 = i * 3;
       const radius = Math.random() * parameters.radius;
       const spinAngle = radius * parameters.spin;
-      const branchAngle = ((i % parameters.branches) / parameters.branches) * Math.PI * 2;
-      const randomX = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
-      const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
-      const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
+      const branchAngle =
+        ((i % parameters.branches) / parameters.branches) * Math.PI * 2;
+      const randomX =
+        Math.pow(Math.random(), parameters.randomnessPower) *
+        (Math.random() < 0.5 ? 1 : -1);
+      const randomY =
+        Math.pow(Math.random(), parameters.randomnessPower) *
+        (Math.random() < 0.5 ? 1 : -1);
+      const randomZ =
+        Math.pow(Math.random(), parameters.randomnessPower) *
+        (Math.random() < 0.5 ? 1 : -1);
 
       positions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
       positions[i3 + 1] = randomY;
       positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
 
-      const mixedColor = colorInside.clone().lerp(colorOutside, radius / parameters.radius);
+      const mixedColor = colorInside
+        .clone()
+        .lerp(colorOutside, radius / parameters.radius);
       colors[i3] = mixedColor.r;
       colors[i3 + 1] = mixedColor.g;
       colors[i3 + 2] = mixedColor.b;
@@ -117,21 +151,50 @@ const ContactSection = () => {
     return () => renderer.dispose();
   }, []);
 
+  useEffect(() => {
+    const handleTilt = (e) => {
+      const card = formCardRef.current;
+      const bounds = card.getBoundingClientRect();
+      const x = e.clientX - bounds.left;
+      const y = e.clientY - bounds.top;
+      const rotateY = ((x / bounds.width) - 0.5) * 20;
+      const rotateX = ((y / bounds.height) - 0.5) * -20;
+      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    };
+
+    const resetTilt = () => {
+      formCardRef.current.style.transform = "rotateX(0deg) rotateY(0deg)";
+    };
+
+    const card = formCardRef.current;
+    card.addEventListener("mousemove", handleTilt);
+    card.addEventListener("mouseleave", resetTilt);
+
+    return () => {
+      card.removeEventListener("mousemove", handleTilt);
+      card.removeEventListener("mouseleave", resetTilt);
+    };
+  }, []);
+
   return (
     <section className="contact-section">
       <canvas ref={canvasRef} className="webgl" />
-
-      <div className={`envelope-wrapper ${envelopeClosed ? "closed" : ""}`}>
+      <div className="contact-content">
+        {/* Draggable outer wrapper, no style */}
         <motion.div
-          className={`contact-form-container ${envelopeClosed ? "slide-in" : ""}`}
+          style={{ display: "inline-block" }}
           drag
           dragMomentum
           dragElastic={0.5}
           whileTap={{ cursor: "grabbing" }}
+          initial={{ opacity: 0, y: 60 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
         >
-          {!envelopeClosed ? (
-            <form className="contact-form" onSubmit={handleSubmit} ref={formRef}>
-              <h2>Contact Us</h2>
+          {/* Inner card with tilt and full styles */}
+          <div ref={formCardRef} className="contact-form-wrapper">
+            <h2 className="contact-title">Contact Us</h2>
+            <form className="contact-form" onSubmit={handleSubmit}>
               <input
                 type="text"
                 name="name"
@@ -160,26 +223,14 @@ const ContactSection = () => {
                 {loading ? "Sending..." : "Send Message"}
               </button>
             </form>
-          ) : (
-            <div className="confirmation-message">
-              <h2>✉️ Message Sent!</h2>
-              <p>Thank you, {formData.name}</p>
-            </div>
-          )}
+          </div>
         </motion.div>
-
-        <div className="envelope-base">
-          <div className="envelope-top" />
-          <div className="envelope-body" />
-        </div>
       </div>
     </section>
   );
 };
 
 export default ContactSection;
-
-
 
 
 
