@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
+import confetti from "canvas-confetti"; // 🎉 Confetti library
 import "../styles/ContactSection.css";
 
 const ContactSection = () => {
@@ -22,12 +23,21 @@ const ContactSection = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("https://ai-platform-dash-mailing-server-services.onrender.com/contact", formData); // Replace with deployed backend URL
+      await axios.post("https://ai-platform-dash-mailing-server-services.onrender.com/contact", formData); // Replace with your backend
       alert("✅ Message sent successfully!");
+      triggerConfetti(); // 🎉 Show confetti
       setFormData({ name: "", email: "", message: "" });
     } catch (err) {
       console.error("❌ Error:", err);
@@ -37,7 +47,7 @@ const ContactSection = () => {
     }
   };
 
-  // Three.js background
+  // [Three.js galaxy code remains unchanged...]
   useEffect(() => {
     const scene = new THREE.Scene();
     const sizes = { width: window.innerWidth, height: window.innerHeight };
@@ -122,7 +132,7 @@ const ContactSection = () => {
     return () => renderer.dispose();
   }, []);
 
-  // Card tilt effect
+  // Tilt effect
   useEffect(() => {
     const handleTilt = (e) => {
       const card = formCardRef.current;
@@ -196,5 +206,6 @@ const ContactSection = () => {
 };
 
 export default ContactSection;
+
 
 
