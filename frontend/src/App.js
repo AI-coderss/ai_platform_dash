@@ -3,6 +3,7 @@ import "./App.css";
 import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
 import AudioPlayer from "./components/AudioPlayer";
+import ContactSection from "./components/ContactSection";
 
 
 const audioMap = {
@@ -173,6 +174,9 @@ const App = () => {
       </a>
 
       <ChatBot />
+      <ContactSection />
+
+      {/* Footer */}
     </div>
   );
 };
