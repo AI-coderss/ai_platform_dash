@@ -1,7 +1,10 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import AudioWave from "./AudioWave"; // Import your new component
 import "../styles/VoiceAssistant.css";
+
 
 // Use global refs to hold objects to avoid stale closures
 const peerConnectionRef = React.createRef();
@@ -14,6 +17,8 @@ const VoiceAssistant = () => {
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [responseText, setResponseText] = useState("");
+  // === KEY CHANGE #1: State to hold the remote audio stream for the visualizer ===
+  const [remoteStream, setRemoteStream] = useState(null);
   
   // This audio element will now play the incoming WebRTC stream directly
   const audioPlayerRef = useRef(null);
@@ -63,20 +68,21 @@ const VoiceAssistant = () => {
       });
       peerConnectionRef.current = pc;
       
-      // =================================================================
-      // === ✅ KEY CHANGE #1: LISTEN FOR THE INCOMING AUDIO TRACK      ===
-      // =================================================================
+    // === KEY CHANGE #2: Update ontrack to set state for the visualizer ===
       pc.ontrack = (event) => {
         console.log("✅ Received remote audio track!");
         if (event.streams && event.streams[0]) {
-          const remoteStream = event.streams[0];
-          const audioPlayer = audioPlayerRef.current;
-          audioPlayer.srcObject = remoteStream;
-          audioPlayer.play().catch(e => console.error("Audio play failed:", e));
+          const stream = event.streams[0];
+          // Set the stream for the audio element to play
+          audioPlayerRef.current.srcObject = stream;
+          audioPlayerRef.current.play().catch(e => console.error("Audio play failed:", e));
+          // Set the stream for the AudioWave component to visualize
+          setRemoteStream(stream);
         }
       };
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+
 
       const channel = pc.createDataChannel("response", { ordered: true });
       dataChannelRef.current = channel;
@@ -211,17 +217,17 @@ const VoiceAssistant = () => {
                 ✖
               </button>
             </div>
-            
-            <div className="voice-feedback">
-                <div className="transcript-container">
-                    <strong>You said:</strong>
-                    <p>"{transcript || '...'}"</p>
+             {/* === KEY CHANGE #3: Replace text feedback with the AudioWave component === */}
+            <div className="voice-visualizer-container">
+              {remoteStream ? (
+                <AudioWave stream={remoteStream} />
+              ) : (
+                <div className="visualizer-placeholder">
+                  {connectionStatus === 'connected' ? 'Listening...' : 'Connecting...'}
                 </div>
-                <div className="response-container">
-                    <strong>Assistant:</strong>
-                    <p>{responseText || '...'}</p>
-                </div>
+              )}
             </div>
+          
 
             <div className="voice-controls">
               <button

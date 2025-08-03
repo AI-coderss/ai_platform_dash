@@ -136,3 +136,19 @@
 .voice-controls {
   margin-top: auto; /* Pushes controls to the bottom */
 }
+/* Add these styles for the new visualizer container */
+.voice-visualizer-container {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 20px;
+  min-height: 150px; /* Give it some space */
+  box-sizing: border-box;
+}
+
+.visualizer-placeholder {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
