@@ -1,4 +1,4 @@
-import React, { useState} from "react";
+import React, { useState, useRef } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import "../styles/VoiceAssistant.css";
@@ -10,6 +10,15 @@ const VoiceAssistant = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [peerConnection, setPeerConnection] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [dataChannel, setDataChannel] = useState(null);
+  const audioPlayerRef = useRef(null);
+  const pcmBufferRef = useRef(new ArrayBuffer(0));
+
+  const toggleAssistant = () => {
+    if (!isOpen) startWebRTC();
+    setIsOpen(!isOpen);
+  };
 
   const startWebRTC = async () => {
     if (peerConnection || connectionStatus === "connecting") return;
@@ -24,9 +33,10 @@ const VoiceAssistant = () => {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
 
-      stream.getAudioTracks().forEach((track) => pc.addTrack(track, stream));
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       const channel = pc.createDataChannel("response");
+      setDataChannel(channel);
 
       channel.onopen = () => {
         setConnectionStatus("connected");
@@ -34,41 +44,63 @@ const VoiceAssistant = () => {
         channel.send(JSON.stringify({ type: "response.create" }));
       };
 
+      channel.onmessage = async (event) => {
+        const msg = JSON.parse(event.data);
+        switch (msg.type) {
+          case "response.audio.delta":
+            const chunk = Uint8Array.from(atob(msg.delta), c => c.charCodeAt(0));
+            const newBuffer = new Uint8Array(pcmBufferRef.current.byteLength + chunk.byteLength);
+            newBuffer.set(new Uint8Array(pcmBufferRef.current), 0);
+            newBuffer.set(chunk, pcmBufferRef.current.byteLength);
+            pcmBufferRef.current = newBuffer.buffer;
+            break;
+
+          case "response.audio.done": {
+            const wav = pcmBufferRef.current;
+            const blob = new Blob([wav], { type: "audio/wav" });
+            const url = URL.createObjectURL(blob);
+            const el = audioPlayerRef.current;
+            el.src = url;
+            el.volume = 1;
+            el.muted = false;
+            el.play();
+            pcmBufferRef.current = new ArrayBuffer(0);
+            break;
+          }
+
+          case "output_audio_buffer.stopped":
+            break;
+
+          default:
+            console.warn("Unhandled message type:", msg.type);
+        }
+      };
+
+      channel.onerror = (e) => {
+        console.error("Data channel error", e);
+        setConnectionStatus("error");
+      };
+
       channel.onclose = () => {
         setConnectionStatus("idle");
         setIsMicActive(false);
       };
 
-      channel.onerror = () => {
-        setConnectionStatus("error");
-        setIsMicActive(false);
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "failed") {
-          pc.close();
-          setConnectionStatus("error");
-        }
-      };
-
       const offer = await pc.createOffer({ offerToReceiveAudio: true });
       await pc.setLocalDescription(offer);
 
-      const res = await fetch(
-        "https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
-        }
-      );
+      const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      });
 
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
 
       setPeerConnection(pc);
     } catch (err) {
-      console.error("WebRTC Error:", err);
+      console.error("WebRTC error:", err);
       setConnectionStatus("error");
     }
   };
@@ -78,16 +110,9 @@ const VoiceAssistant = () => {
       startWebRTC();
     } else if (connectionStatus === "connected" && localStream) {
       const newState = !isMicActive;
-      localStream.getAudioTracks().forEach((track) => {
-        track.enabled = newState;
-      });
       setIsMicActive(newState);
+      localStream.getTracks().forEach((track) => (track.enabled = newState));
     }
-  };
-
-  const toggleAssistant = () => {
-    if (!isOpen) startWebRTC();
-    setIsOpen(!isOpen);
   };
 
   return (
@@ -106,11 +131,11 @@ const VoiceAssistant = () => {
           exit={{ opacity: 0 }}
           drag
           dragConstraints={{ top: -1000, bottom: 1000, left: -1000, right: 1000 }}
-          dragElastic={0.2}
+          dragElastic={0.25}
           dragTransition={{ bounceStiffness: 300, bounceDamping: 15 }}
-          whileTap={{ cursor: "grabbing" }}
-          style={{ position: "fixed", top: 100, left: 100, zIndex: 1001 }}
+          style={{ position: "fixed", top: 120, left: 120, zIndex: 1001 }}
         >
+          <audio ref={audioPlayerRef} style={{ display: "none" }} playsInline autoPlay />
           <div className="voice-header">
             <h3>Voice Assistant</h3>
             <button className="close-btn-green" onClick={toggleAssistant}>
@@ -135,4 +160,5 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
 
