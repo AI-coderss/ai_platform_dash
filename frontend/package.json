@@ -19,6 +19,7 @@
     "gsap": "^3.13.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-media-recorder": "^1.7.1",
     "react-scripts": "5.0.1",

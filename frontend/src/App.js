@@ -4,7 +4,7 @@ import ChatBot from "./components/Chatbot";
 import useCardStore from "./components/store/useCardStore";
 import AudioPlayer from "./components/AudioPlayer";
 import ContactSection from "./components/ContactSection";
-
+import VoiceAssistant from "./components/VoiceAssistant";
 
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -26,35 +26,22 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive]);
 
-
   return (
     <div
       ref={cardRef}
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
     >
-      {isActive && (
-        <>
-          <span></span><span></span><span></span><span></span>
-        </>
-      )}
-
+      {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
       <div className="content">
         <img src={app.icon} alt={app.name} className="app-icon" />
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
-
-        <div className="app-actions">
-          <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">
-            Launch
-          </a>
-          <button onClick={() => onPlay(app.helpVideo)} className="btn">
-            Help
-          </button>
+        <div className="app-actions" style={{ display: 'flex', gap: '1rem' }}>
+          <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">Launch</a>
+          <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
         </div>
-
-        {/* 🎧 Audio Player rendered at the bottom */}
         {isActive && (
           <div className="audio-wrapper">
             <AudioPlayer src={audioMap[app.id]} key={audioMap[app.id]} />
@@ -67,8 +54,6 @@ const AppCard = ({ app, onPlay }) => {
 
 const App = () => {
   const [videoUrl, setVideoUrl] = useState(null);
-
-  // 1. UPDATED the Visme survey URL
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
 
   const apps = [
@@ -133,13 +118,10 @@ const App = () => {
             <div className="container">
               <div className="p p1">DSAH AI PLATFORM 🤖</div>
               <div className="p p2">DSAH AI PLATFORM 🤖</div>
-              <div className="p p3">
-                DSAH AI PLATFORM 🤖<div className="cursor"></div>
-              </div>
+              <div className="p p3">DSAH AI PLATFORM 🤖<div className="cursor"></div></div>
             </div>
           </div>
         </div>
-        {/* Survey button has been moved from here */}
       </div>
 
       {videoUrl && (
@@ -161,11 +143,10 @@ const App = () => {
           <AppCard key={app.id} app={app} onPlay={setVideoUrl} />
         ))}
       </div>
-      
-      {/* 2. ADD THIS FLOATING SURVEY BUTTON */}
+
       <a
         href={surveyUrl}
-        className="btn survey-fab-button" /* Use new class for positioning */
+        className="btn survey-fab-button"
         target="_blank"
         rel="noopener noreferrer"
         title="Take our Survey"
@@ -174,14 +155,14 @@ const App = () => {
       </a>
 
       <ChatBot />
+      <VoiceAssistant />
       <ContactSection />
-
-      {/* Footer */}
     </div>
   );
 };
 
 export default App;
+
 
 
 
