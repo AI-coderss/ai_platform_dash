@@ -1,6 +1,7 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import "../styles/VoiceAssistant.css";
 
 let localStream;
@@ -10,7 +11,6 @@ const VoiceAssistant = () => {
   const [isMicActive, setIsMicActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [peerConnection, setPeerConnection] = useState(null);
-  // eslint-disable-next-line no-unused-vars
   const [dataChannel, setDataChannel] = useState(null);
   const audioPlayerRef = useRef(null);
   const pcmBufferRef = useRef(new ArrayBuffer(0));
@@ -47,13 +47,14 @@ const VoiceAssistant = () => {
       channel.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
         switch (msg.type) {
-          case "response.audio.delta":
+          case "response.audio.delta": {
             const chunk = Uint8Array.from(atob(msg.delta), c => c.charCodeAt(0));
             const newBuffer = new Uint8Array(pcmBufferRef.current.byteLength + chunk.byteLength);
             newBuffer.set(new Uint8Array(pcmBufferRef.current), 0);
             newBuffer.set(chunk, pcmBufferRef.current.byteLength);
             pcmBufferRef.current = newBuffer.buffer;
             break;
+          }
 
           case "response.audio.done": {
             const wav = pcmBufferRef.current;
@@ -67,9 +68,6 @@ const VoiceAssistant = () => {
             pcmBufferRef.current = new ArrayBuffer(0);
             break;
           }
-
-          case "output_audio_buffer.stopped":
-            break;
 
           default:
             console.warn("Unhandled message type:", msg.type);
@@ -118,47 +116,59 @@ const VoiceAssistant = () => {
   return (
     <>
       {!isOpen && (
-        <button className="voice-toggle-btn left" onClick={toggleAssistant}>
-          ➕
-        </button>
-      )}
-
-      {isOpen && (
-        <motion.div
-          className="voice-sidebar glassmorphic"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <motion.button
+          className="voice-toggle-btn left"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          drag
-          dragConstraints={{ top: -1000, bottom: 1000, left: -1000, right: 1000 }}
-          dragElastic={0.25}
-          dragTransition={{ bounceStiffness: 300, bounceDamping: 15 }}
-          style={{ position: "fixed", top: 120, left: 120, zIndex: 1001 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={toggleAssistant}
         >
-          <audio ref={audioPlayerRef} style={{ display: "none" }} playsInline autoPlay />
-          <div className="voice-header">
-            <h3>Voice Assistant</h3>
-            <button className="close-btn-green" onClick={toggleAssistant}>
-              ✖
-            </button>
-          </div>
-
-          <div className="voice-controls">
-            <button
-              className={`mic-btn ${isMicActive ? "active" : ""}`}
-              onClick={toggleMic}
-              disabled={connectionStatus === "connecting"}
-            >
-              <FaMicrophoneAlt />
-            </button>
-            <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
-          </div>
-        </motion.div>
+          ➕
+        </motion.button>
       )}
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="voice-sidebar glassmorphic"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.3 }}
+            drag
+            dragConstraints={{ top: -1000, bottom: 1000, left: -1000, right: 1000 }}
+            dragElastic={0.3}
+            dragTransition={{ bounceStiffness: 200, bounceDamping: 12 }}
+            style={{ position: "fixed", top: 100, left: 100, zIndex: 1001 }}
+          >
+            <audio ref={audioPlayerRef} style={{ display: "none" }} playsInline autoPlay />
+            <div className="voice-header">
+              <h3>Voice Assistant</h3>
+              <button className="close-btn-green" onClick={toggleAssistant}>
+                ✖
+              </button>
+            </div>
+
+            <div className="voice-controls">
+              <button
+                className={`mic-btn ${isMicActive ? "active" : ""}`}
+                onClick={toggleMic}
+                disabled={connectionStatus === "connecting"}
+              >
+                <FaMicrophoneAlt />
+              </button>
+              <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
 
 export default VoiceAssistant;
+
+
 
 
