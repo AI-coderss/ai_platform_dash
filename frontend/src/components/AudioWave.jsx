@@ -130,7 +130,7 @@ const AudioWave = ({ stream, audioUrl, onEnded }) => {
   }, [stream, audioUrl, onEnded]);
 
   return (
-    <div className="container">
+    <div className="container-audio-wave">
       <canvas ref={canvasRef} id="waveCanvas"></canvas>
     </div>
   );
