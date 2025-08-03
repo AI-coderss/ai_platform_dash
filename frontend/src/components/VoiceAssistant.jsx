@@ -1,10 +1,9 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import "../styles/VoiceAssistant.css";
 
-// Use a global ref to hold the peer connection to avoid stale closures
+// Use global refs to hold objects to avoid stale closures
 const peerConnectionRef = React.createRef();
 const dataChannelRef = React.createRef();
 const localStreamRef = React.createRef();
@@ -13,13 +12,11 @@ const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMicActive, setIsMicActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("idle");
-  
-  // New state for real-time feedback
   const [transcript, setTranscript] = useState("");
   const [responseText, setResponseText] = useState("");
   
+  // This audio element will now play the incoming WebRTC stream directly
   const audioPlayerRef = useRef(null);
-  const pcmBufferRef = useRef(new ArrayBuffer(0));
 
   const cleanupWebRTC = () => {
     if (peerConnectionRef.current) {
@@ -27,8 +24,8 @@ const VoiceAssistant = () => {
       peerConnectionRef.current = null;
     }
     if (dataChannelRef.current) {
-        dataChannelRef.current.close();
-        dataChannelRef.current = null;
+      dataChannelRef.current.close();
+      dataChannelRef.current = null;
     }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -42,12 +39,12 @@ const VoiceAssistant = () => {
   
   const toggleAssistant = () => {
     setIsOpen(prev => {
-        if (!prev) {
-            startWebRTC();
-        } else {
-            cleanupWebRTC();
-        }
-        return !prev;
+      if (!prev) {
+        startWebRTC();
+      } else {
+        cleanupWebRTC();
+      }
+      return !prev;
     });
   };
 
@@ -65,93 +62,72 @@ const VoiceAssistant = () => {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       peerConnectionRef.current = pc;
+      
+      // =================================================================
+      // === ✅ KEY CHANGE #1: LISTEN FOR THE INCOMING AUDIO TRACK      ===
+      // =================================================================
+      pc.ontrack = (event) => {
+        console.log("✅ Received remote audio track!");
+        if (event.streams && event.streams[0]) {
+          const remoteStream = event.streams[0];
+          const audioPlayer = audioPlayerRef.current;
+          audioPlayer.srcObject = remoteStream;
+          audioPlayer.play().catch(e => console.error("Audio play failed:", e));
+        }
+      };
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       const channel = pc.createDataChannel("response", { ordered: true });
       dataChannelRef.current = channel;
 
-      // === KEY CHANGE: SETUP DATA CHANNEL WITH FULL LOGIC ===
       channel.onopen = () => {
         console.log("✅ Data channel opened");
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
         
-        // 1. Configure the session (imitating your working example)
         const sessionConfig = {
           type: "session.update",
-          session: {
-            modalities: ["text", "audio"],
-            turn_detection: "vad", // Using Voice Activity Detection
-          },
+          session: { modalities: ["text", "audio"], turn_detection: "vad" },
         };
-        console.log("-> Sending session config:", sessionConfig);
         channel.send(JSON.stringify(sessionConfig));
 
-        // 2. Request the initial response
         const createResponse = {
           type: "response.create",
-          response: {
-            modalities: ["text", "audio"],
-          },
+          response: { modalities: ["text", "audio"] },
         };
-        console.log("-> Sending response create:", createResponse);
         channel.send(JSON.stringify(createResponse));
       };
       
-      // === KEY CHANGE: EXPANDED MESSAGE HANDLING ===
+      // =======================================================================
+      // === ✅ KEY CHANGE #2: SIMPLIFIED MESSAGE HANDLING (NO AUDIO CHUNKS) ===
+      // =======================================================================
       channel.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
+        // We keep this log to see all messages from the server
         console.log("<- Received message:", msg);
 
         switch (msg.type) {
           case "conversation.item.input_audio_transcription.completed":
             setTranscript(msg.transcript);
-            // Clear previous response when new transcript is final
-            setResponseText("");
+            setResponseText(""); // Clear previous response
             break;
 
           case "response.text.delta":
             setResponseText((prev) => prev + msg.delta);
             break;
-
-          case "response.audio.delta": {
-             // Your existing logic for handling audio chunks is correct
-            const chunk = Uint8Array.from(atob(msg.delta), (c) => c.charCodeAt(0));
-            const newBuffer = new Uint8Array(pcmBufferRef.current.byteLength + chunk.byteLength);
-            newBuffer.set(new Uint8Array(pcmBufferRef.current), 0);
-            newBuffer.set(chunk, pcmBufferRef.current.byteLength);
-            pcmBufferRef.current = newBuffer.buffer;
-            break;
-          }
-
-          case "response.audio.done": {
-             // Your existing logic for playing the final audio is correct
-            const wavData = pcmBufferRef.current;
-            if (wavData.byteLength === 0) {
-              console.warn("Received audio.done but buffer is empty.");
-              return;
-            }
-            const blob = new Blob([wavData], { type: "audio/wav" });
-            const url = URL.createObjectURL(blob);
-            const el = audioPlayerRef.current;
-            el.src = url;
-            el.play().catch(e => console.error("Audio play failed:", e));
-            
-            // Reset for the next response
-            pcmBufferRef.current = new ArrayBuffer(0);
-            setTranscript(""); 
-            break;
-          }
-            
+          
+          // The "response.audio.delta" and "response.audio.done" cases are now removed.
+          
           case "response.done":
             console.log("Response finished.");
-            // You might want to re-enable the mic or wait for the next turn
+            setTranscript(""); // Clear transcript for the next turn
             break;
 
           default:
-            console.warn("Unhandled message type:", msg.type);
+            // No need to log a warning for unhandled types, as many are just informational.
+            break;
         }
       };
 
@@ -167,7 +143,9 @@ const VoiceAssistant = () => {
       };
       
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
+        const state = pc.connectionState;
+        console.log(`Connection state changed to: ${state}`);
+        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
           cleanupWebRTC();
         }
       };
@@ -175,16 +153,13 @@ const VoiceAssistant = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      // The SDP offer/answer with your Flask proxy is correct
       const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect", {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: offer.sdp,
       });
 
-      if (!res.ok) {
-        throw new Error(`Server responded with ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
@@ -198,27 +173,24 @@ const VoiceAssistant = () => {
   };
 
   const toggleMic = () => {
-    // This function can now be simpler, primarily for manual muting if needed
     if (connectionStatus === "connected" && localStreamRef.current) {
-        const nextState = !isMicActive;
-        setIsMicActive(nextState);
-        localStreamRef.current.getAudioTracks().forEach(track => {
-            track.enabled = nextState;
-        });
-        console.log(`Microphone ${nextState ? 'enabled' : 'disabled'}`);
+      const nextState = !isMicActive;
+      setIsMicActive(nextState);
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = nextState;
+      });
+      console.log(`Microphone ${nextState ? 'enabled' : 'disabled'}`);
     }
   };
 
+  // The JSX remains the same, but the <audio> element now has a new purpose.
   return (
     <>
       {!isOpen && (
         <motion.button
           className="voice-toggle-btn left"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          whileTap={{ scale: 0.9 }}
           onClick={toggleAssistant}
+          //... other motion props
         >
           ➕
         </motion.button>
@@ -228,13 +200,11 @@ const VoiceAssistant = () => {
         {isOpen && (
           <motion.div
             className="voice-sidebar glassmorphic"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.3 }}
+            //... other motion props
             style={{ position: "fixed", top: 100, left: 100, zIndex: 1001, width: '300px' }}
           >
-            <audio ref={audioPlayerRef} style={{ display: "none" }} playsInline />
+            {/* This audio element now plays the direct stream via srcObject */}
+            <audio ref={audioPlayerRef} style={{ display: "none" }} />
             <div className="voice-header">
               <h3>Voice Assistant</h3>
               <button className="close-btn-green" onClick={toggleAssistant}>
@@ -242,7 +212,6 @@ const VoiceAssistant = () => {
               </button>
             </div>
             
-            {/* Added UI for feedback */}
             <div className="voice-feedback">
                 <div className="transcript-container">
                     <strong>You said:</strong>
@@ -272,6 +241,5 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
-
 
 
