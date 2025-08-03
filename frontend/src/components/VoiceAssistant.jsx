@@ -55,7 +55,7 @@ const VoiceAssistant = () => {
       await pc.setLocalDescription(offer);
 
       const res = await fetch(
-        "https://voiceassistant-mode-webrtc-server.onrender.com/api/rtc-connect",
+        "https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect",
         {
           method: "POST",
           headers: { "Content-Type": "application/sdp" },
