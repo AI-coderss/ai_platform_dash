@@ -30,7 +30,7 @@
 
 .glassmorphic {
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
 }
@@ -68,6 +68,8 @@
 
 .mic-btn {
   background: #8440e5;
+  height: 60px;
+  width: 60px;
   color: white;
   border: none;
   border-radius: 50%;

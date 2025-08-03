@@ -1,12 +1,10 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave"; // Import your new component
 import "../styles/VoiceAssistant.css";
 
-
-// Use global refs to hold objects to avoid stale closures
 const peerConnectionRef = React.createRef();
 const dataChannelRef = React.createRef();
 const localStreamRef = React.createRef();
@@ -17,11 +15,15 @@ const VoiceAssistant = () => {
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [responseText, setResponseText] = useState("");
-  // === KEY CHANGE #1: State to hold the remote audio stream for the visualizer ===
   const [remoteStream, setRemoteStream] = useState(null);
-  
-  // This audio element will now play the incoming WebRTC stream directly
   const audioPlayerRef = useRef(null);
+  const dragConstraintsRef = useRef(null); // for dragging
+
+  useEffect(() => {
+    if (dragConstraintsRef.current == null) {
+      dragConstraintsRef.current = document.body;
+    }
+  }, []);
 
   const cleanupWebRTC = () => {
     if (peerConnectionRef.current) {
@@ -41,7 +43,7 @@ const VoiceAssistant = () => {
     setTranscript("");
     setResponseText("");
   };
-  
+
   const toggleAssistant = () => {
     setIsOpen(prev => {
       if (!prev) {
@@ -55,7 +57,6 @@ const VoiceAssistant = () => {
 
   const startWebRTC = async () => {
     if (peerConnectionRef.current || connectionStatus === "connecting") return;
-
     setConnectionStatus("connecting");
     setResponseText("Connecting to assistant...");
 
@@ -67,22 +68,18 @@ const VoiceAssistant = () => {
         iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
       });
       peerConnectionRef.current = pc;
-      
-    // === KEY CHANGE #2: Update ontrack to set state for the visualizer ===
+
       pc.ontrack = (event) => {
         console.log("✅ Received remote audio track!");
         if (event.streams && event.streams[0]) {
           const stream = event.streams[0];
-          // Set the stream for the audio element to play
           audioPlayerRef.current.srcObject = stream;
           audioPlayerRef.current.play().catch(e => console.error("Audio play failed:", e));
-          // Set the stream for the AudioWave component to visualize
           setRemoteStream(stream);
         }
       };
 
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
 
       const channel = pc.createDataChannel("response", { ordered: true });
       dataChannelRef.current = channel;
@@ -92,7 +89,7 @@ const VoiceAssistant = () => {
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
-        
+
         const sessionConfig = {
           type: "session.update",
           session: { modalities: ["text", "audio"], turn_detection: "vad" },
@@ -105,34 +102,23 @@ const VoiceAssistant = () => {
         };
         channel.send(JSON.stringify(createResponse));
       };
-      
-      // =======================================================================
-      // === ✅ KEY CHANGE #2: SIMPLIFIED MESSAGE HANDLING (NO AUDIO CHUNKS) ===
-      // =======================================================================
+
       channel.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
-        // We keep this log to see all messages from the server
         console.log("<- Received message:", msg);
-
         switch (msg.type) {
           case "conversation.item.input_audio_transcription.completed":
             setTranscript(msg.transcript);
-            setResponseText(""); // Clear previous response
+            setResponseText("");
             break;
-
           case "response.text.delta":
             setResponseText((prev) => prev + msg.delta);
             break;
-          
-          // The "response.audio.delta" and "response.audio.done" cases are now removed.
-          
           case "response.done":
             console.log("Response finished.");
-            setTranscript(""); // Clear transcript for the next turn
+            setTranscript("");
             break;
-
           default:
-            // No need to log a warning for unhandled types, as many are just informational.
             break;
         }
       };
@@ -147,7 +133,7 @@ const VoiceAssistant = () => {
         console.log("Data channel closed");
         cleanupWebRTC();
       };
-      
+
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
         console.log(`Connection state changed to: ${state}`);
@@ -158,7 +144,7 @@ const VoiceAssistant = () => {
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      
+
       const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect", {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
@@ -166,7 +152,7 @@ const VoiceAssistant = () => {
       });
 
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-      
+
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
 
@@ -189,14 +175,12 @@ const VoiceAssistant = () => {
     }
   };
 
-  // The JSX remains the same, but the <audio> element now has a new purpose.
   return (
     <>
       {!isOpen && (
         <motion.button
           className="voice-toggle-btn left"
           onClick={toggleAssistant}
-          //... other motion props
         >
           ➕
         </motion.button>
@@ -206,10 +190,11 @@ const VoiceAssistant = () => {
         {isOpen && (
           <motion.div
             className="voice-sidebar glassmorphic"
-            //... other motion props
             style={{ position: "fixed", top: 100, left: 100, zIndex: 1001, width: '300px' }}
+            drag
+            dragConstraints={dragConstraintsRef}
+            dragElastic={0.2}
           >
-            {/* This audio element now plays the direct stream via srcObject */}
             <audio ref={audioPlayerRef} style={{ display: "none" }} />
             <div className="voice-header">
               <h3>Voice Assistant</h3>
@@ -217,7 +202,7 @@ const VoiceAssistant = () => {
                 ✖
               </button>
             </div>
-             {/* === KEY CHANGE #3: Replace text feedback with the AudioWave component === */}
+
             <div className="voice-visualizer-container">
               {remoteStream ? (
                 <AudioWave stream={remoteStream} />
@@ -227,7 +212,6 @@ const VoiceAssistant = () => {
                 </div>
               )}
             </div>
-          
 
             <div className="voice-controls">
               <button
