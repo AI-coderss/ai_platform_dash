@@ -182,7 +182,7 @@ const VoiceAssistant = () => {
           className="voice-toggle-btn left"
           onClick={toggleAssistant}
         >
-          ➕
+          +
         </motion.button>
       )}
 
