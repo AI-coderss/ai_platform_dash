@@ -10,11 +10,10 @@ from langchain_qdrant import Qdrant
 import qdrant_client
 from prompts.system_prompt import SYSTEM_PROMPT
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-
 CORS(app, resources={
     r"/api/*": {
         "origins": "https://ai-platform-dash.onrender.com",
@@ -23,35 +22,38 @@ CORS(app, resources={
     }
 })
 
-# Configure logging
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Environment configs
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-if not OPENAI_API_KEY:
-    logger.error("OPENAI_API_KEY not set.")
-    raise EnvironmentError("OPENAI_API_KEY environment variable not set.")
-
 OPENAI_SESSION_URL = "https://api.openai.com/v1/realtime/sessions"
 OPENAI_API_URL = "https://api.openai.com/v1/realtime"
 MODEL_ID = "gpt-4o-realtime-preview-2024-12-17"
 VOICE = "alloy"
 DEFAULT_INSTRUCTIONS = SYSTEM_PROMPT
 
+if not OPENAI_API_KEY:
+    raise EnvironmentError("OPENAI_API_KEY environment variable not set.")
+
+# Qdrant setup
 def get_vector_store():
     client = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
     )
     embeddings = OpenAIEmbeddings()
-    vector_store = Qdrant(
+    return Qdrant(
         client=client,
         collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
         embeddings=embeddings,
     )
-    return vector_store
 
 vector_store = get_vector_store()
+
+# Global vision enhancement
+vision_description = None
 
 @app.route('/')
 def home():
@@ -59,16 +61,24 @@ def home():
 
 @app.route('/api/rtc-connect', methods=['POST'])
 def connect_rtc():
+    global vision_description
+
     try:
         client_sdp = request.get_data(as_text=True)
         if not client_sdp:
             return Response("No SDP provided", status=400)
 
-        # Step 1: Create Realtime session + instructions
+        # Build instructions dynamically
+        if vision_description:
+            instructions = f"{SYSTEM_PROMPT}\n\nThe user is currently sharing their screen. Here's what you see:\n{vision_description}"
+        else:
+            instructions = SYSTEM_PROMPT
+
+        # Step 1: Create session
         session_payload = {
             "model": MODEL_ID,
             "voice": VOICE,
-            "instructions": DEFAULT_INSTRUCTIONS
+            "instructions": instructions
         }
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -82,7 +92,6 @@ def connect_rtc():
         token_data = session_resp.json()
         ephemeral_token = token_data.get("client_secret", {}).get("value")
         if not ephemeral_token:
-            logger.error("Ephemeral token missing")
             return Response("Missing ephemeral token", status=500)
 
         # Step 2: SDP exchange
@@ -93,11 +102,7 @@ def connect_rtc():
         sdp_resp = requests.post(
             OPENAI_API_URL,
             headers=sdp_headers,
-            params={
-                "model": MODEL_ID,
-                "voice": VOICE
-                # instructions already set at session creation
-            },
+            params={ "model": MODEL_ID, "voice": VOICE },
             data=client_sdp
         )
         if not sdp_resp.ok:
@@ -110,12 +115,53 @@ def connect_rtc():
         logger.exception("RTC connection error")
         return Response(f"Error: {e}", status=500)
 
+@app.route('/api/vision-frame', methods=['POST'])
+def vision_frame():
+    global vision_description
+
+    try:
+        data = request.json
+        base64_image = data.get("image")
+        if not base64_image:
+            return jsonify({"error": "No image provided"}), 400
+
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": "gpt-4o",
+            "stream": False,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        { "type": "text", "text": "Describe the visible screen for a virtual assistant to help the user navigate or understand it." },
+                        { "type": "image_url", "image_url": { "url": f"data:image/jpeg;base64,{base64_image}" } }
+                    ]
+                }
+            ],
+            "max_tokens": 400
+        }
+
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        if response.ok:
+            vision_description = response.json()["choices"][0]["message"]["content"]
+            return jsonify({ "text": vision_description })
+        else:
+            return jsonify({ "error": "Vision API failed", "details": response.text }), 500
+
+    except Exception as e:
+        logger.exception("Vision frame processing error")
+        return jsonify({ "error": str(e) }), 500
+
 @app.route('/api/search', methods=['POST'])
 def search():
     try:
         query = request.json.get('query')
         if not query:
-            return jsonify({"error": "No query provided"}), 400
+            return jsonify({ "error": "No query provided" }), 400
 
         logger.info(f"Searching for: {query}")
         results = vector_store.similarity_search_with_score(query, k=3)
@@ -126,12 +172,11 @@ def search():
             "relevance_score": float(score)
         } for doc, score in results]
 
-        return jsonify({"results": formatted})
+        return jsonify({ "results": formatted })
 
     except Exception as e:
         logger.error(f"Search error: {e}")
-        return jsonify({"error": str(e)}), 500
-
+        return jsonify({ "error": str(e) }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=8813)
