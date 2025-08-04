@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
-import { FaMicrophoneAlt, FaCamera } from "react-icons/fa";
+import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import AudioWave from "./AudioWave";
+import AudioWave from "./AudioWave"; // Import your new component
 import "../styles/VoiceAssistant.css";
 
 const peerConnectionRef = React.createRef();
@@ -16,73 +16,14 @@ const VoiceAssistant = () => {
   const [transcript, setTranscript] = useState("");
   const [responseText, setResponseText] = useState("");
   const [remoteStream, setRemoteStream] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
   const audioPlayerRef = useRef(null);
-  const videoRef = useRef(null);
-  const captureIntervalRef = useRef(null);
-  const dragConstraintsRef = useRef(null);
+  const dragConstraintsRef = useRef(null); // for dragging
 
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
       dragConstraintsRef.current = document.body;
     }
   }, []);
-
-  const blobToBase64 = (blob) =>
-    new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result.split(",")[1]);
-      reader.readAsDataURL(blob);
-    });
-
-  const startScreenCapture = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
-
-      captureIntervalRef.current = setInterval(() => {
-        const video = videoRef.current;
-        if (!video || video.videoWidth === 0) return;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const base64 = await blobToBase64(blob);
-
-          const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/vision-frame", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: base64 }),
-          });
-
-          const json = await res.json();
-          if (json.text) {
-            setResponseText(json.text); // Optional: AI can read this
-          }
-        }, "image/jpeg");
-      }, 2000);
-
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error capturing screen:", error);
-      setIsRecording(false);
-    }
-  };
-
-  const stopScreenCapture = () => {
-    const stream = videoRef.current?.srcObject;
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-    }
-    clearInterval(captureIntervalRef.current);
-    setIsRecording(false);
-  };
 
   const cleanupWebRTC = () => {
     if (peerConnectionRef.current) {
@@ -129,6 +70,7 @@ const VoiceAssistant = () => {
       peerConnectionRef.current = pc;
 
       pc.ontrack = (event) => {
+        console.log("✅ Received remote audio track!");
         if (event.streams && event.streams[0]) {
           const stream = event.streams[0];
           audioPlayerRef.current.srcObject = stream;
@@ -143,6 +85,7 @@ const VoiceAssistant = () => {
       dataChannelRef.current = channel;
 
       channel.onopen = () => {
+        console.log("✅ Data channel opened");
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
@@ -162,6 +105,7 @@ const VoiceAssistant = () => {
 
       channel.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
+        console.log("<- Received message:", msg);
         switch (msg.type) {
           case "conversation.item.input_audio_transcription.completed":
             setTranscript(msg.transcript);
@@ -171,6 +115,7 @@ const VoiceAssistant = () => {
             setResponseText((prev) => prev + msg.delta);
             break;
           case "response.done":
+            console.log("Response finished.");
             setTranscript("");
             break;
           default:
@@ -179,16 +124,19 @@ const VoiceAssistant = () => {
       };
 
       channel.onerror = (e) => {
+        console.error("Data channel error", e);
         setConnectionStatus("error");
         setResponseText("Connection error.");
       };
 
       channel.onclose = () => {
+        console.log("Data channel closed");
         cleanupWebRTC();
       };
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
+        console.log(`Connection state changed to: ${state}`);
         if (state === 'failed' || state === 'disconnected' || state === 'closed') {
           cleanupWebRTC();
         }
@@ -209,6 +157,7 @@ const VoiceAssistant = () => {
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
 
     } catch (err) {
+      console.error("WebRTC error:", err);
       setConnectionStatus("error");
       setResponseText("Failed to start session.");
       cleanupWebRTC();
@@ -222,6 +171,7 @@ const VoiceAssistant = () => {
       localStreamRef.current.getAudioTracks().forEach(track => {
         track.enabled = nextState;
       });
+      console.log(`Microphone ${nextState ? 'enabled' : 'disabled'}`);
     }
   };
 
@@ -246,7 +196,6 @@ const VoiceAssistant = () => {
             dragElastic={0.2}
           >
             <audio ref={audioPlayerRef} style={{ display: "none" }} />
-            <video ref={videoRef} style={{ display: "none" }} />
             <div className="voice-header">
               <h3>Voice Assistant</h3>
               <button className="close-btn-green" onClick={toggleAssistant}>
@@ -269,16 +218,8 @@ const VoiceAssistant = () => {
                 className={`mic-btn ${isMicActive ? "active" : ""}`}
                 onClick={toggleMic}
                 disabled={connectionStatus !== "connected"}
-                title="Toggle Mic"
               >
                 <FaMicrophoneAlt />
-              </button>
-              <button
-                className={`mic-btn ${isRecording ? "active" : ""}`}
-                onClick={isRecording ? stopScreenCapture : startScreenCapture}
-                title="Toggle Vision"
-              >
-                <FaCamera />
               </button>
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
