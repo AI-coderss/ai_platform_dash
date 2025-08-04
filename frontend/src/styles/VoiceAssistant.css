@@ -87,14 +87,13 @@
 }
 
 .voice-controls {
-  position: absolute;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 0.4rem;
+  gap: 10px; /* space between mic and camera */
+  margin-top: 1rem;
+
+
 }
 
 .mic-btn {
