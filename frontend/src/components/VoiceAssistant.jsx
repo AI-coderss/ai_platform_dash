@@ -1,27 +1,23 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
-import { FaMicrophoneAlt, FaCamera } from "react-icons/fa";
+import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import AudioWave from "./AudioWave";
+import AudioWave from "./AudioWave"; // Import your new component
 import "../styles/VoiceAssistant.css";
 
 const peerConnectionRef = React.createRef();
 const dataChannelRef = React.createRef();
 const localStreamRef = React.createRef();
-const screenStreamRef = React.createRef();
-const videoSenderRef = React.createRef();
-
 
 const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMicActive, setIsMicActive] = useState(false);
-  const [isCameraActive, setIsCameraActive] = useState(false); 
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [responseText, setResponseText] = useState("");
   const [remoteStream, setRemoteStream] = useState(null);
   const audioPlayerRef = useRef(null);
-  const dragConstraintsRef = useRef(null);
+  const dragConstraintsRef = useRef(null); // for dragging
 
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
@@ -29,32 +25,7 @@ const VoiceAssistant = () => {
     }
   }, []);
 
-  const stopScreenShare = () => {
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop());
-      screenStreamRef.current = null;
-    }
-    if (videoSenderRef.current && peerConnectionRef.current) {
-      try {
-        peerConnectionRef.current.removeTrack(videoSenderRef.current);
-      } catch (e) {
-        console.error("Error removing track:", e);
-      }
-      videoSenderRef.current = null;
-    }
-    if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
-      const sessionUpdate = {
-        type: "session.update",
-        session: { modalities: ["text", "audio"] } 
-      };
-      dataChannelRef.current.send(JSON.stringify(sessionUpdate));
-      console.log("Sent session.update to disable vision.");
-    }
-    setIsCameraActive(false);
-  };
-
   const cleanupWebRTC = () => {
-    stopScreenShare(); 
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
@@ -69,7 +40,6 @@ const VoiceAssistant = () => {
     }
     setConnectionStatus("idle");
     setIsMicActive(false);
-    setIsCameraActive(false);
     setTranscript("");
     setResponseText("");
   };
@@ -84,56 +54,6 @@ const VoiceAssistant = () => {
       return !prev;
     });
   };
-
-  // New async function to handle tool calls
-  const handleToolCall = async (toolCallMsg) => {
-    const { id: tool_call_id, function: func } = toolCallMsg.data.tool_call;
-    
-    if (func.name === 'vision_frame') {
-        console.log(`Tool call received: ${func.name}. Executing...`);
-        try {
-            const arguments_obj = JSON.parse(func.arguments);
-            const response = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/execute-vision-tool", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tool_call_id,
-                    arguments: arguments_obj
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Backend tool execution failed: ${response.statusText}`);
-            }
-
-            const { result } = await response.json();
-
-            // Send the result back to OpenAI
-            const toolRunMsg = {
-                type: 'tool.run',
-                tool_run: {
-                    id: tool_call_id,
-                    result: result
-                }
-            };
-            dataChannelRef.current.send(JSON.stringify(toolRunMsg));
-            console.log("Sent tool.run result to OpenAI.");
-
-        } catch (error) {
-            console.error("Failed to execute tool:", error);
-            // Optionally, send an error result back to OpenAI
-            const errorRunMsg = {
-                type: 'tool.run',
-                tool_run: {
-                    id: tool_call_id,
-                    result: `Error executing tool: ${error.message}`
-                }
-            };
-            dataChannelRef.current.send(JSON.stringify(errorRunMsg));
-        }
-    }
-  };
-
 
   const startWebRTC = async () => {
     if (peerConnectionRef.current || connectionStatus === "connecting") return;
@@ -182,8 +102,7 @@ const VoiceAssistant = () => {
         };
         channel.send(JSON.stringify(createResponse));
       };
-      
-      // UPDATED onmessage handler
+
       channel.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
         console.log("<- Received message:", msg);
@@ -198,10 +117,6 @@ const VoiceAssistant = () => {
           case "response.done":
             console.log("Response finished.");
             setTranscript("");
-            break;
-          // ADDED CASE for handling tool calls
-          case "conversation.item.tool_call.created":
-            await handleToolCall(msg);
             break;
           default:
             break;
@@ -260,44 +175,13 @@ const VoiceAssistant = () => {
     }
   };
 
-  const toggleCamera = async () => {
-    if (connectionStatus !== "connected") return;
-
-    if (isCameraActive) {
-      stopScreenShare();
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        screenStreamRef.current = stream;
-        const videoTrack = stream.getVideoTracks()[0];
-
-        videoTrack.onended = () => {
-          console.log("Screen sharing stopped by user.");
-          stopScreenShare();
-        };
-
-        if (peerConnectionRef.current) {
-          videoSenderRef.current = peerConnectionRef.current.addTrack(videoTrack, stream);
-
-          const sessionUpdate = {
-            type: "session.update",
-            session: { modalities: ["text", "audio", "vision"] }
-          };
-          dataChannelRef.current.send(JSON.stringify(sessionUpdate));
-          console.log("Sent session.update to enable vision.");
-          setIsCameraActive(true);
-        }
-      } catch (err) {
-        console.error("Could not start screen share:", err);
-        stopScreenShare();
-      }
-    }
-  };
-
   return (
     <>
       {!isOpen && (
-        <motion.button className="voice-toggle-btn left" onClick={toggleAssistant}>
+        <motion.button
+          className="voice-toggle-btn left"
+          onClick={toggleAssistant}
+        >
           +
         </motion.button>
       )}
@@ -307,12 +191,16 @@ const VoiceAssistant = () => {
           <motion.div
             className="voice-sidebar glassmorphic"
             style={{ position: "fixed", top: 100, left: 100, zIndex: 1001, width: '300px' }}
-            drag dragConstraints={dragConstraintsRef} dragElastic={0.2}
+            drag
+            dragConstraints={dragConstraintsRef}
+            dragElastic={0.2}
           >
             <audio ref={audioPlayerRef} style={{ display: "none" }} />
             <div className="voice-header">
               <h3>Voice Assistant</h3>
-              <button className="close-btn-green" onClick={toggleAssistant}>✖</button>
+              <button className="close-btn-green" onClick={toggleAssistant}>
+                ✖
+              </button>
             </div>
 
             <div className="voice-visualizer-container">
@@ -333,16 +221,8 @@ const VoiceAssistant = () => {
               >
                 <FaMicrophoneAlt />
               </button>
-              <button
-                className={`mic-btn ${isCameraActive ? "active" : ""}`}
-                onClick={toggleCamera}
-                disabled={connectionStatus !== "connected"}
-              >
-                <FaCamera />
-              </button>
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
-
           </motion.div>
         )}
       </AnimatePresence>
@@ -351,4 +231,5 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
 
