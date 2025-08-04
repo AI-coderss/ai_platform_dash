@@ -132,46 +132,6 @@ def search():
         logger.error(f"Search error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/vision-frame', methods=['POST'])
-def vision_frame():
-    try:
-        data = request.json
-        base64_image = data.get("image")
-        if not base64_image:
-            return jsonify({"error": "No image provided"}), 400
-
-        headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "model": "gpt-4o",
-            "stream": False,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        { "type": "text", "text": "What do you see on this screen? Describe buttons, text, or interactions available." },
-                        { "type": "image_url", "image_url": { "url": f"data:image/jpeg;base64,{base64_image}" } }
-                    ]
-                }
-            ],
-            "max_tokens": 300
-        }
-
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-        if response.ok:
-            text = response.json()["choices"][0]["message"]["content"]
-            return jsonify({"text": text})
-        else:
-            logger.error(f"Vision API failed: {response.text}")
-            return jsonify({"error": "Vision API error"}), 500
-
-    except Exception as e:
-        logger.exception("Vision API error")
-        return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=8813)
