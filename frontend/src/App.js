@@ -102,7 +102,7 @@ const App = () => {
       name: "💬 Patient Assistant",
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
-      link: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
+      link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
   ];
