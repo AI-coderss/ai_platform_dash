@@ -15,10 +15,10 @@
 
 .chat-box {
   position: fixed;
-  bottom: 80px;
+  bottom: 100px;
   right: 20px;
   width: 450px;                /* 🔼 increased width */
-  height: 600px;
+  height: 700px;
   background: rgba(255, 255, 255, 0.15);  /* semi-transparent */
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 20px;

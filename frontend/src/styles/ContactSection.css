@@ -17,6 +17,7 @@
   justify-content: flex-end;
   padding: 4rem 5%;
   background: transparent;
+  
 }
 
 .contact-content {
@@ -29,8 +30,8 @@
 }
 
 .contact-form-wrapper {
-  width: 25vw;
-  max-width: 950px; /* 🔄 Increased from 480px */
+  width: 28vw;
+  max-width: 1200px; /* 🔄 Increased from 480px */
   padding: 2rem;
   border-radius: 16px;
   backdrop-filter: blur(10px);
