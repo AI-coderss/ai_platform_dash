@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 // App.js
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -104,7 +105,7 @@ const HeroLogoParticles = ({ theme }) => {
   const hoverRef = useRef(false);
   const lockRef = useRef(false);
 
- 
+  // Morph → bounce → disperse controller
   const bounceRef = useRef({
     active: false,
     t: 0,
@@ -116,9 +117,6 @@ const HeroLogoParticles = ({ theme }) => {
   const raycaster = useRef(new THREE.Raycaster()).current;
   const mouseNDC = useRef(new THREE.Vector2()).current;
   const zPlane = useRef(new THREE.Plane(new THREE.Vector3(0,0,1), 0)).current;
-
-  const scrollTargetZRef = useRef(80);
-  const scrollScaleRef = useRef(1);
 
   // dragging & click discrimination
   const draggingRef = useRef(false);
@@ -289,7 +287,7 @@ const HeroLogoParticles = ({ theme }) => {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.1, 2000);
-    camera.position.set(0, 0, 80);
+    camera.position.set(0, 0, 80); // fixed perspective — not tied to scroll
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -309,7 +307,7 @@ const HeroLogoParticles = ({ theme }) => {
     groupRef.current = group;
     scene.add(group);
 
-    // --- Glass cube (no edges, no tint) with watery normal map ---
+    // --- Glass cube (no edges, watery normal map) ---
     const CUBE_SIZE = 170;
     const cubeGeo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
     const ripple = buildRippleTexture();
@@ -335,7 +333,7 @@ const HeroLogoParticles = ({ theme }) => {
     cubeRef.current = cube;
     group.add(cube);
 
-    // --- Particles (preserve your behavior & look) ---
+    // --- Particles ---
     const COUNT = 3200;
     const RADIUS = 120;
 
@@ -398,7 +396,7 @@ const HeroLogoParticles = ({ theme }) => {
     pointsRef.current = points;
     group.add(points);
 
-    // lines (subtle connective threads; unchanged)
+    // lines
     const MAX_LINKS = 1600;
     const lpos = new Float32Array(MAX_LINKS * 2 * 3);
     const lgeom = new THREE.BufferGeometry();
@@ -498,7 +496,6 @@ const HeroLogoParticles = ({ theme }) => {
         bounceRef.current.t = 0;
         disperseQueuedRef.current = false;
 
-        scrollTargetZRef.current = lockRef.current ? 68 : 80;
         const pm = pointsRef.current.material;
         const lm = linesRef.current.mesh.material;
         if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
@@ -518,24 +515,7 @@ const HeroLogoParticles = ({ theme }) => {
     };
     wrapper.addEventListener("dblclick", onDblClick);
 
-    const onWheel = (e) => {
-      const delta = Math.sign(e.deltaY);
-      scrollTargetZRef.current = THREE.MathUtils.clamp(
-        scrollTargetZRef.current + delta * 4, 48, 120
-      );
-    };
-    wrapper.addEventListener("wheel", onWheel, { passive: true });
-
-    const onScroll = () => {
-      const y = window.scrollY || 0;
-      const baseZ = lockRef.current ? 68 : 80;
-      const targetZ = baseZ + Math.min(y, 800) * (28 / 800);
-      scrollTargetZRef.current = targetZ;
-      scrollScaleRef.current = 1 + Math.min(y, 800) * (0.10 / 800);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-
+    // Resize only (no scroll/zoom hooks so animation never ties to scrolling)
     const onResize = () => {
       camera.aspect = mount.clientWidth / mount.clientHeight;
       camera.updateProjectionMatrix();
@@ -572,7 +552,7 @@ const HeroLogoParticles = ({ theme }) => {
       // animate watery surface normals
       ripple.draw(t);
 
-      // group motion + bounce
+      // group motion + bounce (no scroll scaling)
       if (groupRef.current) {
         const g = groupRef.current;
 
@@ -611,16 +591,6 @@ const HeroLogoParticles = ({ theme }) => {
         }
 
         if (!draggingRef.current) g.rotation.y += 0.0007; // idle spin
-
-        const ts = scrollScaleRef.current;
-        g.scale.x += (ts - g.scale.x) * 0.06;
-        g.scale.y += (ts - g.scale.y) * 0.06;
-        g.scale.z += (ts - g.scale.z) * 0.06;
-      }
-
-      if (cameraRef.current) {
-        const cz = cameraRef.current.position.z;
-        cameraRef.current.position.z += (scrollTargetZRef.current - cz) * 0.09;
       }
 
       const pos = posRef.current;
@@ -688,7 +658,7 @@ const HeroLogoParticles = ({ theme }) => {
       }
       geomPos.needsUpdate = true;
 
-      // link lines (slightly tuned)
+      // link lines
       if (linesRef.current) {
         const { positions: lbuf, max } = linesRef.current;
         const threshold = lockRef.current ? 9.0 : 7.5;
@@ -736,18 +706,17 @@ const HeroLogoParticles = ({ theme }) => {
     return () => {
       disposeRequested = true;
       window.removeEventListener("resize", onResize);
-      window.removeEventListener("scroll", onScroll);
-      wrapper.removeEventListener("wheel", onWheel);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
       wrapper.removeEventListener("pointerdown", onPointerDown);
       wrapper.removeEventListener("dblclick", onDblClick);
       wrapper.removeEventListener("mouseenter", onEnter);
       wrapper.removeEventListener("mouseleave", onLeave);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
       if (rendererRef.current) {
         mount.removeChild(rendererRef.current.domElement);
         rendererRef.current.dispose();
       }
+      disposeEnv();
       scene.clear();
     };
   }, []);
@@ -792,20 +761,20 @@ const HeroLogoParticles = ({ theme }) => {
   );
 };
 
-/* ------------------------ Product Card (updated) ------------------------ */
+/* ------------------------ Product Card (audio fixed) ------------------------ */
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
 
-  // Auto-scroll when activated (existing)
+  // Auto-scroll when activated
   useEffect(() => {
     if (isActive && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [isActive]);
 
-  // ✅ Ensure highlighted card audio actually plays; pause when not active
+  // Ensure highlighted card audio plays; pause/reset when not active
   useEffect(() => {
     if (!cardRef.current) return;
     const audioEl = cardRef.current.querySelector("audio");
@@ -813,11 +782,7 @@ const AppCard = ({ app, onPlay }) => {
       audioEl.muted = false;
       audioEl.playsInline = true;
       const p = audioEl.play();
-      if (p && typeof p.then === "function") {
-        p.catch(() => {
-          // If the browser blocked autoplay, user will still see controls and can tap play.
-        });
-      }
+      if (p && typeof p.then === "function") p.catch(() => {});
     } else if (!isActive && audioEl) {
       audioEl.pause();
       try { audioEl.currentTime = 0; } catch(e) {}
@@ -843,7 +808,6 @@ const AppCard = ({ app, onPlay }) => {
           <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
         </div>
 
-        {/* 🔊 Render the AudioPlayer only when highlighted; pass autoplay hints */}
         {isActive && (
           <div className="audio-wrapper">
             <AudioPlayer
