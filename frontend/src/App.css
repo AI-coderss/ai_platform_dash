@@ -127,6 +127,24 @@
   --bg-blur-3: rgba(6, 182, 212, 0.1);
   --grid-line: rgba(6, 182, 212, 0.05);
 }
+/* Force BLACK cards in dark mode */
+[data-theme="dark"] .card {
+  background: #000 !important;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Also fix the highlighted version (image + tinted layers made it gray) */
+[data-theme="dark"] .card.highlight {
+  background: #000 !important;
+  background-image: none !important;
+  backdrop-filter: none !important; /* optional: remove milky look */
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Text contrast on black */
+[data-theme="dark"] .card .title { color: #f9fafb; }
+[data-theme="dark"] .card .copy  { color: #cbd5e1; }
 
 /* =========================================================
    BASE / GLOBAL
@@ -883,56 +901,37 @@ button:hover { box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); }
   animation: ghostBreathe 3s ease-in-out infinite;
 }
 /* Make interaction obvious on the hero */
-.hero-canvas-wrap { cursor: grab; }
+/* --- GLASS CUBE STAGE --- */
+.hero-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: clamp(360px, 56vh, 640px);
+  margin: 0 auto;
+  cursor: grab;
+  /* Important: no card look here */
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important; /* let cube rotate without clipping */
+}
 .hero-canvas-wrap:active { cursor: grabbing; }
 
-/* Ensure canvas fills wrapper */
+/* Fill the stage with WebGL canvas */
 .hero-canvas-wrap > canvas {
   position: absolute !important;
   inset: 0;
   width: 100% !important;
   height: 100% !important;
   display: block;
-}
-.hero.hero-centered-only {
-  position: relative;
-  min-height: 72vh; /* good on desktop; adjust as you like */
-  display: grid;
-  place-items: center;
-  padding: 0;
+  background: transparent !important;
+  outline: 0 !important;
+  border: 0 !important;
 }
 
-.hero-canvas-only,
-.hero-canvas-wrap {
-  width: min(1200px, 100%);
-  height: clamp(360px, 60vh, 680px);
-  margin: 0 auto;
-  cursor: grab;
-}
-.hero-canvas-only:active,
-.hero-canvas-wrap:active { cursor: grabbing; }
-.hero { padding-block: 48px; }
-.hero-inner {
-  display: grid;
-  grid-template-columns: minmax(280px, 560px) 1fr; /* text | visual */
-  gap: clamp(16px, 3vw, 48px);
-  align-items: center;
-}
-.hero-copy { max-width: 560px; }
-.hero-canvas-wrap {
-  width: 100%;
-  height: clamp(360px, 56vh, 640px); /* only part of the screen */
-  margin: 0 auto;
-  cursor: grab;
-}
-.hero-canvas-wrap:active { cursor: grabbing; }
-.hero-canvas-wrap, .hero-canvas-wrap canvas {
-  background: transparent !important;
-  border: 0 !important;
-  outline: 0 !important;
-}
-.hero-canvas-wrap {
-  /* give the cube a stage with perspective but no visible box */
-  display: block;
-  position: relative;
+/* Remove dark-mode glow/grid overlays that flatten the cube */
+[data-theme="dark"] .hero-canvas-wrap::before,
+[data-theme="dark"] .hero-canvas-wrap::after {
+  content: none !important;
+  display: none !important;
 }
