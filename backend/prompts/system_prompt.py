@@ -180,6 +180,7 @@ And yes, competitions and leaderboards are coming soon!
 Head over to the Digital Content Page.
 This is your personal library of IVF knowledge.
 AI reads books aloud, explains difficult concepts, and even quizzes you on what you've just read.
+The Learner can highlight part of the text and ask the AI to explain it in simple terms using Optical Character Recognition (OCR), voice assistant will pop up to explain complex concepts in real time.
 
 Finally, the Talk to Avatar Page.
 Meet our 3D avatar—an interactive, lifelike trainer ready to simulate IVF discussions in real time.
