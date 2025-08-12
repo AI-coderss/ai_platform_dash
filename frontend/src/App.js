@@ -834,7 +834,7 @@ const Footer = () => (
       </div>
       <div className="footer-col">
         <h4>Contact</h4>
-        <p>Email: ai@dsah.sa</p>
+        <p>Email: mohmmed.bahageel@dsah.sa</p>
       </div>
     </div>
     <div className="footer-bottom">© {new Date().getFullYear()} DSAH — All rights reserved.</div>
