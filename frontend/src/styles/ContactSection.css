@@ -207,10 +207,10 @@
 
 /* ====== Mobile & Tablet width fixes ====== */
 @media (max-width: 768px) {
-  /* Make form take full width */
+  /* Make form almost full width with side gaps */
   .contact-form-wrapper {
-    max-width: 100%;
-    width: 100%;
+    max-width: calc(100% - 32px); /* 16px gap each side */
+    width: calc(100% - 32px);
   }
 
   /* Increase send button width */
