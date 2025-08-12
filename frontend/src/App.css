@@ -443,7 +443,7 @@ section { scroll-margin-top: 90px; }
   height: 370px;
   position: relative;
   border-radius: 16px;
-  background: var(--bg-card);
+  background: var(--bg-glass);
   overflow: hidden;
   transform-style: preserve-3d;
   transition: transform 0.4s ease, box-shadow 0.4s ease;
@@ -926,3 +926,13 @@ button:hover { box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); }
   cursor: grab;
 }
 .hero-canvas-wrap:active { cursor: grabbing; }
+.hero-canvas-wrap, .hero-canvas-wrap canvas {
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+}
+.hero-canvas-wrap {
+  /* give the cube a stage with perspective but no visible box */
+  display: block;
+  position: relative;
+}
