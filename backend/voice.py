@@ -35,7 +35,7 @@ if not OPENAI_API_KEY:
 OPENAI_SESSION_URL = "https://api.openai.com/v1/realtime/sessions"
 OPENAI_API_URL = "https://api.openai.com/v1/realtime"
 MODEL_ID = "gpt-4o-realtime-preview-2024-12-17"
-VOICE = "alloy"
+VOICE = "ballad"
 DEFAULT_INSTRUCTIONS = SYSTEM_PROMPT
 
 def get_vector_store():

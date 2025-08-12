@@ -935,3 +935,8 @@ button:hover { box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); }
   content: none !important;
   display: none !important;
 }
+.fx-tracking-in{
+  letter-spacing:.18em; opacity:0.001;
+  animation:trk .7s cubic-bezier(.2,.8,.2,1) forwards;
+}
+@keyframes trk{ to{ letter-spacing:.01em; opacity:1 } }
