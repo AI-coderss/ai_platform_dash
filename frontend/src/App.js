@@ -1,7 +1,5 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/exhaustive-deps */
 // App.js
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -78,7 +76,7 @@ const NavBar = ({ theme, onToggleTheme }) => {
   );
 };
 
-/* ----------------- Hero: 3D Logo Particle Sculpture ----------------- */
+/* ----------------- Hero: Glass Cube + Heart Particles ----------------- */
 const LOGO_URL = "/assets/heart.png"; // heart + leaf PNG
 
 const HeroLogoParticles = ({ theme }) => {
@@ -88,7 +86,7 @@ const HeroLogoParticles = ({ theme }) => {
   const cameraRef = useRef(null);
   const clockRef = useRef(new THREE.Clock());
 
-  const groupRef = useRef(null);        // cube + particles
+  const groupRef = useRef(null);        // cube + particles (rotated together)
   const pointsRef = useRef(null);
   const linesRef = useRef(null);
   const cubeRef = useRef(null);         // glass cube mesh
@@ -106,7 +104,7 @@ const HeroLogoParticles = ({ theme }) => {
   const hoverRef = useRef(false);
   const lockRef = useRef(false);
 
-  // Morph → bounce → disperse controller
+ 
   const bounceRef = useRef({
     active: false,
     t: 0,
@@ -121,7 +119,10 @@ const HeroLogoParticles = ({ theme }) => {
 
   const scrollTargetZRef = useRef(80);
   const scrollScaleRef = useRef(1);
+
+  // dragging & click discrimination
   const draggingRef = useRef(false);
+  const dragMovedRef = useRef(false);
   const lastMouseRef = useRef({x:0,y:0});
 
   const flashRef = useRef({ t: 0, active: false });
@@ -136,7 +137,46 @@ const HeroLogoParticles = ({ theme }) => {
     return { primary, accent };
   };
 
-  // --- Watery ripple normal map (procedural, animated) ---
+  // ---- Procedural studio env (PMREM) for realistic glass ----
+  const buildSoftEnv = (renderer) => {
+    const envScene = new THREE.Scene();
+    const geo = new THREE.SphereGeometry(50, 64, 32);
+    const mat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      uniforms: {
+        top:    { value: new THREE.Color(0xf5f7fb) },
+        mid:    { value: new THREE.Color(0xdfe4ee) },
+        bottom: { value: new THREE.Color(0xbfc7d8) },
+      },
+      vertexShader: `
+        varying vec3 vWorld;
+        void main(){
+          vec4 w = modelMatrix * vec4(position,1.0);
+          vWorld = w.xyz;
+          gl_Position = projectionMatrix * viewMatrix * w;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vWorld;
+        uniform vec3 top; uniform vec3 mid; uniform vec3 bottom;
+        void main(){
+          float h = normalize(vWorld).y*0.5 + 0.5;
+          vec3 c = mix(bottom, top, smoothstep(0.0,1.0,h));
+          c = mix(c, mid, 0.25);
+          gl_FragColor = vec4(c,1.0);
+        }
+      `,
+    });
+    const sky = new THREE.Mesh(geo, mat);
+    envScene.add(sky);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const envRT = pmrem.fromScene(envScene, 0.5);
+    return { envMap: envRT.texture, dispose: () => { envRT.dispose(); pmrem.dispose(); } };
+  };
+
+  // ---- Watery ripple normal map (animated) ----
   const buildRippleTexture = () => {
     const size = 256;
     const c = document.createElement("canvas");
@@ -147,13 +187,12 @@ const HeroLogoParticles = ({ theme }) => {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.anisotropy = 4;
 
-    // draw frame based on time -> scrolling sin waves (cheap water normals)
     const draw = (time) => {
       const img = ctx.getImageData(0, 0, size, size);
       const data = img.data;
       const f1 = 12.0, f2 = 9.0;
       const sp1 = 0.35, sp2 = -0.27;
-      const amp = 0.6;
+      const amp = 0.65;
 
       let p = 0;
       for (let y = 0; y < size; y++) {
@@ -162,24 +201,18 @@ const HeroLogoParticles = ({ theme }) => {
           const v = y / size;
           const nx = Math.sin((u * f1 + time * sp1) * Math.PI * 2) * amp;
           const ny = Math.sin((v * f2 + time * sp2) * Math.PI * 2) * amp;
-          // Pack normal from [-1..1] to [0..255]
           const r = Math.floor((nx * 0.5 + 0.5) * 255);
           const g = Math.floor((ny * 0.5 + 0.5) * 255);
-          const b = 255; // nz ~ 1 (pointing out)
-          data[p++] = r;
-          data[p++] = g;
-          data[p++] = b;
-          data[p++] = 255;
+          data[p++] = r; data[p++] = g; data[p++] = 255; data[p++] = 255;
         }
       }
       ctx.putImageData(img, 0, 0);
       tex.needsUpdate = true;
     };
-
     return { texture: tex, draw };
   };
 
-  // Heart targets — keep approved scale (HEART_SCALE = 0.30)
+  // Heart targets — approved scale (HEART_SCALE = 0.30)
   const buildLogoTargets = async (src, maxPts = 2200) => {
     const img = await new Promise((res, rej) => {
       const im = new Image();
@@ -230,7 +263,7 @@ const HeroLogoParticles = ({ theme }) => {
     const RADIUS = 120;
     let maxAbs = 1;
     for (const [x, y] of pts) maxAbs = Math.max(maxAbs, Math.abs(x), Math.abs(y));
-    const HEART_SCALE = 0.30; // approved heart scale
+    const HEART_SCALE = 0.30;
     const scale = (RADIUS * HEART_SCALE) / maxAbs;
 
     const tPositions = new Float32Array(pts.length * 3);
@@ -268,16 +301,17 @@ const HeroLogoParticles = ({ theme }) => {
     rendererRef.current = renderer;
     mount.appendChild(renderer.domElement);
 
-    // Group holds cube + particles (preserves your behavior)
+    // Environment for realistic glass
+    const { envMap, dispose: disposeEnv } = buildSoftEnv(renderer);
+
+    // Group holds cube + particles (rotated together)
     const group = new THREE.Group();
     groupRef.current = group;
     scene.add(group);
 
-    // --- Glass cube (no edges, no tint) ---
+    // --- Glass cube (no edges, no tint) with watery normal map ---
     const CUBE_SIZE = 170;
     const cubeGeo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
-
-    // Watery normal map
     const ripple = buildRippleTexture();
 
     const cubeMat = new THREE.MeshPhysicalMaterial({
@@ -291,16 +325,17 @@ const HeroLogoParticles = ({ theme }) => {
       clearcoatRoughness: 0.04,
       transparent: true,
       opacity: 1.0,
+      envMap,
+      envMapIntensity: 1.1,
       normalMap: ripple.texture,
-      normalScale: new THREE.Vector2(0.65, 0.65)
-      // NOTE: No edge/line overlays, no accent color—pure glass.
+      normalScale: new THREE.Vector2(0.6, 0.6),
     });
 
     const cube = new THREE.Mesh(cubeGeo, cubeMat);
     cubeRef.current = cube;
     group.add(cube);
 
-    // --- Particles: keep your original setup ---
+    // --- Particles (preserve your behavior & look) ---
     const COUNT = 3200;
     const RADIUS = 120;
 
@@ -332,7 +367,7 @@ const HeroLogoParticles = ({ theme }) => {
       positions[ix+2] = base[ix+2] = z;
       velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0;
       speeds[i] = 0.24 + Math.random() * 0.8;
-      sizes[i] = Math.random() * 0.9 + 0.45; // unchanged look
+      sizes[i] = Math.random() * 0.9 + 0.45;
       colors[ix] = colors[ix+1] = colors[ix+2] = 1.0;
     }
 
@@ -363,7 +398,7 @@ const HeroLogoParticles = ({ theme }) => {
     pointsRef.current = points;
     group.add(points);
 
-    // lines (unchanged — subtle)
+    // lines (subtle connective threads; unchanged)
     const MAX_LINKS = 1600;
     const lpos = new Float32Array(MAX_LINKS * 2 * 3);
     const lgeom = new THREE.BufferGeometry();
@@ -378,13 +413,13 @@ const HeroLogoParticles = ({ theme }) => {
     linesRef.current = { mesh: links, positions: lpos, max: MAX_LINKS };
     scene.add(links);
 
-    // Lighting (slightly stronger for glass)
+    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.45));
     const dir = new THREE.DirectionalLight(0xffffff, 0.40);
     dir.position.set(1, 1, 1);
     scene.add(dir);
 
-    // Targets (heart + leaf) with approved scale
+    // Targets (heart + leaf)
     (async () => {
       const { tPositions, tColors, count } = await buildLogoTargets(LOGO_URL, 2200);
       targetRef.current = tPositions;
@@ -413,6 +448,7 @@ const HeroLogoParticles = ({ theme }) => {
     wrapper.addEventListener("mouseenter", onEnter);
     wrapper.addEventListener("mouseleave", onLeave);
 
+    // Burst impulse
     const burst = (clientX, clientY, strength = 24) => {
       const rect = mount.getBoundingClientRect();
       const x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -436,46 +472,51 @@ const HeroLogoParticles = ({ theme }) => {
       }
     };
 
-    const onClick = (e) => {
-      lockRef.current = !lockRef.current;
-      bounceRef.current.started = false;
-      bounceRef.current.active = false;
-      bounceRef.current.t = 0;
-      disperseQueuedRef.current = false;
-
-      scrollTargetZRef.current = lockRef.current ? 68 : 80;
-      const pm = pointsRef.current.material;
-      const lm = linesRef.current.mesh.material;
-      if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
-      else { pm.opacity = 0.88; lm.opacity = 0.12; }
-
-      burst(e.clientX, e.clientY, lockRef.current ? 26 : 20);
+    // Drag to rotate; click (no drag) toggles morph lock
+    const onPointerDown = (e) => {
+      draggingRef.current = true;
+      dragMovedRef.current = false;
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+      wrapper.style.cursor = "grabbing";
     };
-    wrapper.addEventListener("pointerdown", onClick);
+    const onPointerMove = (e) => {
+      if (!draggingRef.current || !groupRef.current) return;
+      const dx = (e.clientX - lastMouseRef.current.x);
+      const dy = (e.clientY - lastMouseRef.current.y);
+      if (Math.abs(dx) + Math.abs(dy) > 2) dragMovedRef.current = true;
+      groupRef.current.rotation.y += dx * 0.003;
+      groupRef.current.rotation.x += dy * 0.003;
+      lastMouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const onPointerUp = (e) => {
+      wrapper.style.cursor = "grab";
+      if (!dragMovedRef.current) {
+        // treat as click (toggle lock)
+        lockRef.current = !lockRef.current;
+        bounceRef.current.started = false;
+        bounceRef.current.active = false;
+        bounceRef.current.t = 0;
+        disperseQueuedRef.current = false;
+
+        scrollTargetZRef.current = lockRef.current ? 68 : 80;
+        const pm = pointsRef.current.material;
+        const lm = linesRef.current.mesh.material;
+        if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
+        else { pm.opacity = 0.88; lm.opacity = 0.12; }
+
+        burst(e.clientX, e.clientY, lockRef.current ? 26 : 20);
+      }
+      draggingRef.current = false;
+    };
+    wrapper.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
 
     const onDblClick = (e) => {
       burst(e.clientX, e.clientY, 40);
       flashRef.current = { t: 0, active: true };
     };
     wrapper.addEventListener("dblclick", onDblClick);
-
-    const onPointerDown = (e) => {
-      draggingRef.current = true;
-      lastMouseRef.current = { x: e.clientX, y: e.clientY };
-      wrapper.style.cursor = "grabbing";
-    };
-    const onPointerMove = (e) => {
-      if (!draggingRef.current || !groupRef.current) return;
-      const dx = (e.clientX - lastMouseRef.current.x) * 0.003;
-      const dy = (e.clientY - lastMouseRef.current.y) * 0.003;
-      groupRef.current.rotation.y += dx;
-      groupRef.current.rotation.x += dy;
-      lastMouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-    const onPointerUp = () => { draggingRef.current = false; wrapper.style.cursor = "grab"; };
-    wrapper.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
 
     const onWheel = (e) => {
       const delta = Math.sign(e.deltaY);
@@ -503,7 +544,7 @@ const HeroLogoParticles = ({ theme }) => {
     };
     window.addEventListener("resize", onResize);
 
-    // Helper: how tight the morph is (to trigger bounce)
+    // Morph tightness estimator to trigger bounce
     const morphError = () => {
       const pos = posRef.current;
       const targets = targetRef.current;
@@ -521,16 +562,17 @@ const HeroLogoParticles = ({ theme }) => {
       return Math.sqrt(acc / N);
     };
 
+    // Animate
     const animate = () => {
       if (disposeRequested) return;
 
       const dt = Math.min(clockRef.current.getDelta(), 0.033);
       const t = clockRef.current.elapsedTime;
 
-      // animate watery ripples on the glass
+      // animate watery surface normals
       ripple.draw(t);
 
-      // gentle group motion + bounce
+      // group motion + bounce
       if (groupRef.current) {
         const g = groupRef.current;
 
@@ -568,7 +610,7 @@ const HeroLogoParticles = ({ theme }) => {
           g.position.y = Math.sin(t * 0.6) * 1.0;
         }
 
-        if (!draggingRef.current) g.rotation.y += 0.0007;
+        if (!draggingRef.current) g.rotation.y += 0.0007; // idle spin
 
         const ts = scrollScaleRef.current;
         g.scale.x += (ts - g.scale.x) * 0.06;
@@ -610,6 +652,7 @@ const HeroLogoParticles = ({ theme }) => {
       for (let i = 0; i < pos.length / 3; i++) {
         const ix = i*3;
 
+        // organic drift
         pos[ix]     *= 1.0 + Math.sin(t * 0.12 * spd[i] + i) * drift;
         pos[ix + 1] *= 1.0 + Math.cos(t * 0.10 * spd[i] + i * 0.7) * drift;
         pos[ix + 2] *= 1.0 + Math.sin(t * 0.08 * spd[i] + i * 0.2) * drift;
@@ -627,14 +670,15 @@ const HeroLogoParticles = ({ theme }) => {
           pos[ix + 2] += (base[ix + 2] - pos[ix + 2]) * haloPull;
         }
 
-        pos[ix]     += vel[ix] * dt;
+        // integrate velocities
+        pos[ix]     += vel[ix] *  dt;
         pos[ix + 1] += vel[ix + 1] * dt;
         pos[ix + 2] += vel[ix + 2] * dt;
         vel[ix]     *= damping;
         vel[ix + 1] *= damping;
         vel[ix + 2] *= damping;
 
-        // soft wall bounces
+        // soft wall bounces inside cube
         if (pos[ix] >  halfCube) { pos[ix] =  halfCube; vel[ix] *= -0.65; }
         if (pos[ix] < -halfCube) { pos[ix] = -halfCube; vel[ix] *= -0.65; }
         if (pos[ix+1] >  halfCube) { pos[ix+1] =  halfCube; vel[ix+1] *= -0.65; }
@@ -644,7 +688,7 @@ const HeroLogoParticles = ({ theme }) => {
       }
       geomPos.needsUpdate = true;
 
-      // link lines (slightly tuned range for cube)
+      // link lines (slightly tuned)
       if (linesRef.current) {
         const { positions: lbuf, max } = linesRef.current;
         const threshold = lockRef.current ? 9.0 : 7.5;
@@ -667,7 +711,7 @@ const HeroLogoParticles = ({ theme }) => {
         linesRef.current.mesh.geometry.attributes.position.needsUpdate = true;
       }
 
-      // flash (unchanged)
+      // flash
       if (flashRef.current.active) {
         flashRef.current.t += dt;
         const pm = pointsRef.current.material;
@@ -694,12 +738,12 @@ const HeroLogoParticles = ({ theme }) => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("scroll", onScroll);
       wrapper.removeEventListener("wheel", onWheel);
-      wrapper.removeEventListener("pointerdown", onClick);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      wrapper.removeEventListener("pointerdown", onPointerDown);
       wrapper.removeEventListener("dblclick", onDblClick);
       wrapper.removeEventListener("mouseenter", onEnter);
       wrapper.removeEventListener("mouseleave", onLeave);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
       if (rendererRef.current) {
         mount.removeChild(rendererRef.current.domElement);
         rendererRef.current.dispose();
@@ -741,37 +785,76 @@ const HeroLogoParticles = ({ theme }) => {
           </div>
         </div>
 
-        {/* Right side — transparent glass cube with water ripples, no borders */}
+        {/* Right side — glass cube with water ripples, heart inside */}
         <div className="hero-canvas-wrap" aria-hidden="true" ref={mountRef} />
       </div>
     </section>
   );
 };
 
-/* ------------------------ Product Card (same) ------------------------ */
+/* ------------------------ Product Card (updated) ------------------------ */
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
 
+  // Auto-scroll when activated (existing)
   useEffect(() => {
     if (isActive && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [isActive]);
 
+  // ✅ Ensure highlighted card audio actually plays; pause when not active
+  useEffect(() => {
+    if (!cardRef.current) return;
+    const audioEl = cardRef.current.querySelector("audio");
+    if (isActive && audioEl) {
+      audioEl.muted = false;
+      audioEl.playsInline = true;
+      const p = audioEl.play();
+      if (p && typeof p.then === "function") {
+        p.catch(() => {
+          // If the browser blocked autoplay, user will still see controls and can tap play.
+        });
+      }
+    } else if (!isActive && audioEl) {
+      audioEl.pause();
+      try { audioEl.currentTime = 0; } catch(e) {}
+    }
+  }, [isActive, app.id]);
+
   return (
-    <div ref={cardRef} className={`card animated-card ${isActive ? "highlight" : ""}`} tabIndex="0">
+    <div
+      ref={cardRef}
+      className={`card animated-card ${isActive ? "highlight" : ""}`}
+      tabIndex="0"
+      aria-live="polite"
+    >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
       <div className="content">
         <img src={app.icon} alt={app.name} className="app-icon" />
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
+
         <div className="app-actions" style={{ display: 'flex', gap: '1rem' }}>
           <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">Launch</a>
           <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
         </div>
+
+        {/* 🔊 Render the AudioPlayer only when highlighted; pass autoplay hints */}
+        {isActive && (
+          <div className="audio-wrapper">
+            <AudioPlayer
+              src={audioMap[app.id]}
+              key={audioMap[app.id]}
+              autoPlay={true}
+              preload="auto"
+              playsInline
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -886,7 +969,7 @@ const App = () => {
         </div>
       </div>
 
-      {/* Hero with text (left) + 3D glass cube (right) */}
+      {/* Hero with text (left) + glass cube w/ heart (right) */}
       <HeroLogoParticles theme={theme} />
 
       {/* Video modal */}
