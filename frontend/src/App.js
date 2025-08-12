@@ -223,7 +223,7 @@ const HeroLogoParticles = ({ theme }) => {
 
     const { data } = ctx.getImageData(0, 0, W, H);
     const pts = [], cols = [];
-    const step = 2;
+    const step = 1;
 
     for (let y = 0; y < H; y += step) {
       for (let x = 0; x < W; x += step) {
@@ -330,7 +330,7 @@ const HeroLogoParticles = ({ theme }) => {
     group.add(cube);
 
     /* ---------------------------- Particles setup ---------------------------- */
-    const COUNT = 3200;
+    const COUNT = 9000;
     const RADIUS = 120;
 
     const positions = new Float32Array(COUNT * 3);
@@ -360,7 +360,7 @@ const HeroLogoParticles = ({ theme }) => {
       positions[ix+2] = base[ix+2] = z;
       velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0;
       speeds[i] = 0.24 + Math.random() * 0.8;
-      sizes[i] = Math.random() * 0.9 + 0.45;
+      sizes[i] = Math.random() * 0.6 + 1.2;
       colors[ix] = colors[ix+1] = colors[ix+2] = 1.0;
     }
 
@@ -383,7 +383,7 @@ const HeroLogoParticles = ({ theme }) => {
       transparent: true,
       opacity: 0.88,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       vertexColors: true,
     });
 
@@ -414,7 +414,7 @@ const HeroLogoParticles = ({ theme }) => {
 
     // build heart targets
     (async () => {
-      const { tPositions, tColors, count } = await buildLogoTargets(LOGO_URL, 2200);
+      const { tPositions, tColors, count } = await buildLogoTargets(LOGO_URL, 9000);
       targetRef.current = tPositions;
       targetCountRef.current = count;
 
