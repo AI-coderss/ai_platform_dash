@@ -917,9 +917,9 @@ const App = () => {
         <div className="title-block">
           <div id="BrushCursor">
             <div className="container">
-              <div className="p p1">DSAH AI PLATFORM 🤖</div>
-              <div className="p p2">DSAH AI PLATFORM 🤖</div>
-              <div className="p p3">DSAH AI PLATFORM 🤖<div className="cursor"></div></div>
+              <div className="p p1">DSAH AI PLATFORM 🧠</div>
+              <div className="p p2">DSAH AI PLATFORM 🧠</div>
+              <div className="p p3">DSAH AI PLATFORM 🧠<div className="cursor"></div></div>
             </div>
           </div>
         </div>
