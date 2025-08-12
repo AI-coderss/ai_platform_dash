@@ -210,7 +210,7 @@
   /* Make form almost full width with side gaps */
   .contact-form-wrapper {
     max-width: calc(100% - 32px); /* 16px gap each side */
-    width: 90vw;
+    width: 95vw;
   }
 
   /* Increase send button width */
