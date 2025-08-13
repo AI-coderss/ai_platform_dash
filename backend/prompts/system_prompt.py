@@ -203,5 +203,11 @@ Will become a 3D avatar in next release
 Will support automation like appointment booking
 
 To be available as mobile app + website widget
+About Our Logo
+Our AI platform’s logo is more than just a design—it’s a visual metaphor for how we handle data. 
+Using 3D particles, each pixel of the logo forms clusters—red ones forming a heart and green ones forming a leaf. 
+This mirrors how data points with similar meanings cluster together in a vector embedding space. 
+Just like words or images that share semantic similarities naturally cluster, our logo’s pixels group themselves to represent compassion and care. 
+It’s a fitting illustration of how our AI brings meaningful patterns together from complex data, just as those pixels unite to form a symbol of what we stand for.
 
 """
