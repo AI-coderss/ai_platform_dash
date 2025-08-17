@@ -1,0 +1,209 @@
+/* Uses your tokens to theme the widget (light/dark) */
+:root {
+  --_bg: var(--bg-primary, #0b0f1a);
+  --_card-bg: var(--bg-card, #111);
+  --_text: var(--text-primary, #f3f4f6);
+  --_muted: var(--text-secondary, #9ca3af);
+  --_brand: var(--brand-primary, #4f46e5);
+  --_accent: var(--brand-accent, #06b6d4);
+  --_border: var(--border-color, rgba(0,0,0,0.15));
+}
+
+/* Add page spacing so it doesn't crowd other sections */
+.cardscroll-root {
+  font-family: var(--font-family, 'Roboto', sans-serif);
+  background: transparent;
+  color: var(--_text);
+  position: relative;
+  margin-top: var(--cardscroll-mt, 56px);
+  padding-top: 8px;
+}
+
+/* Theme-aware particle backdrop */
+.cardscroll-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 3D Scene */
+.scene {
+  perspective: 1200px;
+  width: 80%;
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin: auto;
+  z-index: 1; /* above particles */
+}
+
+.carousel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transition: transform 1s;
+}
+
+/* card -> card2 (avoid global conflicts) */
+/* IMPORTANT: scale is driven by CSS variable --scale so hover can override inline transforms */
+.card2 {
+  --scale: 1; /* default */
+  position: absolute;
+  width: 180px;
+  height: 240px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, z-index 0.25s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transform-origin: center center;
+  animation: glow 1.3s ease-in-out infinite;
+  background: var(--bg-glass, rgba(255,255,255,0.08));
+  border: 1px solid var(--_border);
+  overflow: hidden;
+}
+
+/* on hover, bump the scale a bit further */
+.card2:hover {
+  --scale: 1.28;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.card2 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  /* keep image hover subtle; main growth handled by card scale */
+  transition: transform 0.35s ease, opacity 0.2s ease;
+}
+.card2 img:hover { transform: scale(1.06); }
+
+.card2 h3 {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 2; /* ensure over image */
+  background: linear-gradient(90deg, #ff05f2, #f7d9f5);
+  --webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 10px rgba(0,0,0,0.35); /* extra legibility */
+}
+
+/* soft bottom fade to keep title readable */
+.card2 .card2-fade {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.45) 80%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes scale-up { to { transform: scale(1.3); } }
+@keyframes glow {
+  0% { box-shadow: 0 0 5px #2980b9; }
+  50% { box-shadow: 0 0 10px #cc0590; }
+  100% { box-shadow: 0 0 15px #2980b9; }
+}
+
+/* Popup */
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -45%) scale(0.98);
+  background-color: var(--bg-card, #121313);
+  padding: 2rem;
+  width: 80%;
+  max-width: 520px;
+  border-radius: 15px;
+  border: 1px solid #44abf0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  opacity: 0;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  z-index: 100;
+}
+.popup.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+.popup h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(185deg, #0281e2, #f4f3f5);
+  --webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.popup .popup-body {
+  font-size: 16px;
+  margin-top: 6px;
+  color: #ddd;
+}
+
+/* Audio player container in popup */
+.popup-audio {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(68,171,240,0.35);
+}
+
+/* Close button */
+.popup-close {
+  background: var(--btn-bg, linear-gradient(45deg, #007bff, #4f46e5));
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 10px 14px;
+  color: var(--btn-text, white);
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 16px;
+  box-shadow: var(--shadow-button, 0 3px 10px rgba(37, 99, 235, 0.4));
+}
+.popup-close:hover {
+  background: var(--btn-bg-hover, linear-gradient(45deg, #0056b3, #3730a3));
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .scene { width: 100%; height: 340px; }
+  .card2 { width: 140px; height: 190px; }
+  .card2 h3 { font-size: 14px; }
+}
+@media (max-width: 768px) {
+  .scene { height: 300px; }
+  .carousel { transform: scale(0.9); }
+  .card2 { width: 120px; height: 160px; }
+  .card2 h3 { font-size: 13px; }
+}
+@media (max-width: 600px) {
+  .scene { height: 270px; }
+  .carousel { transform: scale(0.8); }
+  .card2 { width: 100px; height: 140px; }
+  .card2 h3 { font-size: 12px; }
+}
+@media (max-width: 480px) {
+  .scene { height: 250px; }
+  .carousel { transform: scale(0.75); }
+  .card2 { width: 90px; height: 130px; }
+  .card2 h3 { font-size: 11px; }
+  .popup { width: 95%; padding: 1rem; }
+}
