@@ -1,22 +1,21 @@
 /* Uses your tokens to theme the widget (light/dark) */
 /* Uses your tokens to theme the widget (light/dark) */
+/* Uses your tokens to theme the widget (light/dark) */
 :root {
-  --_bg: var(--bg-primary, #0b0f1a);
-  --_card-bg: var(--bg-card, #111);
-  --_text: var(--text-primary, #f3f4f6);
-  --_muted: var(--text-secondary, #9ca3af);
+  --_bg: var(--bg-primary, #f6f8fc);
+  --_text: var(--text-primary, #333);
+  --_muted: var(--text-secondary, #666);
   --_brand: var(--brand-primary, #4f46e5);
   --_accent: var(--brand-accent, #06b6d4);
-  --_border: var(--border-color, rgba(0,0,0,0.15));
   --glass: var(--bg-glass, rgba(255,255,255,0.10));
-  --glass-strong: rgba(255,255,255,0.16);
   --glass-soft: rgba(255,255,255,0.06);
+  --glass-strong: rgba(255,255,255,0.16);
 }
 
 /* Prevent text selection during drag */
 .no-select { user-select: none; }
 
-/* Section glass */
+/* Section (no panel behind — only subtle wash) */
 .cardscroll-root {
   font-family: var(--font-family, 'Roboto', sans-serif);
   color: var(--_text);
@@ -24,10 +23,8 @@
   margin-top: var(--cardscroll-mt, 56px);
   padding-top: 8px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--_brand) 4%, transparent), transparent 40%),
-    linear-gradient(180deg, var(--glass-soft), transparent 60%);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+    radial-gradient(1200px 400px at 20% 20%, color-mix(in srgb, var(--_brand) 10%, transparent), transparent 60%),
+    linear-gradient(180deg, transparent, transparent);
 }
 
 /* Theme-aware particle backdrop */
@@ -40,7 +37,7 @@
   pointer-events: none;
 }
 
-/* 3D Scene with glass wrap */
+/* 3D Scene — NO border, NO background, NO shadow */
 .scene {
   perspective: 1200px;
   width: min(1100px, 80%);
@@ -53,30 +50,7 @@
   z-index: 1;
 }
 
-.glass-wrap {
-  border-radius: 22px;
-  padding: 14px;
-  background:
-    linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
-    radial-gradient(120% 120% at 10% 0%, color-mix(in srgb, var(--_brand) 12%, transparent), transparent 60%);
-  border: 1px solid color-mix(in srgb, var(--_brand) 28%, transparent);
-  box-shadow: 0 18px 50px rgba(0,0,0,0.28);
-  backdrop-filter: blur(14px) saturate(120%);
-  -webkit-backdrop-filter: blur(14px) saturate(120%);
-}
-
-.glass-inner {
-  border-radius: 18px;
-  width: 100%;
-  height: 100%;
-  background:
-    linear-gradient(180deg, var(--glass) 0%, transparent 100%),
-    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--_accent) 10%, transparent), transparent 65%);
-  border: 1px solid color-mix(in srgb, var(--_accent) 22%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-  position: relative;
-}
-
+/* Carousel — plain, no panel visuals */
 .carousel {
   position: relative;
   width: 100%;
@@ -89,6 +63,47 @@
 }
 
 /* =========================
+   GLASS LINKS BETWEEN CARDS
+   ========================= */
+.link-glass {
+  position: absolute;
+  height: var(--linkH, 216px);
+  width: var(--linkW, 60px);
+  left: 50%;
+  top: 50%;
+  transform:
+    translate(-50%, -50%)
+    rotateY(var(--mid, 0deg))
+    translateZ(var(--radius, 350px));
+  transform-style: preserve-3d;
+  pointer-events: none;
+  border-radius: 14px;
+
+  /* glass look, subtle */
+  background:
+    linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--_brand) 10%, transparent), transparent 70%);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  border: 1px solid color-mix(in srgb, var(--_brand) 18%, transparent);
+  box-shadow:
+    0 6px 18px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.link-glass::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.14) 50%, transparent 65%);
+  transform: translateX(-130%);
+  animation: linkSheen 5.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes linkSheen {
+  0%, 70%  { transform: translateX(-130%); }
+  100%     { transform: translateX(130%); }
+}
+
+/* =========================
    CARD LAYOUT (outer = ring)
    ========================= */
 .card2 {
@@ -97,10 +112,9 @@
   width: 180px;
   height: 240px;
   border-radius: 18px;
-  overflow: visible; /* inner handles overflow styling */
+  overflow: visible;
   transform-origin: center center;
   transform-style: preserve-3d;
-  /* NO animations here (so ring transform from JS is preserved) */
 }
 
 /* =========================
@@ -121,7 +135,7 @@
     radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--_brand) 14%, transparent) 0%, transparent 60%);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
-  border: 1px solid color-mix(in srgb, var(--_brand) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--_brand) 30%, transparent);
   box-shadow:
     0 8px 26px rgba(0,0,0,0.22),
     0 1px 0 0 rgba(255,255,255,0.06) inset;
@@ -132,7 +146,7 @@
   text-align: center;
 
   transition: transform 0.28s ease, box-shadow 0.28s ease, background 0.28s ease, border-color 0.28s ease;
-  animation: floaty 6s ease-in-out infinite, glowPulse 2.4s ease-in-out infinite;
+  animation: floaty 6s ease-in-out infinite, glowPulse 2.6s ease-in-out infinite;
 }
 
 /* Border shimmer (conic) */
@@ -143,21 +157,21 @@
   border-radius: 20px;
   padding: 1px;
   background:
-    conic-gradient(from var(--angle, 0deg), color-mix(in srgb, var(--_accent) 75%, transparent), transparent 30%, color-mix(in srgb, var(--_brand) 75%, transparent));
+    conic-gradient(from var(--angle, 0deg), color-mix(in srgb, var(--_accent) 70%, transparent), transparent 30%, color-mix(in srgb, var(--_brand) 70%, transparent));
   --webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
   animation: spin 6s linear infinite;
-  opacity: 0.32;
+  opacity: 0.28;
   pointer-events: none;
 }
 
-/* Sheen diagonale on hover */
+/* Sheen diagonale */
 .card2-inner::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.25) 50%, transparent 65%);
+  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
   transform: translateX(-120%);
   transition: transform 0.9s ease;
   pointer-events: none;
@@ -167,7 +181,7 @@
   --scale: 1.28;
   box-shadow:
     0 14px 34px rgba(0,0,0,0.36),
-    0 0 0 1px color-mix(in srgb, var(--_accent) 22%, transparent) inset;
+    0 0 0 1px color-mix(in srgb, var(--_accent) 20%, transparent) inset;
   transform: translateZ(0) scale(var(--scale)) rotateX(2deg) rotateY(-2deg);
 }
 .card2:hover .card2-inner::after { transform: translateX(120%); }
@@ -181,13 +195,13 @@
   object-fit: cover;
   border-radius: 12px;
   filter: saturate(110%) contrast(102%);
-  opacity: 0.85;
+  opacity: 0.88;
   transition: transform 0.35s ease, opacity 0.25s ease, filter 0.25s ease;
   z-index: 0;
 }
 .card2:hover .card2-inner img {
   transform: scale(1.04);
-  opacity: 0.92;
+  opacity: 0.95;
   filter: saturate(115%) contrast(104%);
 }
 
@@ -227,7 +241,7 @@
 }
 @keyframes glowPulse {
   0%,100% { box-shadow: 0 8px 26px rgba(0,0,0,0.22), 0 0 0 1px color-mix(in srgb, var(--_brand) 18%, transparent) inset; }
-  50%     { box-shadow: 0 12px 32px rgba(0,0,0,0.28), 0 0 0 1px color-mix(in srgb, var(--_accent) 22%, transparent) inset; }
+  50%     { box-shadow: 0 12px 32px rgba(0,0,0,0.28), 0 0 0 1px color-mix(in srgb, var(--_accent) 20%, transparent) inset; }
 }
 
 /* =================
@@ -247,8 +261,8 @@
   width: 80%;
   max-width: 520px;
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--_brand) 32%, transparent);
-  box-shadow: 0 16px 44px rgba(0,0,0,0.55);
+  border: 1px solid color-mix(in srgb, var(--_brand) 26%, transparent);
+  box-shadow: 0 16px 44px rgba(0,0,0,0.45);
   opacity: 0;
   transition: opacity 0.28s ease, box-shadow 0.28s ease;
   z-index: 100;
@@ -263,7 +277,7 @@
   gap: 10px;
   justify-content: space-between;
   margin-bottom: 8px;
-  cursor: grab; /* good handle */
+  cursor: grab;
 }
 
 .popup h2 {
@@ -285,7 +299,7 @@
 .popup-audio {
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--_accent) 35%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--_accent) 30%, transparent);
 }
 
 .popup-close {
@@ -316,7 +330,6 @@
 }
 @media (max-width: 768px) {
   .scene { height: 340px; }
-  .glass-wrap { padding: 10px; }
   .card2 { width: 130px; height: 170px; }
   .card2-inner h3 { font-size: 13px; }
 }

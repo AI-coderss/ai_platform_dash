@@ -1,8 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/CardScroll.css";
 import AudioPlayer from "./AudioPlayer";
@@ -72,6 +70,10 @@ const APPS = [
 /** Auto-rotate speed — lively */
 const ROTATE_MS = 1800;
 
+/** Card size (used for link width calc heuristic) */
+const CARD_W = 180;
+const CARD_H = 240;
+
 function CardScroll() {
   const rootRef = useRef(null);
   const bgCanvasRef = useRef(null);
@@ -87,7 +89,10 @@ function CardScroll() {
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const dragRef = useRef({ dragging: false, dx: 0, dy: 0 });
 
-  // Responsive geometry for ring
+  // cache of geometry for links
+  const geomRef = useRef({ rotationStep: 72, radius: 350 });
+
+  // Responsive geometry
   const getResponsiveSettings = () => {
     const width = window.innerWidth;
     if (width <= 400) return { rotationStep: 45, radius: 160 };
@@ -96,40 +101,50 @@ function CardScroll() {
     return { rotationStep: 72, radius: 350 };
   };
 
-  // 3D ring positions — applied ONLY to the OUTER .card2
+  // 3D ring positions — OUTER .card2 gets the ring transform
   const setCardPositions = () => {
     const root = carouselRef.current;
     if (!root) return;
     const cards = root.querySelectorAll(".card2");
     const { rotationStep, radius } = getResponsiveSettings();
+    geomRef.current = { rotationStep, radius };
 
     cards.forEach((card, i) => {
       const rotateY = i * rotationStep;
       const angleRad = (rotateY * Math.PI) / 180;
       const x = Math.sin(angleRad) * radius;
       const z = Math.cos(angleRad) * radius;
-      card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotateY}deg)`; // no scale/float here
+      card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotateY}deg)`;
     });
+
+    // compute link width/height for the gaps
+    const stepRad = (rotationStep * Math.PI) / 180;
+    const chord = 2 * radius * Math.sin(stepRad / 2);
+    const estVisibleCardWidth = CARD_W * 0.84; // heuristic projection
+    const linkW = Math.max(24, chord - estVisibleCardWidth);
+    const linkH = CARD_H - 24;
+    root.style.setProperty("--linkW", `${Math.round(linkW)}px`);
+    root.style.setProperty("--linkH", `${Math.round(linkH)}px`);
 
     updateCardSize();
     rotateCarousel();
   };
 
-  // front card enlarged via CSS custom prop consumed by .card2-inner
+  // front card enlarged via CSS variable (inner wrapper consumes it)
   const updateCardSize = () => {
     const root = carouselRef.current;
     if (!root) return;
     const cards = root.querySelectorAll(".card2");
     cards.forEach((card, i) => {
       card.style.setProperty("--scale", i === currentIdx ? "1.2" : "1");
-      card.style.zIndex = i === currentIdx ? "1" : "0";
+      card.style.zIndex = i === currentIdx ? "2" : "1";
     });
   };
 
   const rotateCarousel = () => {
     const root = carouselRef.current;
     if (!root) return;
-    const { rotationStep } = getResponsiveSettings();
+    const { rotationStep } = geomRef.current;
     const rotateDeg = -rotationStep * currentIdx;
     root.style.transform = `rotateY(${rotateDeg}deg)`;
   };
@@ -151,7 +166,6 @@ function CardScroll() {
 
   // Popups
   const showPopup = (id) => {
-    // center-ish initial position
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const initialX = Math.max(12, vw / 2 - 260);
@@ -168,10 +182,7 @@ function CardScroll() {
     if (!rootEl) return;
     const audios = rootEl.querySelectorAll("audio");
     audios.forEach((a) => {
-      try {
-        a.pause();
-        a.currentTime = 0;
-      } catch (_) {}
+      try { a.pause(); a.currentTime = 0; } catch (_) {}
     });
   };
 
@@ -184,7 +195,7 @@ function CardScroll() {
 
   const onCardClick = (id, index) => {
     setCurrentIdx(index);
-    setTimeout(() => showPopup(id), 150);
+    setTimeout(() => showPopup(id), 120);
   };
 
   // Drag handlers (mouse + touch)
@@ -259,12 +270,8 @@ function CardScroll() {
     const root = carouselRef.current;
     if (!root) return;
 
-    const handleOver = () => {
-      if (!isPopupOpen) stopRotation();
-    };
-    const handleOut = () => {
-      if (!isPopupOpen) startRotation();
-    };
+    const handleOver = () => { if (!isPopupOpen) stopRotation(); };
+    const handleOut  = () => { if (!isPopupOpen) startRotation(); };
 
     root.addEventListener("mouseover", handleOver);
     root.addEventListener("mouseout", handleOut);
@@ -311,14 +318,8 @@ function CardScroll() {
       // faint grid
       ctx.globalAlpha = 0.05;
       ctx.beginPath();
-      for (let x = 0; x < width; x += 48) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-      }
-      for (let y = 0; y < height; y += 48) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-      }
+      for (let x = 0; x < width; x += 48) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+      for (let y = 0; y < height; y += 48) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
       ctx.strokeStyle = getVar("--grid-line", "rgba(6,182,212,0.05)");
       ctx.stroke();
       ctx.globalAlpha = 1;
@@ -326,10 +327,8 @@ function CardScroll() {
       const primary = getVar("--brand-primary", "#4f46e5");
       const accent = getVar("--brand-accent", "#06b6d4");
 
-      // dots
       dots.forEach((d) => {
-        d.x += d.vx;
-        d.y += d.vy;
+        d.x += d.vx; d.y += d.vy;
         if (d.x < 0 || d.x > width) d.vx *= -1;
         if (d.y < 0 || d.y > height) d.vy *= -1;
 
@@ -354,7 +353,6 @@ function CardScroll() {
     draw();
     window.addEventListener("resize", onResize);
 
-    // re-init on theme change
     const observer = new MutationObserver((m) => {
       if (m.some((x) => x.attributeName === "data-theme")) init();
     });
@@ -367,18 +365,31 @@ function CardScroll() {
     };
   }, []);
 
-  // Only render the ONE open popup (unmount on close to stop audio)
+  // Render the ONE open popup (unmount on close to stop audio)
   const openIndex = APPS.findIndex((a) => a.id === openPopupId);
   const openApp = openIndex >= 0 ? APPS[openIndex] : null;
   const openAudioSrc = openIndex >= 0 ? audioMap[openIndex + 1] : null;
+
+  // Glass “links” at mid-angles between cards
+  const { rotationStep, radius } = geomRef.current;
+  const links = APPS.map((_, i) => {
+    const a = i * rotationStep;
+    const mid = a + rotationStep / 2;
+    const style = { "--mid": `${mid}deg`, "--radius": `${radius}px` };
+    return <div key={`link-${i}`} className="link-glass" style={style} aria-hidden="true" />;
+  });
 
   return (
     <section ref={rootRef} className="cardscroll-root" aria-label="Apps Carousel">
       {/* theme-aware particle backdrop */}
       <canvas ref={bgCanvasRef} className="cardscroll-bg" aria-hidden="true" />
 
-      <div className="scene glass-wrap">
-        <div className="carousel glass-inner" id="carousel" ref={carouselRef}>
+      {/* No background panel — just the scene + carousel */}
+      <div className="scene">
+        <div className="carousel" id="carousel" ref={carouselRef}>
+          {/* glass links FIRST so cards sit visually above */}
+          {links}
+
           {APPS.map((app, i) => (
             <div
               key={app.id}
