@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/CardScroll.css";
 import AudioPlayer from "./AudioPlayer";
@@ -77,8 +78,13 @@ function CardScroll() {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [rotationInterval, setRotationInterval] = useState(null);
+
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [openPopupId, setOpenPopupId] = useState(null);
+
+  // draggable popup state
+  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
+  const dragRef = useRef({ dragging: false, dx: 0, dy: 0 });
 
   // Responsive geometry
   const getResponsiveSettings = () => {
@@ -145,6 +151,13 @@ function CardScroll() {
 
   // Popups
   const showPopup = (id) => {
+    // center-ish initial position
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const initialX = Math.max(12, vw / 2 - 260); // approx center (max-width ~520px)
+    const initialY = Math.max(12, vh / 2 - 200);
+    setPopupPos({ x: initialX, y: initialY });
+
     setOpenPopupId(id);
     setIsPopupOpen(true);
     stopRotation();
@@ -172,8 +185,62 @@ function CardScroll() {
   // Clicking a card opens its popup
   const onCardClick = (id, index) => {
     setCurrentIdx(index);
-    setTimeout(() => showPopup(id), 200);
+    setTimeout(() => showPopup(id), 150);
   };
+
+  // Drag handlers (mouse + touch)
+  const onDragStart = (clientX, clientY) => {
+    dragRef.current.dragging = true;
+    dragRef.current.dx = clientX - popupPos.x;
+    dragRef.current.dy = clientY - popupPos.y;
+    document.body.classList.add("no-select");
+  };
+
+  const onDragMove = (clientX, clientY) => {
+    if (!dragRef.current.dragging) return;
+    const x = clientX - dragRef.current.dx;
+    const y = clientY - dragRef.current.dy;
+    // clamp inside viewport with small margin
+    const margin = 8;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxX = vw - margin;
+    const maxY = vh - margin;
+    setPopupPos({
+      x: Math.min(Math.max(margin, x), maxX),
+      y: Math.min(Math.max(margin, y), maxY),
+    });
+  };
+
+  const onDragEnd = () => {
+    dragRef.current.dragging = false;
+    document.body.classList.remove("no-select");
+  };
+
+  const handleMouseDown = (e) => onDragStart(e.clientX, e.clientY);
+  const handleMouseMove = (e) => onDragMove(e.clientX, e.clientY);
+  const handleTouchStart = (e) => {
+    const t = e.touches?.[0];
+    if (t) onDragStart(t.clientX, t.clientY);
+  };
+  const handleTouchMove = (e) => {
+    const t = e.touches?.[0];
+    if (t) onDragMove(t.clientX, t.clientY);
+  };
+
+  useEffect(() => {
+    const onUp = () => onDragEnd();
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchend", onUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    return () => {
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchend", onUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [popupPos]);
 
   // Init positions + rotation
   useEffect(() => {
@@ -320,8 +387,8 @@ function CardScroll() {
       {/* theme-aware particle backdrop */}
       <canvas ref={bgCanvasRef} className="cardscroll-bg" aria-hidden="true" />
 
-      <div className="scene">
-        <div className="carousel" id="carousel" ref={carouselRef}>
+      <div className="scene glass-wrap">
+        <div className="carousel glass-inner" id="carousel" ref={carouselRef}>
           {APPS.map((app, i) => (
             <div
               key={app.id}
@@ -331,7 +398,6 @@ function CardScroll() {
             >
               <img src={app.img} alt={app.title} />
               <h3>{app.title}</h3>
-              {/* soft bottom gradient for title legibility */}
               <span className="card2-fade" aria-hidden="true" />
             </div>
           ))}
@@ -341,12 +407,21 @@ function CardScroll() {
       {openApp && (
         <div
           id={`popup-${openApp.id}`}
-          className="popup show"
+          className={`popup show ${dragRef.current.dragging ? "dragging" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby={`popup-title-${openApp.id}`}
+          style={{ left: `${popupPos.x}px`, top: `${popupPos.y}px` }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
-          <h2 id={`popup-title-${openApp.id}`}>{openApp.popupTitle}</h2>
+          <div className="popup-header">
+            <h2 id={`popup-title-${openApp.id}`}>{openApp.popupTitle}</h2>
+            <button className="popup-close" onClick={closePopup} aria-label="Close popup">
+              Close
+            </button>
+          </div>
+
           <p className="popup-body">{openApp.popupBody}</p>
 
           {openAudioSrc && (
@@ -358,10 +433,6 @@ function CardScroll() {
               />
             </div>
           )}
-
-          <button className="popup-close" onClick={closePopup}>
-            Close
-          </button>
         </div>
       )}
     </section>
