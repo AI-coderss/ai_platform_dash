@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/CardScroll.css";
 import AudioPlayer from "./AudioPlayer";
@@ -68,7 +69,7 @@ const APPS = [
   },
 ];
 
-/** Auto-rotate speed — lively (not too slow) */
+/** Auto-rotate speed — lively */
 const ROTATE_MS = 1800;
 
 function CardScroll() {
@@ -86,7 +87,7 @@ function CardScroll() {
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const dragRef = useRef({ dragging: false, dx: 0, dy: 0 });
 
-  // Responsive geometry
+  // Responsive geometry for ring
   const getResponsiveSettings = () => {
     const width = window.innerWidth;
     if (width <= 400) return { rotationStep: 45, radius: 160 };
@@ -95,7 +96,7 @@ function CardScroll() {
     return { rotationStep: 72, radius: 350 };
   };
 
-  // 3D ring positions (compose transform with a CSS variable for scale)
+  // 3D ring positions — applied ONLY to the OUTER .card2
   const setCardPositions = () => {
     const root = carouselRef.current;
     if (!root) return;
@@ -107,15 +108,14 @@ function CardScroll() {
       const angleRad = (rotateY * Math.PI) / 180;
       const x = Math.sin(angleRad) * radius;
       const z = Math.cos(angleRad) * radius;
-      // include scale via CSS variable so hover can override
-      card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotateY}deg) scale(var(--scale, 1))`;
+      card.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${rotateY}deg)`; // no scale/float here
     });
 
     updateCardSize();
     rotateCarousel();
   };
 
-  // front card enlarged via CSS variable; others back to 1
+  // front card enlarged via CSS custom prop consumed by .card2-inner
   const updateCardSize = () => {
     const root = carouselRef.current;
     if (!root) return;
@@ -154,7 +154,7 @@ function CardScroll() {
     // center-ish initial position
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const initialX = Math.max(12, vw / 2 - 260); // approx center (max-width ~520px)
+    const initialX = Math.max(12, vw / 2 - 260);
     const initialY = Math.max(12, vh / 2 - 200);
     setPopupPos({ x: initialX, y: initialY });
 
@@ -176,13 +176,12 @@ function CardScroll() {
   };
 
   const closePopup = () => {
-    pauseAllAudioInRoot(); // stop any playback
-    setOpenPopupId(null);  // unmount popup
+    pauseAllAudioInRoot();
+    setOpenPopupId(null);
     setIsPopupOpen(false);
     startRotation();
   };
 
-  // Clicking a card opens its popup
   const onCardClick = (id, index) => {
     setCurrentIdx(index);
     setTimeout(() => showPopup(id), 150);
@@ -195,23 +194,18 @@ function CardScroll() {
     dragRef.current.dy = clientY - popupPos.y;
     document.body.classList.add("no-select");
   };
-
   const onDragMove = (clientX, clientY) => {
     if (!dragRef.current.dragging) return;
     const x = clientX - dragRef.current.dx;
     const y = clientY - dragRef.current.dy;
-    // clamp inside viewport with small margin
     const margin = 8;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const maxX = vw - margin;
-    const maxY = vh - margin;
     setPopupPos({
-      x: Math.min(Math.max(margin, x), maxX),
-      y: Math.min(Math.max(margin, y), maxY),
+      x: Math.min(Math.max(margin, x), vw - margin),
+      y: Math.min(Math.max(margin, y), vh - margin),
     });
   };
-
   const onDragEnd = () => {
     dragRef.current.dragging = false;
     document.body.classList.remove("no-select");
@@ -379,11 +373,7 @@ function CardScroll() {
   const openAudioSrc = openIndex >= 0 ? audioMap[openIndex + 1] : null;
 
   return (
-    <section
-      ref={rootRef}
-      className="cardscroll-root"
-      aria-label="Apps Carousel"
-    >
+    <section ref={rootRef} className="cardscroll-root" aria-label="Apps Carousel">
       {/* theme-aware particle backdrop */}
       <canvas ref={bgCanvasRef} className="cardscroll-bg" aria-hidden="true" />
 
@@ -396,9 +386,11 @@ function CardScroll() {
               data-id={app.id}
               onClick={() => onCardClick(app.id, i)}
             >
-              <img src={app.img} alt={app.title} />
-              <h3>{app.title}</h3>
-              <span className="card2-fade" aria-hidden="true" />
+              <div className="card2-inner">
+                <img src={app.img} alt={app.title} />
+                <h3>{app.title}</h3>
+                <span className="card2-fade" aria-hidden="true" />
+              </div>
             </div>
           ))}
         </div>
@@ -440,3 +432,4 @@ function CardScroll() {
 }
 
 export default CardScroll;
+

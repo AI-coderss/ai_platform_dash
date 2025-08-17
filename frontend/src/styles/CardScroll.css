@@ -1,410 +1,333 @@
 /* Uses your tokens to theme the widget (light/dark) */
+/* Uses your tokens to theme the widget (light/dark) */
 :root {
-    --_bg: var(--bg-primary, #0b0f1a);
-    --_card-bg: var(--bg-card, #111);
-    --_text: var(--text-primary, #f3f4f6);
-    --_muted: var(--text-secondary, #9ca3af);
-    --_brand: var(--brand-primary, #4f46e5);
-    --_accent: var(--brand-accent, #06b6d4);
-    --_border: var(--border-color, rgba(0, 0, 0, 0.15));
-    --glass: var(--bg-glass, rgba(255, 255, 255, 0.10));
-    --glass-strong: rgba(255, 255, 255, 0.16);
-    --glass-soft: rgba(255, 255, 255, 0.06);
+  --_bg: var(--bg-primary, #0b0f1a);
+  --_card-bg: var(--bg-card, #111);
+  --_text: var(--text-primary, #f3f4f6);
+  --_muted: var(--text-secondary, #9ca3af);
+  --_brand: var(--brand-primary, #4f46e5);
+  --_accent: var(--brand-accent, #06b6d4);
+  --_border: var(--border-color, rgba(0,0,0,0.15));
+  --glass: var(--bg-glass, rgba(255,255,255,0.10));
+  --glass-strong: rgba(255,255,255,0.16);
+  --glass-soft: rgba(255,255,255,0.06);
 }
 
 /* Prevent text selection during drag */
-.no-select {
-    user-select: none;
-}
+.no-select { user-select: none; }
 
-/* Add page spacing so it doesn't crowd other sections */
+/* Section glass */
 .cardscroll-root {
-    font-family: var(--font-family, 'Roboto', sans-serif);
-    color: var(--_text);
-    position: relative;
-    margin-top: var(--cardscroll-mt, 56px);
-    padding-top: 8px;
-
-    /* glass background for the whole section */
-    background:
-        linear-gradient(180deg, color-mix(in srgb, var(--_brand) 4%, transparent), transparent 40%),
-        linear-gradient(180deg, var(--glass-soft), transparent 60%);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+  font-family: var(--font-family, 'Roboto', sans-serif);
+  color: var(--_text);
+  position: relative;
+  margin-top: var(--cardscroll-mt, 56px);
+  padding-top: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--_brand) 4%, transparent), transparent 40%),
+    linear-gradient(180deg, var(--glass-soft), transparent 60%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* Theme-aware particle backdrop */
 .cardscroll-bg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
-/* 3D Scene with glassmorphism wrapper */
+/* 3D Scene with glass wrap */
 .scene {
-    perspective: 1200px;
-    width: min(1100px, 80%);
-    height: 420px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    margin: auto;
-    z-index: 1;
-    /* above particles */
+  perspective: 1200px;
+  width: min(1100px, 80%);
+  height: 420px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin: auto;
+  z-index: 1;
 }
 
 .glass-wrap {
-    border-radius: 22px;
-    padding: 14px;
-    background:
-        linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
-        radial-gradient(120% 120% at 10% 0%, color-mix(in srgb, var(--_brand) 12%, transparent), transparent 60%);
-    border: 1px solid color-mix(in srgb, var(--_brand) 28%, transparent);
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border-radius: 22px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
+    radial-gradient(120% 120% at 10% 0%, color-mix(in srgb, var(--_brand) 12%, transparent), transparent 60%);
+  border: 1px solid color-mix(in srgb, var(--_brand) 28%, transparent);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
 }
 
-/* inner glass to the carousel too */
 .glass-inner {
-    border-radius: 18px;
-    width: 100%;
-    height: 100%;
-    background:
-        linear-gradient(180deg, var(--glass) 0%, transparent 100%),
-        radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--_accent) 10%, transparent), transparent 65%);
-    border: 1px solid color-mix(in srgb, var(--_accent) 22%, transparent);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    position: relative;
+  border-radius: 18px;
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(180deg, var(--glass) 0%, transparent 100%),
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--_accent) 10%, transparent), transparent 65%);
+  border: 1px solid color-mix(in srgb, var(--_accent) 22%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
 }
 
 .carousel {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform-style: preserve-3d;
-    transition: transform 1s;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transition: transform 1s;
 }
 
 /* =========================
-   CARD GLASSMORPHIC (card2)
+   CARD LAYOUT (outer = ring)
    ========================= */
 .card2 {
-    --scale: 1;
-    position: absolute;
-    width: 180px;
-    height: 240px;
-    border-radius: 18px;
-    overflow: hidden;
-    cursor: pointer;
-    transform-origin: center center;
+  --scale: 1;
+  position: absolute;
+  width: 180px;
+  height: 240px;
+  border-radius: 18px;
+  overflow: visible; /* inner handles overflow styling */
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  /* NO animations here (so ring transform from JS is preserved) */
+}
 
-    /* Glassmorphism */
-    background:
-        linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
-        radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--_brand) 14%, transparent) 0%, transparent 60%);
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid color-mix(in srgb, var(--_brand) 35%, transparent);
-    box-shadow:
-        0 8px 26px rgba(0, 0, 0, 0.22),
-        0 1px 0 0 rgba(255, 255, 255, 0.06) inset;
+/* =========================
+   CARD LOOK (inner = glass/anim)
+   ========================= */
+.card2-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  transform: translateZ(0) scale(var(--scale)) rotateX(var(--tiltX, 0)) rotateY(var(--tiltY, 0));
+  transform-origin: center center;
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
+  /* Glassmorphism */
+  background:
+    linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--_brand) 14%, transparent) 0%, transparent 60%);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid color-mix(in srgb, var(--_brand) 35%, transparent);
+  box-shadow:
+    0 8px 26px rgba(0,0,0,0.22),
+    0 1px 0 0 rgba(255,255,255,0.06) inset;
 
-    transition: transform 0.28s ease, box-shadow 0.28s ease, z-index 0.28s ease, background 0.28s ease, border-color 0.28s ease;
-    animation: floaty 6s ease-in-out infinite, glowPulse 2.4s ease-in-out infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+
+  transition: transform 0.28s ease, box-shadow 0.28s ease, background 0.28s ease, border-color 0.28s ease;
+  animation: floaty 6s ease-in-out infinite, glowPulse 2.4s ease-in-out infinite;
 }
 
 /* Border shimmer (conic) */
-.card2::before {
-    content: "";
-    position: absolute;
-    inset: -2px;
-    border-radius: 20px;
-    padding: 1px;
-    background:
-        conic-gradient(from var(--angle, 0deg), color-mix(in srgb, var(--_accent) 75%, transparent), transparent 30%, color-mix(in srgb, var(--_brand) 75%, transparent));
-    --webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: spin 6s linear infinite;
-    opacity: 0.32;
-    pointer-events: none;
+.card2-inner::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  padding: 1px;
+  background:
+    conic-gradient(from var(--angle, 0deg), color-mix(in srgb, var(--_accent) 75%, transparent), transparent 30%, color-mix(in srgb, var(--_brand) 75%, transparent));
+  --webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: spin 6s linear infinite;
+  opacity: 0.32;
+  pointer-events: none;
 }
 
 /* Sheen diagonale on hover */
-.card2::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.25) 50%, transparent 65%);
-    transform: translateX(-120%);
-    transition: transform 0.9s ease;
-    pointer-events: none;
+.card2-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.25) 50%, transparent 65%);
+  transform: translateX(-120%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
 }
 
-.card2:hover {
-    --scale: 1.28;
-    box-shadow:
-        0 14px 34px rgba(0, 0, 0, 0.36),
-        0 0 0 1px color-mix(in srgb, var(--_accent) 22%, transparent) inset;
-    transform: scale(var(--scale)) rotateX(2deg) rotateY(-2deg);
+.card2:hover .card2-inner {
+  --scale: 1.28;
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.36),
+    0 0 0 1px color-mix(in srgb, var(--_accent) 22%, transparent) inset;
+  transform: translateZ(0) scale(var(--scale)) rotateX(2deg) rotateY(-2deg);
 }
+.card2:hover .card2-inner::after { transform: translateX(120%); }
 
-.card2:hover::after {
-    transform: translateX(120%);
+/* Image layer */
+.card2-inner img {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  object-fit: cover;
+  border-radius: 12px;
+  filter: saturate(110%) contrast(102%);
+  opacity: 0.85;
+  transition: transform 0.35s ease, opacity 0.25s ease, filter 0.25s ease;
+  z-index: 0;
 }
-
-/* Image layer (below glass) */
-.card2 img {
-    position: absolute;
-    inset: 6px;
-    width: calc(100% - 12px);
-    height: calc(100% - 12px);
-    object-fit: cover;
-    border-radius: 12px;
-    filter: saturate(110%) contrast(102%);
-    opacity: 0.85;
-    transition: transform 0.35s ease, opacity 0.25s ease, filter 0.25s ease;
-    z-index: 0;
-}
-
-.card2:hover img {
-    transform: scale(1.04);
-    opacity: 0.92;
-    filter: saturate(115%) contrast(104%);
+.card2:hover .card2-inner img {
+  transform: scale(1.04);
+  opacity: 0.92;
+  filter: saturate(115%) contrast(104%);
 }
 
 /* Title legibility */
-.card2 h3 {
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 18px;
-    font-weight: 700;
-    z-index: 3;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--_accent) 75%, #fff), color-mix(in srgb, var(--_brand) 75%, #fff));
-    --webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
+.card2-inner h3 {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 700;
+  z-index: 3;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--_accent) 75%, #fff) , color-mix(in srgb, var(--_brand) 75%, #fff));
+  --webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 14px rgba(0,0,0,0.35);
 }
 
 /* Readability fade */
-.card2 .card2-fade {
-    content: "";
-    position: absolute;
-    left: 6px;
-    right: 6px;
-    bottom: 6px;
-    height: 42%;
-    border-radius: 12px;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, .45) 85%);
-    z-index: 1;
-    pointer-events: none;
+.card2-inner .card2-fade {
+  content: "";
+  position: absolute;
+  left: 6px; right: 6px; bottom: 6px;
+  height: 42%;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.45) 85%);
+  z-index: 1;
+  pointer-events: none;
 }
 
 /* Animations */
-@keyframes spin {
-    to {
-        --angle: 360deg;
-    }
-}
-
+@keyframes spin { to { --angle: 360deg; } }
 @keyframes floaty {
-    0% {
-        transform: translateY(0) scale(var(--scale));
-    }
-
-    50% {
-        transform: translateY(-6px) scale(var(--scale));
-    }
-
-    100% {
-        transform: translateY(0) scale(var(--scale));
-    }
+  0%   { transform: translateZ(0) scale(var(--scale)) translateY(0); }
+  50%  { transform: translateZ(0) scale(var(--scale)) translateY(-6px); }
+  100% { transform: translateZ(0) scale(var(--scale)) translateY(0); }
 }
-
 @keyframes glowPulse {
-
-    0%,
-    100% {
-        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22), 0 0 0 1px color-mix(in srgb, var(--_brand) 18%, transparent) inset;
-    }
-
-    50% {
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), 0 0 0 1px color-mix(in srgb, var(--_accent) 22%, transparent) inset;
-    }
+  0%,100% { box-shadow: 0 8px 26px rgba(0,0,0,0.22), 0 0 0 1px color-mix(in srgb, var(--_brand) 18%, transparent) inset; }
+  50%     { box-shadow: 0 12px 32px rgba(0,0,0,0.28), 0 0 0 1px color-mix(in srgb, var(--_accent) 22%, transparent) inset; }
 }
 
 /* =================
    DRAGGABLE POPUP
    ================= */
 .popup {
-    position: fixed;
-    /* Draggable → set by inline style left/top from React */
-    left: 50%;
-    top: 20%;
-    transform: translateZ(0);
-    /* no centering translate so dragging uses absolute px */
-    background:
-        linear-gradient(180deg, var(--glass-strong) 0%, var(--glass-soft) 100%),
-        radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--_accent) 10%, transparent), transparent 60%);
-    backdrop-filter: blur(16px) saturate(130%);
-    -webkit-backdrop-filter: blur(16px) saturate(130%);
-    padding: 1.2rem 1.2rem 1rem;
-    width: 80%;
-    max-width: 520px;
-    border-radius: 18px;
-    border: 1px solid color-mix(in srgb, var(--_brand) 32%, transparent);
-    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
-    opacity: 0;
-    transition: opacity 0.28s ease, box-shadow 0.28s ease, transform 0.28s ease;
-    z-index: 100;
-    cursor: grab;
+  position: fixed;
+  left: 50%;
+  top: 20%;
+  transform: translateZ(0);
+  background:
+    linear-gradient(180deg, var(--glass-strong) 0%, var(--glass-soft) 100%),
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--_accent) 10%, transparent), transparent 60%);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  padding: 1.2rem 1.2rem 1rem;
+  width: 80%;
+  max-width: 520px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--_brand) 32%, transparent);
+  box-shadow: 0 16px 44px rgba(0,0,0,0.55);
+  opacity: 0;
+  transition: opacity 0.28s ease, box-shadow 0.28s ease;
+  z-index: 100;
+  cursor: grab;
 }
-
-.popup.dragging {
-    cursor: grabbing;
-}
-
-.popup.show {
-    opacity: 1;
-}
+.popup.dragging { cursor: grabbing; }
+.popup.show { opacity: 1; }
 
 .popup-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    /* draggable handle area */
-    cursor: grab;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  cursor: grab; /* good handle */
 }
 
 .popup h2 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    background: linear-gradient(185deg, color-mix(in srgb, var(--_brand) 85%, #fff), color-mix(in srgb, var(--_accent) 70%, #f4f3f5));
-    --webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(185deg, color-mix(in srgb, var(--_brand) 85%, #fff), color-mix(in srgb, var(--_accent) 70%, #f4f3f5));
+  --webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .popup .popup-body {
-    font-size: 16px;
-    margin-top: 6px;
-    color: var(--_text);
-    opacity: 0.92;
+  font-size: 16px;
+  margin-top: 6px;
+  color: var(--_text);
+  opacity: 0.92;
 }
 
-/* Audio player container */
 .popup-audio {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid color-mix(in srgb, var(--_accent) 35%, transparent);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--_accent) 35%, transparent);
 }
 
-/* Close button */
 .popup-close {
-    background: var(--btn-bg, linear-gradient(45deg, #007bff, #4f46e5));
-    border: none;
-    font-size: 14px;
-    font-weight: 700;
-    padding: 8px 12px;
-    color: var(--btn-text, white);
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: var(--shadow-button, 0 3px 10px rgba(37, 99, 235, 0.4));
-    transition: transform .15s ease, box-shadow .2s ease;
+  background: var(--btn-bg, linear-gradient(45deg, #007bff, #4f46e5));
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 12px;
+  color: var(--btn-text, white);
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: var(--shadow-button, 0 3px 10px rgba(37, 99, 235, 0.4));
+  transition: transform .15s ease, box-shadow .2s ease;
 }
-
 .popup-close:hover {
-    background: var(--btn-bg-hover, linear-gradient(45deg, #0056b3, #3730a3));
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+  background: var(--btn-bg-hover, linear-gradient(45deg, #0056b3, #3730a3));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
 }
 
 /* =================
    RESPONSIVE
    ================= */
 @media (max-width: 1024px) {
-    .scene {
-        width: 100%;
-        height: 380px;
-    }
-
-    .card2 {
-        width: 160px;
-        height: 210px;
-    }
-
-    .card2 h3 {
-        font-size: 16px;
-    }
+  .scene { width: 100%; height: 380px; }
+  .card2 { width: 160px; height: 210px; }
+  .card2-inner h3 { font-size: 16px; }
 }
-
 @media (max-width: 768px) {
-    .scene {
-        height: 340px;
-    }
-
-    .glass-wrap {
-        padding: 10px;
-    }
-
-    .card2 {
-        width: 130px;
-        height: 170px;
-    }
-
-    .card2 h3 {
-        font-size: 13px;
-    }
+  .scene { height: 340px; }
+  .glass-wrap { padding: 10px; }
+  .card2 { width: 130px; height: 170px; }
+  .card2-inner h3 { font-size: 13px; }
 }
-
 @media (max-width: 600px) {
-    .scene {
-        height: 300px;
-    }
-
-    .card2 {
-        width: 110px;
-        height: 150px;
-    }
-
-    .card2 h3 {
-        font-size: 12px;
-    }
+  .scene { height: 300px; }
+  .card2 { width: 110px; height: 150px; }
+  .card2-inner h3 { font-size: 12px; }
 }
-
 @media (max-width: 480px) {
-    .scene {
-        height: 270px;
-    }
-
-    .card2 {
-        width: 96px;
-        height: 135px;
-    }
-
-    .card2 h3 {
-        font-size: 11px;
-    }
-
-    .popup {
-        width: 94%;
-        max-width: none;
-    }
+  .scene { height: 270px; }
+  .card2 { width: 96px; height: 135px; }
+  .card2-inner h3 { font-size: 11px; }
+  .popup { width: 94%; max-width: none; }
 }
