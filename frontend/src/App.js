@@ -12,7 +12,7 @@ import useCardStore from "./components/store/useCardStore";
 import AudioPlayer from "./components/AudioPlayer";
 import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
-import CardScroll from "./components/CardScroll";
+
 
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
@@ -946,7 +946,6 @@ const App = () => {
           {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
         </div>
       </section>
-       <CardScroll />
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>
