@@ -216,8 +216,8 @@ export default function CardCarousel() {
     if (!canvas || !host) return;
 
     const ctx = canvas.getContext("2d");
-    const colorDot = "#CECECE";
-    const color = "#CECECE";
+    const colorDot = "#e2e2e2ff";
+    const color = "#e2dedeff";
 
     let width = 0, height = 0;
     const resizeToHost = () => {
