@@ -412,5 +412,3 @@ export default function CardCarousel() {
     </section>
   );
 }
-
-
