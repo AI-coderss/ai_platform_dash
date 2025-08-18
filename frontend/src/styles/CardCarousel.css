@@ -1,20 +1,37 @@
 /* Token-aware defaults + card height */
 :root{
-  --_bg: var(--bg-primary, #f6f8fc);
-  --_text: var(--text-primary, #333);
-  --_muted: var(--text-secondary, #666);
+  --_bg: var(--bg-primary, #0b1220); /* keep your dark look */
+  --_text: var(--text-primary, #f3f4f6);
+  --_muted: var(--text-secondary, #9ca3af);
   --_brand: var(--brand-primary, #4f46e5);
   --_accent: var(--brand-accent, #06b6d4);
-  /* ✅ explicit card height so content is visible */
+
   --card-h: 380px;
---cardslider-mt: 250px;
+  --cardslider-mt: 250px;
 }
 
-@media (max-width: 1024px){
-  :root{ --card-h: 258px; }
+@media (max-width: 1024px){ :root{ --card-h: 258px; } }
+@media (max-width: 640px){ :root{ --card-h: 248px; } }
+
+/* ===== Background canvas layer ===== */
+.dots-wrap{
+  position: relative;
+  overflow: visible;            /* don’t clip children; canvas won’t block clicks */
+  background: var(--_bg);
 }
-@media (max-width: 640px){
-  :root{ --card-h: 248px; }
+.connecting-dots{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;         /* never intercepts dragging/clicks */
+  z-index: 0;
+}
+/* Foreground above the canvas */
+.dots-wrap > *:not(.connecting-dots){
+  position: relative;
+  z-index: 1;
 }
 
 /* Structure & spacing */
@@ -25,33 +42,33 @@
   position: relative;
 }
 
-/* The viewport **reserves height** using --card-h */
+/* Viewport reserves height */
 .cardslider-viewport{
   position: relative;
   overflow: hidden;
   width: min(1100px, 92%);
   margin: 0 auto;
   padding: 6px 36px; /* room for arrows */
-  min-height: calc(var(--card-h) + 16px); /* ✅ ensures track is visible */
+  min-height: calc(var(--card-h) + 16px);
 }
 
-/* The track is a flex row; width is set inline in px */
+/* Track */
 .cardslider-track{
   display: flex;
   align-items: stretch;
   gap: 18px;
   will-change: transform;
-  min-height: var(--card-h); /* ✅ reserve height */
+  min-height: var(--card-h);
 }
 
-/* arrow nav */
+/* Arrows */
 .nav-btn{
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   width: 36px; height: 36px; border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--_brand) 40%, transparent);
-  background: linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%);
   backdrop-filter: blur(10px) saturate(120%);
   -webkit-backdrop-filter: blur(10px) saturate(120%);
   color: var(--_text);
@@ -70,14 +87,12 @@
 .nav-prev{ left: 6px; }
 .nav-next{ right: 6px; }
 
-/* items get explicit width inline; we provide a fixed height here */
+/* Cards */
 .card2-item{
   flex: 0 0 auto;
   display: flex;
-  height: var(--card-h); /* ✅ key fix */
+  height: var(--card-h);
 }
-
-/* glassy card with animated border */
 .card2{
   position: relative;
   border-radius: 18px;
@@ -85,22 +100,22 @@
   flex: 1 1 auto;
   height: 100%;
   background:
-    linear-gradient(180deg, var(--glass) 0%, var(--glass-soft) 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 100%),
     radial-gradient(120% 120% at 0% 0%,
       color-mix(in srgb, var(--_brand) 12%, transparent), transparent 65%);
   border: 1px solid color-mix(in srgb, var(--_brand) 28%, transparent);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 0 20px rgba(0,0,0,0.25);
   backdrop-filter: blur(12px) saturate(120%);
   -webkit-backdrop-filter: blur(12px) saturate(120%);
   transition: transform .22s ease, box-shadow .25s ease, border-color .25s ease;
 }
 .card2:hover{
   transform: translateY(-6px) scale(1.02);
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.45);
   border-color: color-mix(in srgb, var(--_accent) 38%, transparent);
 }
 
-/* animated conic border */
+/* Conic border */
 .card2-border{
   pointer-events: none;
   position: absolute;
@@ -119,7 +134,7 @@
   opacity: .28;
 }
 
-/* media */
+/* Media */
 .card2 img{
   position: absolute;
   inset: 8px 8px 100px 8px; /* leave space for title + desc + button */
@@ -133,7 +148,7 @@
 }
 .card2:hover img{ transform: scale(1.03); opacity: .95; filter: saturate(115%) contrast(104%); }
 
-/* bottom readability fade */
+/* Fade */
 .card2-fade{
   position: absolute;
   left: 8px; right: 8px; bottom: 88px;
@@ -143,7 +158,7 @@
   pointer-events: none;
 }
 
-/* text */
+/* Text */
 .card2-title{
   position: absolute;
   left: 12px; right: 12px; bottom: 84px;
@@ -178,19 +193,19 @@
   border: 0;
   font-weight: 800;
   font-size: 12px;
-  color: var(--btn-text);
-  background: var(--btn-bg);
+  color: #fff;
+  background: linear-gradient(45deg, #6366f1, #4f46e5);
   box-shadow: 0 6px 16px rgba(37,99,235,.35);
   cursor: pointer;
   transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
 }
 .card2-cta:hover{
   transform: translateX(-50%) translateY(-1px);
-  background: var(--btn-bg-hover);
+  background: linear-gradient(45deg, #4f46e5, #3730a3);
   box-shadow: 0 10px 26px rgba(37,99,235,.45);
 }
 
-/* dots */
+/* Dot nav */
 .cardslider-dots{
   display: flex; justify-content: center; gap: 8px;
   margin-top: 14px;
@@ -207,11 +222,11 @@
   transform: scale(1.1);
 }
 
-/* popup (draggable glass) */
+/* ===== Popup — via portal, cannot be clipped ===== */
 .cardslider-popup{
   position: fixed;
-  z-index: 200;
-  transform: translateZ(0);
+  z-index: 10000;               /* above everything */
+  transform: translateZ(0);     /* perf */
   width: 80%;
   max-width: 520px;
   background:
@@ -226,8 +241,11 @@
   color: var(--_text);
   padding: 14px 14px 12px;
   cursor: grab;
+  touch-action: none;           /* smooth touch drag */
+  will-change: left, top;       /* perf while dragging */
 }
 .cardslider-popup.dragging{ cursor: grabbing; }
+
 .popup-header{
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   user-select: none;
@@ -248,8 +266,8 @@
   border-top: 1px solid color-mix(in srgb, var(--_accent) 30%, transparent);
 }
 .popup-close{
-  background: var(--btn-bg);
-  color: var(--btn-text);
+  background: linear-gradient(45deg, #6366f1, #4f46e5);
+  color: #fff;
   border: 0; border-radius: 10px;
   padding: 8px 12px; font-weight: 800; font-size: 13px;
   box-shadow: 0 6px 16px rgba(37,99,235,.35);
@@ -257,7 +275,7 @@
   transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
 }
 .popup-close:hover{
-  background: var(--btn-bg-hover);
+  background: linear-gradient(45deg, #4f46e5, #3730a3);
   transform: translateY(-1px);
   box-shadow: 0 10px 26px rgba(37,99,235,.45);
 }
@@ -267,3 +285,6 @@
 
 /* animations */
 @keyframes spin{ to{ --ang: 360deg; } }
+
+
+
