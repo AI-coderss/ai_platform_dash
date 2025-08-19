@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react-hooks/exhaustive-deps */
+
 // App.js
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -13,10 +13,6 @@ import AudioPlayer from "./components/AudioPlayer";
 import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
-
-
-
-
 
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
@@ -53,19 +49,70 @@ const NavBar = ({ theme, onToggleTheme }) => {
         </div>
 
         <div className="topnav-actions">
-          <button className="theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme" title="Toggle theme">
-            {theme === "dark" ? (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="1.6"/>
-              </svg>
-            ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.6"/>
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" strokeWidth="1.6"/>
-              </svg>
-            )}
-            <span className="theme-label">{theme === "dark" ? "Dark" : "Light"}</span>
-          </button>
+          {/* NEW THEME SWITCH (Uiverse) — replaces old button.theme-toggle */}
+          <label className="switch" aria-label="Toggle theme" title="Toggle theme">
+            <input
+              id="input"
+              type="checkbox"
+              checked={theme === "dark"}
+              onChange={onToggleTheme}
+            />
+            <div className="slider round">
+              <div className="sun-moon">
+                <svg id="moon-dot-1" className="moon-dot" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="moon-dot-2" className="moon-dot" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="moon-dot-3" className="moon-dot" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="light-ray-1" className="light-ray" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="light-ray-2" className="light-ray" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="light-ray-3" className="light-ray" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+
+                <svg id="cloud-1" className="cloud-dark" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-2" className="cloud-dark" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-3" className="cloud-dark" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-4" className="cloud-light" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-5" className="cloud-light" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-6" className="cloud-light" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+              </div>
+              <div className="stars">
+                <svg id="star-1" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+                <svg id="star-2" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+                <svg id="star-3" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+                <svg id="star-4" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+              </div>
+            </div>
+          </label>
 
           <button className="hamburger" onClick={() => setOpen((s) => !s)} aria-label="Menu">
             <span /><span /><span />
