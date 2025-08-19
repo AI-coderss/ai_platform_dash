@@ -14,6 +14,10 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 
+// ⬇️ GSAP + SplitType (added)
+import gsap from "gsap";
+import SplitType from "split-type";
+
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -182,6 +186,28 @@ const HeroLogoParticles = ({ theme }) => {
     const accent  = getVar("--brand-accent",  theme === "dark" ? "#8be9fd" : "#06b6d4");
     return { primary, accent };
   };
+
+  // ====== GSAP SplitType animation for hero title (updated) ======
+useEffect(() => {
+  // Split into lines + words + chars so browser respects line wrapping
+  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
+
+  // Animate each char, but keep words/lines together
+  const tween = gsap.from(split.chars, {
+    x: 150,
+    opacity: 0,
+    duration: 0.7,
+    ease: "power4",
+    stagger: 0.04,
+    repeat: -1,
+    repeatDelay: 2,
+  });
+
+  return () => {
+    tween.kill();
+    split.revert();
+  };
+}, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
