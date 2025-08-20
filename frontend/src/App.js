@@ -732,30 +732,6 @@ useEffect(() => {
         if (pos[ix+2] < -halfCube) { pos[ix+2] = -halfCube; vel[ix+2] *= -0.65; }
       }
       geomPos.needsUpdate = true;
-
-      // link lines
-      if (linesRef.current) {
-        const { positions: lbuf, max } = linesRef.current;
-        const threshold = lockRef.current ? 9.0 : 7.5;
-        const step = 5;
-        let ptr = 0;
-        for (let a = 0; a < pos.length/3 && ptr < max*6; a += step) {
-          const ax = pos[a*3], ay = pos[a*3+1], az = pos[a*3+2];
-          for (let b = a+1; b < a+45 && b < pos.length/3 && ptr < max*6; b += step) {
-            const bx = pos[b*3], by = pos[b*3+1], bz = pos[b*3+2];
-            const dx = ax - bx, dy = ay - by, dz = az - bz;
-            const d2 = dx*dx + dy*dy + dz*dz;
-            if (d2 < threshold*threshold) {
-              lbuf[ptr++] = ax; lbuf[ptr++] = ay; lbuf[ptr++] = az;
-              lbuf[ptr++] = bx; lbuf[ptr++] = by; lbuf[ptr++] = bz;
-            }
-          }
-        }
-        for (; ptr < max*6; ptr++) lbuf[ptr] = 0;
-        linesRef.current.mesh.geometry.setAttribute("position", new THREE.BufferAttribute(lbuf, 3));
-        linesRef.current.mesh.geometry.attributes.position.needsUpdate = true;
-      }
-
       // flash pulse
       if (flashRef.current.active) {
         flashRef.current.t += dt;
