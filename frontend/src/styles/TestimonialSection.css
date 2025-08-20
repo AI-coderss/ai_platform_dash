@@ -1,0 +1,152 @@
+/* TestimonialSection styles
+   - No shaders
+   - Uses your design tokens
+   - Unique tsm-* classes to avoid conflicts */
+
+/* Wrapper (page-safe, uses background token) */
+.tsm-wrapper {
+  position: relative;
+  z-index: 1;
+  padding: 48px 20px;
+  display: flex;
+  justify-content: center;
+  background: var(--bg-primary);
+  font-family: var(--font-family);
+}
+
+/* Glass container */
+.tsm-container {
+  width: 100%;
+  max-width: 56rem;
+  padding: 20px;
+  border-radius: 20px;
+
+  background: var(--bg-glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-normal);
+}
+
+.tsm-container:hover { box-shadow: var(--shadow-card-hover); }
+
+/* Grid */
+.tsm-grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .tsm-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+}
+
+/* Image stack (perspective for 3D rotateY) */
+.tsm-image-container {
+  position: relative;
+  width: 100%;
+  height: 24rem;
+  perspective: 1000px;
+}
+
+@media (max-width: 640px) {
+  .tsm-image-container { height: 16rem; }
+}
+
+/* Images created dynamically (same class applied) */
+.tsm-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  border-radius: 18px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+/* Content card (neutral glass, pulls from tokens) */
+.tsm-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-normal);
+}
+
+.tsm-content:hover { box-shadow: var(--shadow-card-hover); }
+
+/* Typography */
+.tsm-name {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.tsm-designation {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem 0;
+}
+
+.tsm-quote {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--text-accent);
+  margin: 0;
+}
+
+/* Word animation spans */
+.tsm-word { display: inline-block; }
+
+/* Controls (anchor tags, not <button>) */
+.tsm-arrows {
+  display: flex;
+  gap: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+.tsm-nav {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-button);
+  transition: var(--transition-normal);
+}
+
+.tsm-nav svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: var(--text-primary);
+  transition: var(--transition-normal);
+}
+
+.tsm-nav:hover {
+  transform: translateY(-1px) scale(1.05);
+  background: var(--btn-bg);
+  border-color: transparent;
+}
+
+.tsm-nav:hover svg { fill: var(--btn-text); }
+
+/* Dark theme inherits from your tokens automatically */
+[data-theme="dark"] .tsm-wrapper { background: var(--bg-primary); }

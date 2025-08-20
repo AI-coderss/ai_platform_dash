@@ -14,6 +14,7 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
+/* import TestimonialSection from "./components/TestimonialSection"; */
 
 
 // ⬇️ GSAP + SplitType (added)
@@ -1007,7 +1008,7 @@ const App = () => {
       <section id="policy" className="policy-section">
         <LaptopSection3D />
       </section>
-  
+      {/* <TestimonialSection /> */}
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>

@@ -1,9 +1,21 @@
+/* ===================== */
+/*     Section layout    */
+/* ===================== */
+
 .dsah-3d-wrap {
-  position: relative; /* card anchors to this container */
+  position: relative;                 /* card anchors to this container */
   width: 100%;
-  height: 100vh;
+  /* Stable height on mobile to avoid resize loops from URL bar show/hide */
+  min-height: 100vh;                  /* fallback */
+  height: 100svh;                     /* stable small viewport height */
   background: var(--bg-primary, #f6f8fc);
   overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+  .dsah-3d-wrap {
+    height: 100dvh;                   /* use dynamic viewport when supported */
+  }
 }
 
 #laptop {
@@ -13,7 +25,7 @@
   cursor: grab;
 }
 
-/* CSS3D layer; we toggle pointer-events only when pointer is over the screen */
+/* CSS3D layer; JS toggles pointer-events when the cursor is on the screen */
 .dsah-css3d-layer {
   position: absolute;
   inset: 0;
@@ -27,17 +39,19 @@
 /*    Policy Card UI     */
 /* ===================== */
 
+/* Card sits left; laptop pushed right by JS (macGroup.position.x) */
 .dsah-card-wrap {
-  position: absolute; /* scrolls with the component */
+  position: absolute;                 /* scrolls with the component only */
   left: clamp(24px, 5vw, 96px);
   top: 50%;
   transform: translateY(-50%);
-  z-index: 12;                 /* desktop: card above laptop */
-  pointer-events: none;        /* let the inner card own events */
+  z-index: 12;                        /* desktop: card above laptop */
+  pointer-events: none;               /* inner card handles events */
 }
 
 .dsah-card {
-  --token1: #0ea5e9; /* primary token colors */
+  /* particle token colors */
+  --token1: #0ea5e9;
   --token2: #22d3ee;
   --token3: #a78bfa;
 
@@ -66,7 +80,7 @@
   transform-style: preserve-3d;
 }
 
-/* particle canvas behind card content (CARD ONLY) */
+/* Particles layer lives under the card content (card-only) */
 .dsah-particles {
   position: absolute;
   inset: 0;
@@ -81,21 +95,21 @@
 
 .dsah-card-top {
   display: grid;
-  grid-template-columns: 1fr auto; /* title left, toggle right */
+  grid-template-columns: 1fr auto;    /* title left, toggle right */
   align-items: center;
   gap: 12px;
 }
 
 .dsah-ctrl-title {
-  font-size: 12px;                 /* compact title */
+  font-size: 12px;                    /* compact title */
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
   opacity: 0.95;
-  color: #60a5fa;                  /* light blue title */
+  color: #60a5fa;                     /* light blue “Our Policy” */
 }
 
-/* Policy content (high contrast for readability) */
+/* Policy copy (high contrast) */
 .dsah-policy {
   font-size: 14px;
   line-height: 1.58;
@@ -112,7 +126,7 @@
 .policy-list li + li { margin-top: 8px; }
 .policy-para { margin: 8px 0 0 0; }
 
-/* SplitType -> words become spans */
+/* SplitType -> words become spans (for GSAP word-by-word) */
 .policy-animate span {
   display: inline-block;
   will-change: transform, opacity;
@@ -127,7 +141,7 @@
   padding: 0;
   border: none;
   outline: none;
-  height: 36px;                /* compact but slightly taller for glass track */
+  height: 36px;                       /* compact but tall enough for glass */
   width: 74px;
   position: relative;
   display: inline-block;
@@ -156,7 +170,7 @@
   box-shadow: 0 2px 10px rgba(0,0,0,0.18) inset, 0 4px 18px rgba(0,0,0,0.12);
 }
 
-/* indicator dots (off/on) */
+/* Indicator dots (off/on) */
 .dsah-cam-label:before,
 .dsah-cam-label:after {
   content: "";
@@ -207,6 +221,7 @@
 /* ===================== */
 /*   Particles styling   */
 /* ===================== */
+
 .spark {
   position: absolute;
   left: 0; top: 0;
@@ -225,23 +240,23 @@
 }
 
 /* ===================== */
-/*     Mobile overrides  */
+/*   Mobile overrides    */
 /* ===================== */
 @media (max-width: 640px) {
-  /* Place the laptop ABOVE the card on mobile */
+  /* Ensure the laptop (canvas + CSS3D layer) renders ABOVE the card */
   #laptop {
     position: relative;
-    z-index: 30;               /* canvas above card */
+    z-index: 30;                       /* canvas above card */
   }
   .dsah-css3d-layer {
-    z-index: 31;               /* iframe layer above canvas & card */
+    z-index: 31;                       /* iframe layer above canvas & card */
   }
   .dsah-card-wrap {
     left: 12px;
     top: auto;
     bottom: 12px;
     transform: none;
-    z-index: 10;               /* card below laptop layers on mobile */
+    z-index: 10;                       /* card below laptop layers on mobile */
   }
   .dsah-card {
     width: calc(100vw - 24px);
