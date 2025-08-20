@@ -581,7 +581,7 @@ export default function LaptopSection3D() {
 
           <div className="dsah-policy">
             <ul className="policy-list policy-animate">
-              <li><strong>Continuous improvement:</strong> we iterate frequently to enhance accuracy, safety, and responsiveness.</li>
+              <li><strong>Continuous improvement:</strong> We are continuously improving and enhancing our AI-powered solutions.</li>
               <li><strong>User feedback first:</strong> patient and clinician input directly informs features and prioritization.</li>
               <li><strong>Responsible training:</strong> Continuously training our medical staff to ensure they’re up to date on AI tools.</li>
               <li><strong>Operational excellence:</strong> we monitor reliability, accuracy, and latency to keep care teams moving.</li>
