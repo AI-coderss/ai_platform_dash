@@ -13,6 +13,8 @@ import AudioPlayer from "./components/AudioPlayer";
 import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
+import LaptopSection3D from "./components/LaptopSection3D";
+
 
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
@@ -48,6 +50,7 @@ const NavBar = ({ theme, onToggleTheme }) => {
         <div className="topnav-links">
           <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
           <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
           <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
           <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
         </div>
@@ -1024,6 +1027,10 @@ const App = () => {
         </div>
       </section>
       <CardCarousel />
+      <section id="policy" className="policy-section">
+        <LaptopSection3D />
+      </section>
+  
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>
