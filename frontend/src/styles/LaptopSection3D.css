@@ -1,25 +1,21 @@
 /* ===================== */
-/*     Section layout    */
+/* Section layout     */
 /* ===================== */
 
 .dsah-3d-wrap {
-  position: relative;                 /* anchor for canvas + css3d + card */
+  position: relative; /* anchor for canvas + css3d + card */
   width: 100%;
   /* Stable height on mobile to avoid toolbar resize loops */
-  min-height: 100vh;                  /* fallback */
-  height: 100svh;                     /* stable small viewport height */
+  min-height: 100vh; /* fallback */
+  height: 100svh;    /* ✅ FIX: Use a stable viewport unit to prevent resize loops */
   background: var(--bg-primary, #f6f8fc);
   overflow: hidden;
-}
-
-@supports (height: 100dvh) {
-  .dsah-3d-wrap { height: 100dvh; }
 }
 
 /* ✅ Make the canvas absolutely fill the wrapper (no flow stretching) */
 #laptop {
   position: absolute;
-  inset: 0;                           /* top:0; right:0; bottom:0; left:0 */
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
   width: 100%;
   height: 100%;
   display: block;
@@ -31,21 +27,21 @@
   position: absolute;
   inset: 0;
   z-index: 5;
-  pointer-events: none;               /* JS will gate this */
+  pointer-events: none; /* JS will gate this */
   will-change: transform;
 }
 
 /* ===================== */
-/*    Policy Card UI     */
+/* Policy Card UI     */
 /* ===================== */
 
 .dsah-card-wrap {
-  position: absolute;                 /* scrolls with this component only */
+  position: absolute; /* scrolls with this component only */
   left: clamp(24px, 5vw, 96px);
   top: 50%;
   transform: translateY(-50%);
-  z-index: 12;                        /* desktop: card above laptop */
-  pointer-events: none;               /* inner card handles events */
+  z-index: 12; /* desktop: card above laptop */
+  pointer-events: none; /* inner card handles events */
 }
 
 .dsah-card {
@@ -68,12 +64,13 @@
   backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
   border: 1px solid rgba(255, 255, 255, 0.36);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.30);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.3);
 
   /* Readability */
   color: #0b1422;
-  text-shadow: 0 1px 0 rgba(255,255,255,.25);
-  font-family: var(--font-family, system-ui, -apple-system, Segoe UI, Roboto, Inter);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  font-family: var(--font-family, system-ui, -apple-system, Segoe UI, Roboto,
+      Inter);
 
   will-change: transform;
   transform-style: preserve-3d;
@@ -94,18 +91,18 @@
 
 .dsah-card-top {
   display: grid;
-  grid-template-columns: 1fr auto;    /* title left, toggle right */
+  grid-template-columns: 1fr auto; /* title left, toggle right */
   align-items: center;
   gap: 12px;
 }
 
 .dsah-ctrl-title {
-  font-size: 12px;                    /* compact title */
+  font-size: 12px; /* compact title */
   font-weight: 800;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0.95;
-  color: #60a5fa;                     /* light blue “Our Policy” */
+  color: #60a5fa; /* light blue “Our Policy” */
 }
 
 /* Policy copy (high contrast) */
@@ -118,9 +115,16 @@
   border-radius: 14px;
   padding: 16px 16px 18px;
 }
-.policy-list { margin: 0 0 12px 0; padding-left: 20px; }
-.policy-list li + li { margin-top: 8px; }
-.policy-para { margin: 8px 0 0 0; }
+.policy-list {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+}
+.policy-list li + li {
+  margin-top: 8px;
+}
+.policy-para {
+  margin: 8px 0 0 0;
+}
 
 /* SplitType -> words (for GSAP word-by-word) */
 .policy-animate span {
@@ -129,7 +133,7 @@
 }
 
 /* ===================== */
-/*   Glassmorphic Toggle */
+/* Glassmorphic Toggle */
 /* ===================== */
 
 .dsah-cam-switch {
@@ -144,9 +148,12 @@
 }
 .dsah-cam-switch:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(14,165,233,.35);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.35);
 }
-.dsah-cam-check { position: absolute; visibility: hidden; }
+.dsah-cam-check {
+  position: absolute;
+  visibility: hidden;
+}
 
 /* Track */
 .dsah-cam-label {
@@ -163,7 +170,8 @@
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.45);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.18) inset, 0 4px 18px rgba(0,0,0,0.12);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18) inset,
+    0 4px 18px rgba(0, 0, 0, 0.12);
 }
 
 /* Indicator dots */
@@ -172,82 +180,127 @@
   content: "";
   position: absolute;
   top: 11px;
-  width: 8px; height: 8px; border-radius: 10px;
-  transition: all .2s; z-index: 12;
+  width: 8px;
+  height: 8px;
+  border-radius: 10px;
+  transition: all 0.2s;
+  z-index: 12;
 }
 .dsah-cam-label:before {
   left: -14%;
-  background: radial-gradient(circle at 45%, rgb(255, 58, 58) 0%, rgb(255, 113, 113) 100%);
+  background: radial-gradient(
+    circle at 45%,
+    rgb(255, 58, 58) 0%,
+    rgb(255, 113, 113) 100%
+  );
   border: 1px solid #742323;
-  box-shadow: 0 1px 3px rgba(255, 67, 48, .45), 0 0 4px rgba(255, 159, 109, .4) inset;
+  box-shadow: 0 1px 3px rgba(255, 67, 48, 0.45),
+    0 0 4px rgba(255, 159, 109, 0.4) inset;
 }
 .dsah-cam-label:after {
   right: -14%;
-  background: radial-gradient(circle at 45%, rgba(60, 60, 60, .6) 0%, rgba(151, 151, 151, .6) 100%);
+  background: radial-gradient(
+    circle at 45%,
+    rgba(60, 60, 60, 0.6) 0%,
+    rgba(151, 151, 151, 0.6) 100%
+  );
   border: 1px solid #111;
-  box-shadow: 0 1px 3px rgba(20, 20, 20, .45);
+  box-shadow: 0 1px 3px rgba(20, 20, 20, 0.45);
 }
 
 /* Knob */
 .dsah-cam-label span {
-  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.65)
+  );
   border-radius: 22px;
-  border: 1px solid rgba(255,255,255,0.7);
-  box-shadow:
-    0 1px 1px rgba(255,255,255,0.7) inset,
-    0 -2px 6px rgba(0,0,0,0.08) inset,
-    0 4px 10px rgba(0,0,0,0.18);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7) inset,
+    0 -2px 6px rgba(0, 0, 0, 0.08) inset, 0 4px 10px rgba(0, 0, 0, 0.18);
   display: block;
   position: absolute;
-  left: 2px; top: 2px;
-  height: 28px; width: 32px;
-  transition: all .2s ease;
+  left: 2px;
+  top: 2px;
+  height: 28px;
+  width: 32px;
+  transition: all 0.2s ease;
 }
 /* ON */
-.dsah-cam-switch.is-on .dsah-cam-label span { left: 38px; }
+.dsah-cam-switch.is-on .dsah-cam-label span {
+  left: 38px;
+}
 .dsah-cam-switch.is-on .dsah-cam-label:before {
-  background: radial-gradient(circle at 45%, rgba(60, 60, 60, .6), rgba(151, 151, 151, .6));
-  border: 1px solid #111; box-shadow: 0 1px 3px rgba(20, 20, 20, .45);
+  background: radial-gradient(
+    circle at 45%,
+    rgba(60, 60, 60, 0.6),
+    rgba(151, 151, 151, 0.6)
+  );
+  border: 1px solid #111;
+  box-shadow: 0 1px 3px rgba(20, 20, 20, 0.45);
 }
 .dsah-cam-switch.is-on .dsah-cam-label:after {
   background: radial-gradient(circle at 45%, #86efac 0%, #86efac 100%);
-  border: 1px solid #065f46; box-shadow: 0 1px 3px #10b981, 0 0 4px #10b981 inset;
+  border: 1px solid #065f46;
+  box-shadow: 0 1px 3px #10b981, 0 0 4px #10b981 inset;
 }
 
 /* ===================== */
-/*   Particles styling   */
+/* Particles styling   */
 /* ===================== */
 
 .spark {
   position: absolute;
-  left: 0; top: 0;
-  width: 10px; height: 10px;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, var(--spark-color) 0%, transparent 70%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    var(--spark-color) 0%,
+    transparent 70%
+  );
   filter: saturate(140%);
   animation: spark-pop 1.8s ease-out forwards;
   transform: translate(-50%, -50%);
 }
 @keyframes spark-pop {
-  0%   { opacity: 0.95; transform: translate(-50%, -50%) scale(1); }
-  90%  { opacity: 0.25; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.9); }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.85); }
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  90% {
+    opacity: 0.25;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)))
+      scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y)))
+      scale(0.85);
+  }
 }
 
 /* ===================== */
-/*   Mobile overrides    */
+/* Mobile overrides    */
 /* ===================== */
 @media (max-width: 640px) {
   /* Ensure the laptop (canvas + CSS3D layer) renders ABOVE the card */
-  #laptop { z-index: 30; }
-  .dsah-css3d-layer { z-index: 31; }
+  #laptop {
+    z-index: 30;
+  }
+  .dsah-css3d-layer {
+    z-index: 31;
+  }
   .dsah-card-wrap {
     left: 12px;
     top: auto;
     bottom: 12px;
     transform: none;
-    z-index: 10;                      /* card below laptop layers on mobile */
+    z-index: 10; /* card below laptop layers on mobile */
   }
   .dsah-card {
     width: calc(100vw - 24px);
