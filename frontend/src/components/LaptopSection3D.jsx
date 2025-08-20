@@ -16,7 +16,7 @@ export default function LaptopSection3D() {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Card / UI refs
+  // Card / UI refs (unchanged)
   const cardWrapRef = useRef(null);
   const cardRef = useRef(null);
   const cardParticlesRef = useRef(null);
@@ -28,8 +28,8 @@ export default function LaptopSection3D() {
 
   // DOM/3D refs
   const videoElRef = useRef(null);
-  const ifrObjRef = useRef(null);
-  const screenMeshRef = useRef(null);
+  const ifrObjRef = useRef(null);     // CSS3DObject wrapper for the iframe
+  const screenMeshRef = useRef(null); // plane used for visibility tests
 
   const timelines = useRef({
     mainTl: null, laptopAppearTl: null, laptopOpeningTl: null,
@@ -96,7 +96,7 @@ export default function LaptopSection3D() {
 
     const macGroup = new THREE.Group();
     macGroup.position.z = -10;
-    macGroup.position.x = 18; // << push laptop further RIGHT for a significant gap
+    macGroup.position.x = 18; // keep the nice gap to the card
     scene.add(macGroup);
 
     const lidGroup = new THREE.Group(); macGroup.add(lidGroup);
@@ -105,7 +105,7 @@ export default function LaptopSection3D() {
     const cssRenderer = new CSS3DRenderer();
     cssRenderer.setSize(window.innerWidth, window.innerHeight);
     cssRenderer.domElement.className = "dsah-css3d-layer";
-    cssRenderer.domElement.style.pointerEvents = "none";
+    cssRenderer.domElement.style.pointerEvents = "none"; // gated dynamically
     wrapRef.current.appendChild(cssRenderer.domElement);
 
     const darkPlasticMaterial = new THREE.MeshStandardMaterial({
@@ -146,6 +146,7 @@ export default function LaptopSection3D() {
           }
         });
 
+        // Screen plane (for visibility test / light)
         const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(screenSize[0], screenSize[1]), screenMaterial);
         screenMesh.position.set(0, 10.5, -0.11);
         screenMesh.rotation.set(Math.PI, 0, 0);
@@ -163,35 +164,52 @@ export default function LaptopSection3D() {
         darkScreen.material = darkPlasticMaterial;
         lidGroup.add(darkScreen);
 
-        const wPx = 1440;
+        // =========================
+        // High-DPI, crisp CSS3D iFrame
+        // =========================
+        const dpr = Math.min(2.5, window.devicePixelRatio || 1); // cap to keep CPU reasonable
+        const baseWidth = 1440;
+        const wPx = Math.round(baseWidth * dpr);                 // render bigger inside, scale down
         const hPx = Math.round((wPx * screenSize[1]) / screenSize[0]);
 
         const wrapper = document.createElement("div");
-        wrapper.style.width = `${wPx}px`;
-        wrapper.style.height = `${hPx}px`;
-        wrapper.style.border = "0";
-        wrapper.style.overflow = "hidden";
-        wrapper.style.background = "black";
-        wrapper.style.backfaceVisibility = "hidden";
-        wrapper.style.webkitBackfaceVisibility = "hidden";
-        wrapper.style.transformStyle = "preserve-3d";
-        wrapper.style.pointerEvents = "auto";
+        Object.assign(wrapper.style, {
+          width: `${wPx}px`,
+          height: `${hPx}px`,
+          border: "0",
+          overflow: "hidden",
+          background: "black",
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          transformStyle: "preserve-3d",
+          willChange: "transform",
+          pointerEvents: "auto",
+          contain: "layout style paint",    // hint for crisper compositing
+        });
 
         const inner = document.createElement("div");
-        inner.style.width = "100%";
-        inner.style.height = "100%";
-        inner.style.transform = "scaleY(-1)";
-        inner.style.transformOrigin = "center center";
-        inner.style.backfaceVisibility = "hidden";
-        inner.style.webkitBackfaceVisibility = "hidden";
+        Object.assign(inner.style, {
+          width: "100%",
+          height: "100%",
+          transform: "scaleY(-1) translateZ(0)", // keep crisp
+          transformOrigin: "center center",
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          willChange: "transform",
+        });
 
         const iframe = document.createElement("iframe");
         iframe.src = IFRAME_URL;
-        iframe.style.width = "100%";
-        iframe.style.height = "100%";
-        iframe.style.border = "0";
-        iframe.style.background = "black";
-        iframe.style.pointerEvents = "auto";
+        Object.assign(iframe.style, {
+          width: "100%",
+          height: "100%",
+          border: "0",
+          background: "black",
+          pointerEvents: "auto",
+          transform: "translateZ(0)", // force its own layer
+        });
+        iframe.setAttribute("loading", "eager");
+        iframe.setAttribute("allow", "autoplay; clipboard-read; clipboard-write; fullscreen");
 
         inner.appendChild(iframe);
         wrapper.appendChild(inner);
@@ -205,6 +223,9 @@ export default function LaptopSection3D() {
         lidGroup.add(iframeObj);
         ifrObjRef.current = iframeObj;
 
+        // =========================
+        // Timelines (unchanged)
+        // =========================
         const floatingTl = gsap.timeline({ repeat: -1 })
           .to([lidGroup.position, bottomGroup.position], { duration: 1.5, y: "+=1", ease: "power1.inOut" }, 0)
           .to([lidGroup.position, bottomGroup.position], { duration: 1.5, y: "-=1", ease: "power1.inOut" })
@@ -247,6 +268,9 @@ export default function LaptopSection3D() {
         };
         timelines.current = { mainTl, laptopAppearTl, laptopOpeningTl, screenOnTl, cameraOnTl, floatingTl };
 
+        // =========================
+        // Render loop + front-face visibility
+        // =========================
         const tmpQ = new THREE.Quaternion();
         const tmpP = new THREE.Vector3();
         const screenNormalLocal = new THREE.Vector3(0, 0, -1);
@@ -280,47 +304,69 @@ export default function LaptopSection3D() {
         updateSceneSize();
         window.addEventListener("resize", updateSceneSize);
 
-        const toScreen = (v, out) => {
-          out.copy(v).project(camera);
-          return {
-            x: (out.x + 1) * 0.5 * window.innerWidth,
-            y: (1 - out.y) * 0.5 * window.innerHeight
-          };
+        // =========================
+        // Robust pointer gating (rect-based + hysteresis)
+        // =========================
+        const ENTER_PAD = -6;  // slight shrink for reliable "enter"
+        const EXIT_PAD  = 16;  // larger margin to stay locked while interacting
+        let sticky = false;
+
+        const insideRect = (x, y, rect, pad) => {
+          return (
+            x >= rect.left + pad &&
+            x <= rect.right - pad &&
+            y >= rect.top + pad &&
+            y <= rect.bottom - pad
+          );
         };
-        const vTemp = new THREE.Vector3();
-        const getScreenQuad2D = () => {
-          if (!screenMeshRef.current) return [];
-          const hw = screenSize[0] / 2, hh = screenSize[1] / 2;
-          const corners = [
-            new THREE.Vector3(-hw, -hh, 0),
-            new THREE.Vector3( hw, -hh, 0),
-            new THREE.Vector3( hw,  hh, 0),
-            new THREE.Vector3(-hw,  hh, 0),
-          ].map(p => screenMeshRef.current.localToWorld(p.clone()));
-          return corners.map(p => toScreen(p, vTemp));
-        };
-        const pointInPoly = (pt, poly) => {
-          if (poly.length < 3) return false;
-          let inside = false;
-          for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const xi = poly[i].x, yi = poly[i].y;
-            const xj = poly[j].x, yj = poly[j].y;
-            const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
-              (pt.x < (xj - xi) * (pt.y - yi) / ((yj - yi) || 1e-9) + xi);
-            if (intersect) inside = !inside;
-          }
-          return inside;
-        };
-        const onMove = (e) => {
-          if (camOnRef.current) {
+
+        const applyGating = (x, y) => {
+          if (!ifrObjRef.current?.element || camOnRef.current) {
             cssRenderer.domElement.style.pointerEvents = "none";
+            orbit.enabled = true;
             return;
           }
-          const poly = getScreenQuad2D();
-          const inside = pointInPoly({ x: e.clientX, y: e.clientY }, poly);
-          cssRenderer.domElement.style.pointerEvents = inside ? "auto" : "none";
+          const rect = ifrObjRef.current.element.getBoundingClientRect();
+          // If already sticky, only release when clearly outside with EXIT_PAD
+          if (sticky) {
+            const stillInside = insideRect(x, y, rect, -EXIT_PAD);
+            if (!stillInside) {
+              sticky = false;
+              cssRenderer.domElement.style.pointerEvents = "none";
+              orbit.enabled = true;
+            } else {
+              cssRenderer.domElement.style.pointerEvents = "auto";
+              orbit.enabled = false;
+            }
+            return;
+          }
+
+          // Not sticky yet: enter only if within the more conservative ENTER_PAD
+          const isInside = insideRect(x, y, rect, -ENTER_PAD);
+          if (isInside) {
+            sticky = true;
+            cssRenderer.domElement.style.pointerEvents = "auto";
+            orbit.enabled = false;
+          } else {
+            cssRenderer.domElement.style.pointerEvents = "none";
+            orbit.enabled = true;
+          }
         };
+
+        const onMove = (e) => applyGating(e.clientX, e.clientY);
+        const onTouchMove = (e) => {
+          if (e.touches && e.touches[0]) applyGating(e.touches[0].clientX, e.touches[0].clientY);
+        };
+        const onLeave = () => {
+          sticky = false;
+          cssRenderer.domElement.style.pointerEvents = "none";
+          orbit.enabled = true;
+        };
+
         window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseleave", onLeave);
+        window.addEventListener("touchmove", onTouchMove, { passive: true });
+        window.addEventListener("touchend", onLeave, { passive: true });
 
         const waitForPlaying = () =>
           new Promise((resolve) => {
@@ -330,13 +376,14 @@ export default function LaptopSection3D() {
             videoEl.addEventListener("playing", onPlay, { once: true });
           });
 
+        // Camera toggle (unchanged logic; ensures iframe hidden when cam is ON)
         api.current.setCamera = async (v) => {
           camOnRef.current = v;
           if (ifrObjRef.current?.element) {
             ifrObjRef.current.element.style.visibility = v ? "hidden" : "visible";
             ifrObjRef.current.element.style.pointerEvents = v ? "none" : "auto";
           }
-          cssRenderer.domElement.style.pointerEvents = "none";
+          cssRenderer.domElement.style.pointerEvents = v ? "none" : cssRenderer.domElement.style.pointerEvents;
 
           if (v) {
             try {
@@ -380,6 +427,9 @@ export default function LaptopSection3D() {
         const cleanup = () => {
           window.removeEventListener("resize", updateSceneSize);
           window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseleave", onLeave);
+          window.removeEventListener("touchmove", onTouchMove);
+          window.removeEventListener("touchend", onLeave);
           if (videoEl?.srcObject) {
             const tracks = videoEl.srcObject.getTracks?.() || [];
             tracks.forEach(t => t.stop());
@@ -395,13 +445,12 @@ export default function LaptopSection3D() {
     );
 
     // =========================
-    // CARD: animations + tilt + particles (CARD ONLY)
+    // CARD: animations + tilt + particles (unchanged)
     // =========================
     const card = cardRef.current;
     const wrap = cardWrapRef.current;
     const cardParticles = cardParticlesRef.current;
 
-    // Word-by-word continuous animation
     const targets = wrap?.querySelectorAll(".policy-animate");
     if (targets && targets.length) {
       targets.forEach((node, idx) => {
@@ -422,7 +471,6 @@ export default function LaptopSection3D() {
       });
     }
 
-    // Card hover tilt
     const MAX_RX = 6, MAX_RY = 10;
     const onMoveTilt = (e) => {
       const rect = card.getBoundingClientRect();
@@ -448,7 +496,6 @@ export default function LaptopSection3D() {
     card.addEventListener("mousemove", onMoveTilt);
     card.addEventListener("mouseleave", onLeaveTilt);
 
-    // Particles (only within the card)
     const rand = (min, max) => Math.random() * (max - min) + min;
     const getRandomTransitionValue = () => `${rand(-200, 200)}px`;
     let rafPending = false;
@@ -463,7 +510,6 @@ export default function LaptopSection3D() {
       dot.style.setProperty("--x", getRandomTransitionValue());
       dot.style.setProperty("--y", getRandomTransitionValue());
 
-      // pick a token color (from card CSS vars)
       const styles = getComputedStyle(card);
       const palette = [
         styles.getPropertyValue("--token1").trim() || "#5B8CFF",
@@ -492,12 +538,10 @@ export default function LaptopSection3D() {
 
     return () => {
       (wrapRef.current?.cleanupLaptop || (() => {}))();
-
       animateTimelines.current.forEach(t => t.kill());
       animateTimelines.current = [];
       animatedNodes.current.forEach(s => s.revert());
       animatedNodes.current = [];
-
       if (card) {
         card.removeEventListener("mousemove", onMoveTilt);
         card.removeEventListener("mouseleave", onLeaveTilt);
@@ -539,7 +583,7 @@ export default function LaptopSection3D() {
             <ul className="policy-list policy-animate">
               <li><strong>Continuous improvement:</strong> we iterate frequently to enhance accuracy, safety, and responsiveness.</li>
               <li><strong>User feedback first:</strong> patient and clinician input directly informs features and prioritization.</li>
-              <li><strong>Responsible training:</strong> Continuously training our medical staff to ensure that they are well acquainted with the latest AI tools.</li>
+              <li><strong>Responsible training:</strong> Continuously training our medical staff to ensure they’re up to date on AI tools.</li>
               <li><strong>Operational excellence:</strong> we monitor reliability, accuracy, and latency to keep care teams moving.</li>
             </ul>
             <p className="policy-para policy-animate">
@@ -551,5 +595,4 @@ export default function LaptopSection3D() {
     </section>
   );
 }
-
 
