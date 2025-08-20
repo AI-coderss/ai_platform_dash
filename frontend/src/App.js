@@ -129,9 +129,10 @@ const NavBar = ({ theme, onToggleTheme }) => {
 
       <div className="topnav-mobile">
         <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
-        <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
-        <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
-        <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
       </div>
     </nav>
   );
