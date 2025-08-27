@@ -11,7 +11,17 @@
 }
 
 @media (max-width: 1024px){ :root{ --card-h: 258px; } }
-@media (max-width: 640px){ :root{ --card-h: 248px; } }
+
+/* 🔼 MOBILE-ONLY HEIGHT BUMP (phones ≤ 640px) */
+@media (max-width: 640px){
+  :root{
+    /* Was 248px — now much taller on phones */
+    --card-h: clamp(360px, 78vh, 460px);
+    /* Optional: bring the slider a bit closer to content on phones
+       (tweak or remove if you prefer original spacing) */
+    --cardslider-mt: 180px;
+  }
+}
 
 /* ===== Background canvas layer ===== */
 .dots-wrap{

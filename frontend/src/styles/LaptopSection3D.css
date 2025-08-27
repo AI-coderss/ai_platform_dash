@@ -1,65 +1,90 @@
+:root{
+  /* Desktop tokens (unchanged) */
+  --pad: 24px;
+  --radius: 18px;
+  --card-min-h: 500px;
+  --card-gap: 18px;
+}
+
 /* ===================== */
-/* Section layout     */
+/* Section layout        */
 /* ===================== */
 
 .dsah-3d-wrap {
-  position: relative; /* anchor for canvas + css3d + card */
+  position: relative;             /* anchor for canvas + css3d + card */
   width: 100%;
-  /* Stable height on mobile to avoid toolbar resize loops */
-  min-height: 100vh; /* fallback */
-  height: 100svh;    /* ✅ FIX: Use a stable viewport unit to prevent resize loops */
   background: var(--bg-primary, #f6f8fc);
   overflow: hidden;
+
+  /* Desktop: keep your original full-viewport behavior */
+  min-height: 100vh;              /* fallback */
+  height: 100svh;                 /* ✅ stable small viewport unit */
+  contain: layout paint size;     /* isolate reflow/paint and stop bubbling */
+  overscroll-behavior: contain;   /* prevent pull-to-refresh from shifting layout */
 }
 
-/* ✅ Make the canvas absolutely fill the wrapper (no flow stretching) */
+/* ✅ Canvas absolutely fills wrapper (desktop) */
 #laptop {
   position: absolute;
-  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  inset: 0;                       /* top:0; right:0; bottom:0; left:0 */
   width: 100%;
   height: 100%;
   display: block;
   cursor: grab;
+  touch-action: none;
 }
 
-/* ✅ Make the CSS3D layer match exactly the same box */
+/* ✅ CSS3D layer aligned 1:1 with canvas (desktop) */
 .dsah-css3d-layer {
   position: absolute;
   inset: 0;
   z-index: 5;
-  pointer-events: none; /* JS will gate this */
-  will-change: transform;
+  pointer-events: none;           /* JS can toggle if needed */
+}
+
+/* Prefer 100svh when supported */
+@supports (height: 100svh) {
+  .dsah-3d-wrap {
+    min-height: 100svh;
+    height: 100svh;
+  }
 }
 
 /* ===================== */
-/* Policy Card UI     */
+/* Policy Card UI        */
 /* ===================== */
 
 .dsah-card-wrap {
-  position: absolute; /* scrolls with this component only */
+  position: absolute;             /* desktop: card above laptop */
   left: clamp(24px, 5vw, 96px);
   top: 50%;
   transform: translateY(-50%);
-  z-index: 12; /* desktop: card above laptop */
-  pointer-events: none; /* inner card handles events */
+  z-index: 12;
+  pointer-events: none;           /* inner card handles events */
 }
 
 .dsah-card {
-  /* particle token colors */
+  /* Particle token colors */
   --token1: #0ea5e9;
   --token2: #22d3ee;
   --token3: #a78bfa;
 
   position: relative;
   pointer-events: auto;
-  width: clamp(380px, 32vw, 600px);
-  min-height: 500px;
-  display: grid;
-  gap: 18px;
-  padding: 22px 24px;
-  border-radius: 18px;
 
-  /* Glassmorphism */
+  /* Shrink width using clamp */
+  width: clamp(340px, 32vw, 600px);
+
+  /* Reduce min height + cap with max-height to prevent viewport push */
+  min-height: clamp(360px, 48svh, var(--card-min-h));
+  max-height: clamp(420px, 72svh, 640px);
+
+  display: grid;
+  gap: var(--card-gap);
+  padding: clamp(16px, 2.2vw, var(--pad));
+  border-radius: var(--radius);
+
+  /* Glass */
   background: rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(20px) saturate(170%);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
@@ -69,11 +94,11 @@
   /* Readability */
   color: #0b1422;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-  font-family: var(--font-family, system-ui, -apple-system, Segoe UI, Roboto,
-      Inter);
+  font-family: var(--font-family, system-ui, -apple-system, Segoe UI, Roboto, Inter);
 
-  will-change: transform;
-  transform-style: preserve-3d;
+  /* Keep internal scroll rather than growing the container height */
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 /* Particles layer under card content */
@@ -107,13 +132,13 @@
 
 /* Policy copy (high contrast) */
 .dsah-policy {
-  font-size: 14px;
+  font-size: clamp(13px, 1.8vw, 14px);
   line-height: 1.58;
   color: #0b1422;
   background: rgba(255, 255, 255, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 14px;
-  padding: 16px 16px 18px;
+  padding: clamp(12px, 1.8vw, 16px) clamp(12px, 2vw, 16px) clamp(14px, 2.1vw, 18px);
 }
 .policy-list {
   margin: 0 0 12px 0;
@@ -129,11 +154,10 @@
 /* SplitType -> words (for GSAP word-by-word) */
 .policy-animate span {
   display: inline-block;
-  will-change: transform, opacity;
 }
 
 /* ===================== */
-/* Glassmorphic Toggle */
+/* Glassmorphic Toggle   */
 /* ===================== */
 
 .dsah-cam-switch {
@@ -247,7 +271,7 @@
 }
 
 /* ===================== */
-/* Particles styling   */
+/* Particles styling     */
 /* ===================== */
 
 .spark {
@@ -285,25 +309,80 @@
 }
 
 /* ===================== */
-/* Mobile overrides    */
+/* Mobile overrides      */
 /* ===================== */
+/* Phones: stack rows — laptop (row 1) then card (row 2),
+   ABSOLUTE CENTER the laptop and scale down so it’s not clipped. */
 @media (max-width: 640px) {
-  /* Ensure the laptop (canvas + CSS3D layer) renders ABOVE the card */
-  #laptop {
-    z-index: 30;
+  :root{
+    --laptop-h-mobile: clamp(170px, 46vw, 230px);  /* laptop strip height */
+    --laptop-scale-mobile: 0.86;                   /* scale whole canvas */
+    --laptop-center-nudge: -10vw;                  /* fine-tune centering (− = left) */
   }
+
+  /* Switch section to auto height for stacking */
+  .dsah-3d-wrap {
+    height: auto;
+    min-height: auto;
+    contain: layout paint;
+    overflow: visible;
+
+    /* center children horizontally */
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    row-gap: 12px;
+  }
+
+  /* Laptop becomes a centered block (row 1) */
+  #laptop,
   .dsah-css3d-layer {
-    z-index: 31;
+    position: relative;
+    inset: auto;
+    width: min(92vw, 560px);
+    height: var(--laptop-h-mobile);
+    margin: 0;
+    display: block;
+    z-index: 1;
+
+    /* hard center + compensating nudge for model's internal X-offset */
+    left: 50%;
+    transform-origin: center center;
+    transform: translate3d(calc(-50% + var(--laptop-center-nudge)), 0, 0)
+               scale(var(--laptop-scale-mobile));
+    will-change: transform;
   }
+
+  /* Card follows in normal flow (row 2), centered */
   .dsah-card-wrap {
-    left: 12px;
+    position: relative;
+    left: auto;
     top: auto;
-    bottom: 12px;
     transform: none;
-    z-index: 10; /* card below laptop layers on mobile */
+    width: min(94vw, 620px);
+    margin: 0 auto;
+    z-index: 2;
+    pointer-events: none; /* outer inert; inner card handles events */
   }
+
   .dsah-card {
-    width: calc(100vw - 24px);
-    min-height: 420px;
+    width: 100%;
+    min-height: clamp(260px, 56svh, 440px);
+    max-height: clamp(300px, 70svh, 520px);
+    padding: clamp(14px, 3.2vw, 18px);
+    gap: clamp(12px, 2.6vw, 16px);
+    overflow: auto;
+    overscroll-behavior: contain;
   }
+
+  .dsah-policy {
+    font-size: clamp(12px, 3.4vw, 14px);
+    line-height: 1.52;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .spark { animation: none; }
+  .dsah-card, .dsah-cam-label span { transition: none; }
 }
