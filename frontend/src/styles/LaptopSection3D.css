@@ -294,7 +294,6 @@
 @keyframes spark-pop {
   0% {
     opacity: 0.95;
-    transform: translate(-50%, -50%) scale(1);
   }
   90% {
     opacity: 0.25;
@@ -309,75 +308,12 @@
 }
 
 /* ===================== */
-/* Mobile overrides      */
+/* Mobile & small devices */
+/* Completely hide the entire section on small screens */
 /* ===================== */
-/* Phones: stack rows — laptop (row 1) then card (row 2),
-   ABSOLUTE CENTER the laptop and scale down so it’s not clipped. */
-@media (max-width: 640px) {
-  :root{
-    --laptop-h-mobile: clamp(170px, 46vw, 230px);  /* laptop strip height */
-    --laptop-scale-mobile: 0.86;                   /* scale whole canvas */
-    --laptop-center-nudge: -10vw;                  /* fine-tune centering (− = left) */
-  }
-
-  /* Switch section to auto height for stacking */
+@media (max-width: 768px) {
   .dsah-3d-wrap {
-    height: auto;
-    min-height: auto;
-    contain: layout paint;
-    overflow: visible;
-
-    /* center children horizontally */
-    display: grid;
-    justify-items: center;
-    align-content: start;
-    row-gap: 12px;
-  }
-
-  /* Laptop becomes a centered block (row 1) */
-  #laptop,
-  .dsah-css3d-layer {
-    position: relative;
-    inset: auto;
-    width: min(92vw, 560px);
-    height: var(--laptop-h-mobile);
-    margin: 0;
-    display: block;
-    z-index: 1;
-
-    /* hard center + compensating nudge for model's internal X-offset */
-    left: 50%;
-    transform-origin: center center;
-    transform: translate3d(calc(-50% + var(--laptop-center-nudge)), 0, 0)
-               scale(var(--laptop-scale-mobile));
-    will-change: transform;
-  }
-
-  /* Card follows in normal flow (row 2), centered */
-  .dsah-card-wrap {
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: none;
-    width: min(94vw, 620px);
-    margin: 0 auto;
-    z-index: 2;
-    pointer-events: none; /* outer inert; inner card handles events */
-  }
-
-  .dsah-card {
-    width: 100%;
-    min-height: clamp(260px, 56svh, 440px);
-    max-height: clamp(300px, 70svh, 520px);
-    padding: clamp(14px, 3.2vw, 18px);
-    gap: clamp(12px, 2.6vw, 16px);
-    overflow: auto;
-    overscroll-behavior: contain;
-  }
-
-  .dsah-policy {
-    font-size: clamp(12px, 3.4vw, 14px);
-    line-height: 1.52;
+    display: none !important;   /* remove from layout & not shown */
   }
 }
 
