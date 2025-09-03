@@ -9,7 +9,7 @@ import "../styles/ChatInputWidget.css";
  * Change to "http://localhost:5050" for local dev if needed.
  */
 const API_BASE = "https://ai-platform-dsah-backend-chatbot.onrender.com";
-const SDP_URL = `${API_BASE}/api/rtc-transcribe-connect`;
+const SDP_URL   = `${API_BASE}/api/rtc-transcribe-connect`;
 
 const ChatInputWidget = ({ onSendMessage }) => {
   const [inputText, setInputText] = useState("");
@@ -18,9 +18,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
   const textAreaRef = useRef(null);
   const transcriptionRef = useRef("");
   const pcRef = useRef(null);
-  const dcRef = useRef(null);
   const streamRef = useRef(null);
-
   const isRecording = state === "recording";
 
   const adjustTextAreaHeight = (reset = false) => {
@@ -30,7 +28,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
       textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
     }
   };
-
   useEffect(() => adjustTextAreaHeight(), []);
 
   // Wait for ICE gathering to complete so candidates are present in offer SDP
@@ -44,10 +41,14 @@ const ChatInputWidget = ({ onSendMessage }) => {
         }
       };
       pc.addEventListener("icegatheringstatechange", onChange);
-      setTimeout(resolve, 2000); // safety
+      // Safety timeout: proceed even if we don't see "complete"
+      setTimeout(() => {
+        pc.removeEventListener("icegatheringstatechange", onChange);
+        resolve();
+      }, 3000);
     });
 
-  // Handle transcription events coming over the data channel
+  // Handle transcription messages arriving over the server-created data channel
   const handleTranscriptEvent = (evt) => {
     try {
       const msg = JSON.parse(evt.data);
@@ -98,10 +99,12 @@ const ChatInputWidget = ({ onSendMessage }) => {
     setInputText("");
     adjustTextAreaHeight(true);
 
+    let pc;
     try {
       // 1) Build RTCPeerConnection
-      const pc = new RTCPeerConnection({
+      pc = new RTCPeerConnection({
         iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+        // bundlePolicy: "max-bundle", // optional
       });
       pcRef.current = pc;
 
@@ -112,12 +115,15 @@ const ChatInputWidget = ({ onSendMessage }) => {
         }
       };
 
-      // 2) Data channel for transcript events
-      const dc = pc.createDataChannel("oai-events");
-      dcRef.current = dc;
-      dc.onmessage = handleTranscriptEvent;
+      // The server will create the "oai-events" data channel; listen for it.
+      pc.ondatachannel = (event) => {
+        const ch = event.channel;
+        if (!ch) return;
+        // OpenAI sends events on a channel typically named "oai-events"
+        ch.onmessage = handleTranscriptEvent;
+      };
 
-      // 3) Get mic stream
+      // 2) Get mic stream & add as sendonly transceiver
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -126,48 +132,47 @@ const ChatInputWidget = ({ onSendMessage }) => {
         }
       });
       streamRef.current = stream;
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
-      // 4) Create offer, wait for ICE, send to backend
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: false,
-        offerToReceiveVideo: false
-      });
+      // Ensure a single audio m-line with sendonly direction
+      const [track] = stream.getAudioTracks();
+      pc.addTransceiver(track, { direction: "sendonly" });
+      pc.addTrack(track, stream);
+
+      // 3) Create offer, wait for ICE, send to backend (NO legacy flags)
+      const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       await waitForIceGatheringComplete(pc);
 
       const resp = await fetch(SDP_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/sdp" },
-        body: pc.localDescription.sdp,
+        headers: {
+          "Content-Type": "application/sdp",
+          "Cache-Control": "no-cache"
+        },
+        // VERY IMPORTANT: send the EXACT SDP (no transforms). Chrome will include \r\n.
+        body: pc.localDescription.sdp
       });
 
-      // This endpoint returns TEXT (SDP), not JSON
-      const body = await resp.text();
+      const body = await resp.text(); // answer SDP as TEXT
       if (!resp.ok) {
         console.error("SDP exchange failed:", body);
         throw new Error(`SDP exchange failed: ${resp.status}`);
       }
 
-      // Normalize line endings to CRLF to satisfy strict SDP parsers
-      const normalized = body.replace(/\r?\n/g, "\r\n").trim();
-      if (!normalized.startsWith("v=")) {
-        console.error("Non-SDP response from backend:", normalized);
+      // DO NOT normalize or trim line-endings — pass the SDP back exactly
+      if (!body.startsWith("v=")) {
+        console.error("Non-SDP response from backend (prefix):", body.slice(0, 80));
         throw new Error("Backend returned non-SDP body (see console)");
       }
 
-      await pc.setRemoteDescription({ type: "answer", sdp: normalized });
+      await pc.setRemoteDescription({ type: "answer", sdp: body });
       setState("recording");
     } catch (err) {
       console.error("Start transcription error:", err);
       // Cleanup
-      try { dcRef.current?.close(); } catch {}
-      try {
-        pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop());
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch {}
+      try { pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop()); } catch {}
+      try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
       try { pcRef.current?.close(); } catch {}
-      dcRef.current = null;
       pcRef.current = null;
       streamRef.current = null;
       setState("idle");
@@ -175,13 +180,9 @@ const ChatInputWidget = ({ onSendMessage }) => {
   };
 
   const stopLiveTranscription = () => {
-    try { dcRef.current?.close(); } catch {}
-    try {
-      pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop());
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    } catch {}
+    try { pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop()); } catch {}
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
     try { pcRef.current?.close(); } catch {}
-    dcRef.current = null;
     pcRef.current = null;
     streamRef.current = null;
     setState("idle");
@@ -254,3 +255,4 @@ const ChatInputWidget = ({ onSendMessage }) => {
 };
 
 export default ChatInputWidget;
+

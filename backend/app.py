@@ -230,7 +230,6 @@ Response: {ai_response}
     return jsonify({"card_id": card_id})
 
 # === Real-Time Transcription with OpenAI's API Using WebRTC ===
-
 OAI_BASE = "https://api.openai.com/v1"
 COMMON_JSON_HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -249,16 +248,16 @@ def rtc_transcribe_connect():
     We:
       1) Create a Realtime Transcription Session -> ephemeral client_secret
       2) POST the browser SDP to OpenAI Realtime WebRTC endpoint with ?intent=transcription
-         (DO NOT pass model here; model is defined by the session)
+         (Do NOT pass model here; model is defined by the session)
       3) Return the answer SDP (application/sdp) back to the browser **as raw bytes** (no decoding/strip)
     """
     offer_sdp = request.get_data()  # raw bytes; don't decode here
     if not offer_sdp:
-        return Response("No SDP provided", status=400)
+        return Response("No SDP provided", status=400, mimetype="text/plain")
 
-    # 1) Create ephemeral transcription session (minimal, documented fields only)
+    # 1) Create ephemeral transcription session
+    # NOTE: Do NOT force input_audio_format here; WebRTC uses RTP/Opus.
     session_payload = {
-        "input_audio_format": "pcm16",
         "input_audio_transcription": {
             "model": "gpt-4o-transcribe"
         },
@@ -268,7 +267,7 @@ def rtc_transcribe_connect():
             "prefix_padding_ms": 300,
             "silence_duration_ms": 500
         },
-        "input_audio_noise_reduction": { "type": "near_field" }
+        "input_audio_noise_reduction": {"type": "near_field"}
     }
 
     try:
@@ -280,27 +279,30 @@ def rtc_transcribe_connect():
         )
     except Exception as e:
         log.exception("Failed to create transcription session")
-        return Response(f"Session error: {e}", status=502)
+        return Response(f"Session error: {e}", status=502, mimetype="text/plain")
 
     if not sess.ok:
         log.error("Session create failed (%s): %s", sess.status_code, sess.text)
-        return Response(sess.text or "Failed to create session", status=sess.status_code)
+        return Response(sess.text or "Failed to create session",
+                        status=sess.status_code, mimetype="text/plain")
 
     client_secret = (sess.json().get("client_secret") or {}).get("value")
     if not client_secret:
         log.error("Missing client_secret in session response")
-        return Response("Missing client_secret", status=502)
+        return Response("Missing client_secret", status=502, mimetype="text/plain")
 
     # 2) Exchange SDP with Realtime endpoint using ephemeral secret
-    # IMPORTANT: Do NOT send model here. Use only intent=transcription.
     sdp_headers = {
         "Authorization": f"Bearer {client_secret}",
         "Content-Type": "application/sdp",
         "OpenAI-Beta": "realtime=v1",
+        # Some proxies try to gzip/modify text; be explicit:
+        "Cache-Control": "no-cache"
     }
     upstream_url = f"{OAI_BASE}/realtime"
     params = {"intent": "transcription"}
-    log.info("Posting SDP offer to %s with params=%s", upstream_url, params)
+    log.info("Posting SDP offer to %s with params=%s (offer %d bytes)",
+             upstream_url, params, len(offer_sdp or b""))
 
     try:
         # Use the raw bytes we received; requests will send them as-is.
@@ -313,22 +315,31 @@ def rtc_transcribe_connect():
         )
     except Exception as e:
         log.exception("SDP exchange error")
-        return Response(f"SDP exchange error: {e}", status=502)
+        return Response(f"SDP exchange error: {e}", status=502, mimetype="text/plain")
 
     if not ans.ok:
         # Pass upstream body so the frontend can log exact error text
         log.error("SDP exchange failed (%s): %s", ans.status_code, ans.text)
-        return Response(ans.text or "SDP exchange failed", status=ans.status_code)
+        return Response(ans.content or b"SDP exchange failed",
+                        status=ans.status_code,
+                        mimetype="application/sdp" if ans.headers.get("Content-Type","").startswith("application/sdp") else "text/plain")
 
     # 3) Return the raw SDP answer bytes exactly as received (no text decode, no strip)
-    answer_bytes = ans.content
+    answer_bytes = ans.content or b""
+    log.info("Upstream answered SDP (%d bytes)", len(answer_bytes))
+
     if not answer_bytes.startswith(b"v="):
         # Not an SDP body; surface it for easier debugging
         preview = answer_bytes[:2000]
         log.error("Upstream returned non-SDP body (first bytes): %r", preview)
         return Response(answer_bytes, status=502, mimetype="text/plain")
 
-    return Response(answer_bytes, status=200, mimetype="application/sdp")
+    resp = Response(answer_bytes, status=200, mimetype="application/sdp")
+    # Helpful for some browsers to read the content-type:
+    resp.headers["Content-Disposition"] = "inline; filename=answer.sdp"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
 
 # === Main Execution ===
 if __name__ == "__main__":
