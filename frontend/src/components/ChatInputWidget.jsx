@@ -14,13 +14,17 @@ const SDP_URL = `${API_BASE}/api/rtc-transcribe-connect`;
 const ChatInputWidget = ({ onSendMessage }) => {
   const [inputText, setInputText] = useState("");
   const [state, setState] = useState("idle"); // idle | connecting | recording
+  const [statusHint, setStatusHint] = useState("Idle");
 
   const textAreaRef = useRef(null);
   const transcriptionRef = useRef("");
   const pcRef = useRef(null);
   const streamRef = useRef(null);
+  const dcRef = useRef(null);
 
   const isRecording = state === "recording";
+
+  const log = (...args) => console.log("[RTC]", ...args);
 
   const adjustTextAreaHeight = (reset = false) => {
     if (!textAreaRef.current) return;
@@ -29,7 +33,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
       textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
     }
   };
-
   useEffect(() => adjustTextAreaHeight(), []);
 
   // Wait for ICE gathering to complete so candidates are present in offer SDP
@@ -50,10 +53,17 @@ const ChatInputWidget = ({ onSendMessage }) => {
       }, 3000);
     });
 
-  // Handle transcription events arriving over the server-created data channel
+  // Handle transcription messages arriving over the oai-events data channel
   const handleTranscriptEvent = (evt) => {
     try {
-      const msg = JSON.parse(evt.data);
+      const raw = typeof evt.data === "string" ? evt.data : "";
+      if (!raw) return;
+      const msg = JSON.parse(raw);
+
+      // Helpful debug
+      if (msg.type && !/delta|completed/.test(msg.type)) {
+        log("event:", msg.type);
+      }
 
       // partials
       if (
@@ -89,7 +99,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
       if (msg.type === "error" || msg.error) {
         console.error("Realtime error:", msg.error || msg);
       }
-    } catch {
+    } catch (e) {
       // Non-JSON frames can occur; ignore
     }
   };
@@ -97,6 +107,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
   const startLiveTranscription = async () => {
     if (state !== "idle") return;
     setState("connecting");
+    setStatusHint("Connecting…");
     transcriptionRef.current = "";
     setInputText("");
     adjustTextAreaHeight(true);
@@ -110,19 +121,38 @@ const ChatInputWidget = ({ onSendMessage }) => {
 
       pc.oniceconnectionstatechange = () => {
         const s = pc.iceConnectionState;
+        log("ICE:", s);
+        if (s === "connected") setStatusHint("Connected");
         if (s === "failed" || s === "disconnected") {
           console.warn("ICE state:", s);
         }
       };
 
-      // Let the server create the "oai-events" data channel; we only listen.
-      pc.ondatachannel = (event) => {
-        const ch = event.channel;
-        if (!ch) return;
-        ch.onmessage = handleTranscriptEvent;
+      pc.onconnectionstatechange = () => {
+        log("PC State:", pc.connectionState);
       };
 
-      // 2) Get mic stream
+      // 2) Create the events data channel from the CLIENT (reliable)
+      const dc = pc.createDataChannel("oai-events", { ordered: true });
+      dcRef.current = dc;
+
+      dc.onopen = () => {
+        log("DataChannel open");
+        setStatusHint("Listening… Speak now");
+      };
+      dc.onclose = () => log("DataChannel closed");
+      dc.onerror = (e) => console.error("DataChannel error:", e);
+      dc.onmessage = handleTranscriptEvent;
+
+      // (Optional) also listen if server creates additional channels
+      pc.ondatachannel = (event) => {
+        log("ondatachannel from server:", event.channel?.label);
+        if (event.channel?.label === "oai-events") {
+          event.channel.onmessage = handleTranscriptEvent;
+        }
+      };
+
+      // 3) Get mic stream
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -132,14 +162,12 @@ const ChatInputWidget = ({ onSendMessage }) => {
       });
       streamRef.current = stream;
 
-      // 3) Attach the audio track using ONE sender only (fixes your error)
+      // 4) Attach ONE sender (sendonly) — no addTrack duplication
       const [track] = stream.getAudioTracks();
-      // Create a transceiver with explicit direction and attach the track:
       const tx = pc.addTransceiver("audio", { direction: "sendonly" });
       await tx.sender.replaceTrack(track);
-      // DO NOT also call pc.addTrack(track, stream) — that caused the error.
 
-      // 4) Create offer, wait for ICE, POST offer SDP as-is
+      // 5) Create offer, wait for ICE, POST offer SDP as-is
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       await waitForIceGatheringComplete(pc);
@@ -160,12 +188,14 @@ const ChatInputWidget = ({ onSendMessage }) => {
         throw new Error(`SDP exchange failed: ${resp.status}`);
       }
       if (!body.startsWith("v=")) {
-        console.error("Non-SDP response from backend:", body.slice(0, 100));
+        console.error("Non-SDP response from backend:", body.slice(0, 120));
         throw new Error("Backend returned non-SDP body (see console)");
       }
 
       await pc.setRemoteDescription({ type: "answer", sdp: body });
       setState("recording");
+      setStatusHint("Listening… Speak now");
+      log("Remote description set; ready to receive events.");
     } catch (err) {
       console.error("Start transcription error:", err);
       // Cleanup
@@ -176,27 +206,30 @@ const ChatInputWidget = ({ onSendMessage }) => {
         streamRef.current?.getTracks().forEach((t) => t.stop());
       } catch {}
       try {
+        dcRef.current?.close();
+      } catch {}
+      try {
         pcRef.current?.close();
       } catch {}
+      dcRef.current = null;
       pcRef.current = null;
       streamRef.current = null;
       setState("idle");
+      setStatusHint("Idle");
     }
   };
 
   const stopLiveTranscription = () => {
-    try {
-      pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop());
-    } catch {}
-    try {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    } catch {}
-    try {
-      pcRef.current?.close();
-    } catch {}
+    try { pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop()); } catch {}
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
+    try { dcRef.current?.close(); } catch {}
+    try { pcRef.current?.close(); } catch {}
+    dcRef.current = null;
     pcRef.current = null;
     streamRef.current = null;
     setState("idle");
+    setStatusHint("Idle");
+    log("Stopped.");
   };
 
   const handleInputChange = (e) => {
@@ -237,6 +270,10 @@ const ChatInputWidget = ({ onSendMessage }) => {
 
   return (
     <div className={`chat-container ${state}`}>
+      <div className="status-row">
+        <span className={`badge ${state}`}>{statusHint}</span>
+      </div>
+
       <textarea
         ref={textAreaRef}
         className="chat-input"
@@ -247,6 +284,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
         rows={1}
         style={{ resize: "none", overflow: "hidden" }}
       />
+
       <button
         className={`icon-btn ${state}`}
         onClick={handleIconClick}
@@ -268,5 +306,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
 };
 
 export default ChatInputWidget;
+  
 
 
