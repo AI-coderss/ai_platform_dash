@@ -14,7 +14,6 @@ const SDP_URL = `${API_BASE}/api/rtc-transcribe-connect`;
 const ChatInputWidget = ({ onSendMessage }) => {
   const [inputText, setInputText] = useState("");
   const [state, setState] = useState("idle"); // idle | connecting | recording
-  const [statusHint, setStatusHint] = useState("Idle");
 
   const textAreaRef = useRef(null);
   const transcriptionRef = useRef("");
@@ -23,8 +22,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
   const dcRef = useRef(null);
 
   const isRecording = state === "recording";
-
-  const log = (...args) => console.log("[RTC]", ...args);
 
   const adjustTextAreaHeight = (reset = false) => {
     if (!textAreaRef.current) return;
@@ -35,7 +32,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
   };
   useEffect(() => adjustTextAreaHeight(), []);
 
-  // Wait for ICE gathering to complete so candidates are present in offer SDP
   const waitForIceGatheringComplete = (pc) =>
     new Promise((resolve) => {
       if (pc.iceGatheringState === "complete") return resolve();
@@ -46,24 +42,17 @@ const ChatInputWidget = ({ onSendMessage }) => {
         }
       };
       pc.addEventListener("icegatheringstatechange", onChange);
-      // safety: continue anyway after 3s
       setTimeout(() => {
         pc.removeEventListener("icegatheringstatechange", onChange);
         resolve();
       }, 3000);
     });
 
-  // Handle transcription messages arriving over the oai-events data channel
   const handleTranscriptEvent = (evt) => {
     try {
       const raw = typeof evt.data === "string" ? evt.data : "";
       if (!raw) return;
       const msg = JSON.parse(raw);
-
-      // Helpful debug
-      if (msg.type && !/delta|completed/.test(msg.type)) {
-        log("event:", msg.type);
-      }
 
       // partials
       if (
@@ -95,64 +84,37 @@ const ChatInputWidget = ({ onSendMessage }) => {
           adjustTextAreaHeight();
         }
       }
-
-      if (msg.type === "error" || msg.error) {
-        console.error("Realtime error:", msg.error || msg);
-      }
-    } catch (e) {
-      // Non-JSON frames can occur; ignore
+    } catch {
+      /* ignore non-JSON frames */
     }
   };
 
   const startLiveTranscription = async () => {
     if (state !== "idle") return;
     setState("connecting");
-    setStatusHint("Connecting…");
     transcriptionRef.current = "";
     setInputText("");
     adjustTextAreaHeight(true);
 
     try {
-      // 1) Build RTCPeerConnection
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
       });
       pcRef.current = pc;
 
-      pc.oniceconnectionstatechange = () => {
-        const s = pc.iceConnectionState;
-        log("ICE:", s);
-        if (s === "connected") setStatusHint("Connected");
-        if (s === "failed" || s === "disconnected") {
-          console.warn("ICE state:", s);
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        log("PC State:", pc.connectionState);
-      };
-
-      // 2) Create the events data channel from the CLIENT (reliable)
+      // Create the events data channel from the client
       const dc = pc.createDataChannel("oai-events", { ordered: true });
       dcRef.current = dc;
-
-      dc.onopen = () => {
-        log("DataChannel open");
-        setStatusHint("Listening… Speak now");
-      };
-      dc.onclose = () => log("DataChannel closed");
-      dc.onerror = (e) => console.error("DataChannel error:", e);
       dc.onmessage = handleTranscriptEvent;
 
-      // (Optional) also listen if server creates additional channels
+      // (optional) if server also creates channels, listen to them
       pc.ondatachannel = (event) => {
-        log("ondatachannel from server:", event.channel?.label);
         if (event.channel?.label === "oai-events") {
           event.channel.onmessage = handleTranscriptEvent;
         }
       };
 
-      // 3) Get mic stream
+      // Get mic
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -162,12 +124,12 @@ const ChatInputWidget = ({ onSendMessage }) => {
       });
       streamRef.current = stream;
 
-      // 4) Attach ONE sender (sendonly) — no addTrack duplication
+      // Attach ONE sender with explicit direction
       const [track] = stream.getAudioTracks();
       const tx = pc.addTransceiver("audio", { direction: "sendonly" });
       await tx.sender.replaceTrack(track);
 
-      // 5) Create offer, wait for ICE, POST offer SDP as-is
+      // Offer → wait ICE → POST SDP (verbatim)
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       await waitForIceGatheringComplete(pc);
@@ -178,44 +140,26 @@ const ChatInputWidget = ({ onSendMessage }) => {
           "Content-Type": "application/sdp",
           "Cache-Control": "no-cache",
         },
-        // IMPORTANT: send EXACT SDP (no transforms, no trimming)
         body: pc.localDescription.sdp,
       });
 
-      const body = await resp.text(); // answer SDP
-      if (!resp.ok) {
-        console.error("SDP exchange failed:", body);
-        throw new Error(`SDP exchange failed: ${resp.status}`);
-      }
-      if (!body.startsWith("v=")) {
-        console.error("Non-SDP response from backend:", body.slice(0, 120));
-        throw new Error("Backend returned non-SDP body (see console)");
+      const body = await resp.text();
+      if (!resp.ok || !body.startsWith("v=")) {
+        throw new Error("SDP exchange failed or non-SDP answer");
       }
 
       await pc.setRemoteDescription({ type: "answer", sdp: body });
       setState("recording");
-      setStatusHint("Listening… Speak now");
-      log("Remote description set; ready to receive events.");
     } catch (err) {
-      console.error("Start transcription error:", err);
       // Cleanup
-      try {
-        pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop());
-      } catch {}
-      try {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      } catch {}
-      try {
-        dcRef.current?.close();
-      } catch {}
-      try {
-        pcRef.current?.close();
-      } catch {}
+      try { pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop()); } catch {}
+      try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
+      try { dcRef.current?.close(); } catch {}
+      try { pcRef.current?.close(); } catch {}
       dcRef.current = null;
       pcRef.current = null;
       streamRef.current = null;
       setState("idle");
-      setStatusHint("Idle");
     }
   };
 
@@ -228,8 +172,6 @@ const ChatInputWidget = ({ onSendMessage }) => {
     pcRef.current = null;
     streamRef.current = null;
     setState("idle");
-    setStatusHint("Idle");
-    log("Stopped.");
   };
 
   const handleInputChange = (e) => {
@@ -261,19 +203,8 @@ const ChatInputWidget = ({ onSendMessage }) => {
     }
   };
 
-  useEffect(() => {
-    return () => {
-      try { stopLiveTranscription(); } catch {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className={`chat-container ${state}`}>
-      <div className="status-row">
-        <span className={`badge ${state}`}>{statusHint}</span>
-      </div>
-
       <textarea
         ref={textAreaRef}
         className="chat-input"
@@ -284,21 +215,36 @@ const ChatInputWidget = ({ onSendMessage }) => {
         rows={1}
         style={{ resize: "none", overflow: "hidden" }}
       />
-
       <button
-        className={`icon-btn ${state}`}
+        className={`icon-btn ${state} ${inputText.trim() ? "will-send" : ""}`}
         onClick={handleIconClick}
-        aria-label={isRecording ? "Stop recording" : (state === "connecting" ? "Connecting…" : "Start recording")}
-        title={isRecording ? "Stop recording" : (state === "connecting" ? "Connecting…" : "Start recording")}
+        aria-label={
+          inputText.trim()
+            ? "Send"
+            : isRecording
+            ? "Stop recording"
+            : state === "connecting"
+            ? "Connecting"
+            : "Start recording"
+        }
+        title={
+          inputText.trim()
+            ? "Send"
+            : isRecording
+            ? "Stop recording"
+            : state === "connecting"
+            ? "Connecting"
+            : "Start recording"
+        }
       >
         {inputText.trim().length > 0 ? (
-          <SendIcon />
+          <SendIcon className="icon i-send" />
         ) : state === "connecting" ? (
-          <span className="spinner" />
+          <span className="spinner" aria-hidden />
         ) : isRecording ? (
-          <StopIcon />
+          <StopIcon className="icon i-stop" />
         ) : (
-          <MicIcon />
+          <MicIcon className="icon i-mic" />
         )}
       </button>
     </div>
@@ -306,6 +252,7 @@ const ChatInputWidget = ({ onSendMessage }) => {
 };
 
 export default ChatInputWidget;
+
   
 
 

@@ -163,3 +163,73 @@
 .icon-btn.recording { animation:pulse 1.2s ease-in-out infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+/* Idle look */
+.icon-btn.idle {
+  background: linear-gradient(180deg, #1f1f1f, #0f0f0f);
+}
+
+/* Connecting: spinner only */
+.icon-btn.connecting {
+  background: linear-gradient(180deg, #1a295a, #0b1440);
+  box-shadow: 0 10px 24px rgba(30, 64, 175, .35);
+}
+
+/* Recording: pulsing ring + subtle glow */
+.icon-btn.recording {
+  background: linear-gradient(180deg, #7a0b19, #4a0911);
+  box-shadow: 0 10px 24px rgba(220, 38, 38, .35);
+}
+.icon-btn.recording::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid rgba(239, 68, 68, .55);
+  animation: pulse-ring 1.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: .8; }
+  60%  { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+/* Hover / active */
+.icon-btn:hover { transform: translateY(-1px); }
+.icon-btn:active { transform: translateY(0); }
+
+/* Icon sizing + subtle entrance */
+.icon-btn .icon {
+  width: 22px;
+  height: 22px;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+.icon-btn .i-mic   { transform: translateY(0); }
+.icon-btn .i-stop  { transform: scale(1.05); }
+.icon-btn .i-send  { transform: translateY(-1px); }
+
+/* When sending possible, tint the button a bit */
+.icon-btn.will-send {
+  background: linear-gradient(180deg, #183a1a, #0f2811);
+  box-shadow: 0 10px 24px rgba(16, 185, 129, .35);
+}
+
+/* Spinner for "connecting" */
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 3px solid rgba(255,255,255,.25);
+  border-top-color: currentColor;
+  animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Small responsive tweak so the button doesn't squeeze the input */
+@media (max-width: 480px) {
+  .icon-btn { width: 44px; height: 44px; }
+  .chat-container { gap: 8px; }
+}
