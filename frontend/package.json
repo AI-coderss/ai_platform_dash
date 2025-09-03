@@ -29,6 +29,7 @@
     "react-scroll": "^1.9.3",
     "react-slick": "^0.30.3",
     "simplex-noise": "^4.0.3",
+    "socket.io-client": "^4.8.1",
     "split-type": "^0.3.4",
     "swiper": "^11.2.10",
     "three": "^0.179.1",
