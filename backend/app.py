@@ -233,7 +233,7 @@ Response: {ai_response}
 
 
 OAI_BASE = "https://api.openai.com/v1"
-OAI_HEADERS_JSON = {
+JSON_HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
     "Content-Type": "application/json",
     "OpenAI-Beta": "realtime=v1",
@@ -247,16 +247,16 @@ def health():
 def rtc_transcribe_connect():
     """
     Browser sends an SDP offer (text).
-    We:
-      1) Create a Realtime Transcription Session to get an ephemeral client_secret
-      2) POST the browser SDP to OpenAI Realtime with that secret
-      3) Return the answer SDP (text/plain)
+    Steps:
+      1) Create a Realtime Transcription Session -> ephemeral client_secret
+      2) POST the browser SDP offer to OpenAI Realtime WebRTC endpoint (intent=transcription)
+      3) Return the answer SDP (text/plain) back to browser
     """
-    client_sdp = request.get_data(as_text=True)
-    if not client_sdp:
+    offer_sdp = request.get_data(as_text=True)
+    if not offer_sdp:
         return Response("No SDP provided", status=400)
 
-    # 1) Create transcription session (ephemeral)
+    # 1) Create ephemeral transcription session
     session_payload = {
         "model": "gpt-4o-transcribe",
         "input_audio_format": "pcm16",
@@ -270,15 +270,16 @@ def rtc_transcribe_connect():
         "input_audio_noise_reduction": { "type": "near_field" },
         "expires_in": 60
     }
+
     try:
         sess = requests.post(
             f"{OAI_BASE}/realtime/transcription_sessions",
-            headers=OAI_HEADERS_JSON,
+            headers=JSON_HEADERS,
             data=json.dumps(session_payload),
-            timeout=15
+            timeout=20
         )
     except Exception as e:
-        log.exception("Failed to create transcription_session")
+        log.exception("Failed to create transcription session")
         return Response(f"Session error: {e}", status=502)
 
     if not sess.ok:
@@ -288,32 +289,41 @@ def rtc_transcribe_connect():
     client_secret = (sess.json().get("client_secret") or {}).get("value")
     if not client_secret:
         log.error("Missing client_secret in session response")
-        return Response("Missing client_secret", status=500)
+        return Response("Missing client_secret", status=502)
 
-    # 2) Exchange SDP with OpenAI using the ephemeral secret
+    # 2) Exchange SDP with Realtime endpoint using ephemeral secret
     sdp_headers = {
         "Authorization": f"Bearer {client_secret}",
         "Content-Type": "application/sdp",
         "OpenAI-Beta": "realtime=v1",
     }
+
     try:
         ans = requests.post(
             f"{OAI_BASE}/realtime",
-            params={"model": "gpt-4o-transcribe"},
+            params={"model": "gpt-4o-transcribe", "intent": "transcription"},
             headers=sdp_headers,
-            data=client_sdp,
-            timeout=20
+            data=offer_sdp,
+            timeout=30
         )
     except Exception as e:
         log.exception("SDP exchange error")
         return Response(f"SDP exchange error: {e}", status=502)
 
     if not ans.ok:
+        # Pass upstream body so frontend console shows exact error
         log.error("SDP exchange failed: %s", ans.text)
         return Response(ans.text or "SDP exchange failed", status=ans.status_code)
 
-    # 3) Return the raw SDP (text) to the browser
-    return Response(ans.content, status=200, mimetype="application/sdp")
+    answer_sdp = ans.text.strip()
+    if not answer_sdp.startswith("v="):
+        # Not an SDP body; surface it for easier debugging
+        log.error("Upstream returned non-SDP body: %s", answer_sdp[:2000])
+        return Response(f"Non-SDP response from upstream:\n{answer_sdp}",
+                        status=502, mimetype="text/plain")
+    # 3) Return raw SDP answer
+    return Response(answer_sdp, status=200, mimetype="application/sdp")
+
 # === Main Execution ===
 if __name__ == "__main__":
      # No Socket.IO / WS server here; just REST.
