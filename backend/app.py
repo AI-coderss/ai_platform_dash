@@ -253,7 +253,7 @@ def rtc_transcribe_connect():
     """
     offer_sdp = request.get_data()  # raw bytes; don't decode here
     if not offer_sdp:
-        return Response("No SDP provided", status=400, mimetype="text/plain")
+        return Response(b"No SDP provided", status=400, mimetype="text/plain")
 
     # 1) Create ephemeral transcription session
     # NOTE: Do NOT force input_audio_format here; WebRTC uses RTP/Opus.
@@ -279,25 +279,25 @@ def rtc_transcribe_connect():
         )
     except Exception as e:
         log.exception("Failed to create transcription session")
-        return Response(f"Session error: {e}", status=502, mimetype="text/plain")
+        return Response(f"Session error: {e}".encode(), status=502, mimetype="text/plain")
 
     if not sess.ok:
         log.error("Session create failed (%s): %s", sess.status_code, sess.text)
-        return Response(sess.text or "Failed to create session",
-                        status=sess.status_code, mimetype="text/plain")
+        return Response(sess.content or b"Failed to create session",
+                        status=sess.status_code,
+                        mimetype="text/plain")
 
     client_secret = (sess.json().get("client_secret") or {}).get("value")
     if not client_secret:
         log.error("Missing client_secret in session response")
-        return Response("Missing client_secret", status=502, mimetype="text/plain")
+        return Response(b"Missing client_secret", status=502, mimetype="text/plain")
 
     # 2) Exchange SDP with Realtime endpoint using ephemeral secret
     sdp_headers = {
         "Authorization": f"Bearer {client_secret}",
         "Content-Type": "application/sdp",
         "OpenAI-Beta": "realtime=v1",
-        # Some proxies try to gzip/modify text; be explicit:
-        "Cache-Control": "no-cache"
+        "Cache-Control": "no-cache",
     }
     upstream_url = f"{OAI_BASE}/realtime"
     params = {"intent": "transcription"}
@@ -305,41 +305,38 @@ def rtc_transcribe_connect():
              upstream_url, params, len(offer_sdp or b""))
 
     try:
-        # Use the raw bytes we received; requests will send them as-is.
         ans = requests.post(
             upstream_url,
             params=params,
             headers=sdp_headers,
-            data=offer_sdp,
+            data=offer_sdp,   # send EXACT bytes we received
             timeout=30
         )
     except Exception as e:
         log.exception("SDP exchange error")
-        return Response(f"SDP exchange error: {e}", status=502, mimetype="text/plain")
+        return Response(f"SDP exchange error: {e}".encode(), status=502, mimetype="text/plain")
 
     if not ans.ok:
-        # Pass upstream body so the frontend can log exact error text
         log.error("SDP exchange failed (%s): %s", ans.status_code, ans.text)
+        # surface upstream body (could be helpful error text)
         return Response(ans.content or b"SDP exchange failed",
                         status=ans.status_code,
-                        mimetype="application/sdp" if ans.headers.get("Content-Type","").startswith("application/sdp") else "text/plain")
+                        mimetype=ans.headers.get("Content-Type", "text/plain"))
 
-    # 3) Return the raw SDP answer bytes exactly as received (no text decode, no strip)
+    # 3) Return the raw SDP answer bytes exactly as received (no text decode/strip)
     answer_bytes = ans.content or b""
     log.info("Upstream answered SDP (%d bytes)", len(answer_bytes))
 
     if not answer_bytes.startswith(b"v="):
-        # Not an SDP body; surface it for easier debugging
+        # Not an SDP body; return it verbatim for debugging
         preview = answer_bytes[:2000]
         log.error("Upstream returned non-SDP body (first bytes): %r", preview)
         return Response(answer_bytes, status=502, mimetype="text/plain")
 
     resp = Response(answer_bytes, status=200, mimetype="application/sdp")
-    # Helpful for some browsers to read the content-type:
     resp.headers["Content-Disposition"] = "inline; filename=answer.sdp"
     resp.headers["Cache-Control"] = "no-store"
     return resp
-
 
 # === Main Execution ===
 if __name__ == "__main__":
