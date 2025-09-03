@@ -1,4 +1,12 @@
 /* Glassmorphic Chat Input Container */
+:root {
+  --brand: #5177f5;          /* your blue */
+  --brand-600: #3e63e9;
+  --brand-700: #1D43CA;
+  --brand-800: #1838B3;
+  --success-600: #16a34a;
+  --danger-600: #dc2626;
+}
 .chat-container {
   position: absolute;
   bottom: 18px;
@@ -117,119 +125,45 @@
   }
 }
 
-/* ChatInputWidget.css additions */
-.icon-btn.connecting, .icon-btn.recording {
-  outline: none;
-  border: none;
-}
-.icon-btn.connecting .spinner {
-  display: inline-block;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  animation: spin 0.8s linear infinite;
-}
-.icon-btn.recording {
-  animation: pulse 1.2s ease-in-out infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,0,0,0.4); }
-  50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(255,0,0,0.0); }
-}
-/* ChatInputWidget.css additions */
-.icon-btn.connecting .spinner {
-  display:inline-block;width:18px;height:18px;border-radius:50%;
-  border:2px solid currentColor;border-right-color:transparent;
-  animation:spin .8s linear infinite;
-}
-.icon-btn.recording { animation:pulse 1.2s ease-in-out infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-.icon-btn.connecting .spinner {
-  display:inline-block;width:18px;height:18px;border-radius:50%;
-  border:2px solid currentColor;border-right-color:transparent;
-  animation:spin .8s linear infinite;
-}
-.icon-btn.recording { animation:pulse 1.2s ease-in-out infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-.icon-btn.connecting .spinner {
-  display:inline-block;width:18px;height:18px;border-radius:50%;
-  border:2px solid currentColor;border-right-color:transparent;
-  animation:spin .8s linear infinite;
-}
-.icon-btn.recording { animation:pulse 1.2s ease-in-out infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
 
-/* Idle look */
-.icon-btn.idle {
-  background: linear-gradient(180deg, #1f1f1f, #0f0f0f);
+/* icons */
+.icon-btn .icon{ width:22px; height:22px; transition:transform 200ms ease, opacity 200ms ease; }
+.icon-btn .i-mic{ transform:translateY(0); }
+.icon-btn .i-stop{ transform:scale(1.02); }
+.icon-btn .i-send{ transform:translateY(-1px); }
+
+/* REC FACE (stop + timer) */
+.rec-face{
+  display:grid; place-items:center; gap:1px;
 }
 
-/* Connecting: spinner only */
-.icon-btn.connecting {
-  background: linear-gradient(180deg, #1a295a, #0b1440);
-  box-shadow: 0 10px 24px rgba(30, 64, 175, .35);
+/* Tiny timer — HIGH CONTRAST + glass chip for readability */
+.rec-timer{
+  position:relative;
+  font-weight:400;
+  font-size:0.5rem;        /* small but readable */
+  line-height:1;
+  letter-spacing:0.2px;
+  color:#ffffff;           /* strong contrast */
+  text-shadow:0 1px 2px rgba(0,0,0,.55), 0 0 4px rgba(0,0,0,.35);
+  transform:translateY(-1px);
+  padding:2px 6px;
+  border-radius:999px;
+  background:color-mix(in srgb, var(--brand) 24%, rgba(10,18,55,.35));
+  backdrop-filter:blur(2px);
+  box-shadow:0 0 0 1px color-mix(in srgb, #ffffff 22%, transparent);
+  -webkit-font-smoothing:antialiased;
 }
 
-/* Recording: pulsing ring + subtle glow */
-.icon-btn.recording {
-  background: linear-gradient(180deg, #7a0b19, #4a0911);
-  box-shadow: 0 10px 24px rgba(220, 38, 38, .35);
+/* spinner (kept but we now show timer during connecting too) */
+.spinner{
+  width:22px;height:22px;border-radius:999px;
+  border:3px solid rgba(255,255,255,.28);
+  border-top-color:#fff; animation:spin .9s linear infinite;
 }
-.icon-btn.recording::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-  border: 2px solid rgba(239, 68, 68, .55);
-  animation: pulse-ring 1.2s ease-in-out infinite;
-  pointer-events: none;
-  z-index: -1;
-}
+@keyframes spin{ to{ transform:rotate(360deg); } }
 
-@keyframes pulse-ring {
-  0%   { transform: scale(1);   opacity: .8; }
-  60%  { transform: scale(1.25); opacity: 0; }
-  100% { transform: scale(1.25); opacity: 0; }
-}
-
-/* Hover / active */
-.icon-btn:hover { transform: translateY(-1px); }
-.icon-btn:active { transform: translateY(0); }
-
-/* Icon sizing + subtle entrance */
-.icon-btn .icon {
-  width: 22px;
-  height: 22px;
-  transition: transform 200ms ease, opacity 200ms ease;
-}
-.icon-btn .i-mic   { transform: translateY(0); }
-.icon-btn .i-stop  { transform: scale(1.05); }
-.icon-btn .i-send  { transform: translateY(-1px); }
-
-/* When sending possible, tint the button a bit */
-.icon-btn.will-send {
-  background: linear-gradient(180deg, #183a1a, #0f2811);
-  box-shadow: 0 10px 24px rgba(16, 185, 129, .35);
-}
-
-/* Spinner for "connecting" */
-.spinner {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 3px solid rgba(255,255,255,.25);
-  border-top-color: currentColor;
-  animation: spin .9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Small responsive tweak so the button doesn't squeeze the input */
-@media (max-width: 480px) {
-  .icon-btn { width: 44px; height: 44px; }
-  .chat-container { gap: 8px; }
+@media (max-width:480px){
+  .icon-btn{ width:48px; height:48px; }
+  .chat-container{ gap:8px; }
 }
