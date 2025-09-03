@@ -232,7 +232,7 @@ Response: {ai_response}
 # === Real-Time Transcription with OpenAI's API Using WebRTC ===
 
 OAI_BASE = "https://api.openai.com/v1"
-JSON_HEADERS = {
+COMMON_JSON_HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
     "Content-Type": "application/json",
     "OpenAI-Beta": "realtime=v1",
@@ -246,35 +246,37 @@ def health():
 def rtc_transcribe_connect():
     """
     Browser sends an SDP offer (text).
-    Steps:
+    We:
       1) Create a Realtime Transcription Session -> ephemeral client_secret
-      2) POST the browser SDP offer to OpenAI Realtime WebRTC endpoint with ?intent=transcription
-         (do NOT pass model here; it's defined by the session)
-      3) Return the answer SDP (text/plain) back to browser
+      2) POST the browser SDP to OpenAI Realtime WebRTC endpoint with ?intent=transcription
+         (DO NOT pass model here; model is defined by the session)
+      3) Return the answer SDP (text/plain) back to the browser
     """
     offer_sdp = request.get_data(as_text=True)
     if not offer_sdp:
         return Response("No SDP provided", status=400)
 
     # 1) Create ephemeral transcription session
+    # Keep payload conservative to avoid "unknown parameter" errors.
     session_payload = {
-        "model": "gpt-4o-transcribe",
         "input_audio_format": "pcm16",
-        "input_audio_transcription": { "model": "gpt-4o-transcribe" },
+        "input_audio_transcription": {
+            "model": "gpt-4o-transcribe"  # choose the streaming STT model
+        },
         "turn_detection": {
             "type": "server_vad",
             "threshold": 0.5,
             "prefix_padding_ms": 300,
             "silence_duration_ms": 500
         },
-        "input_audio_noise_reduction": { "type": "near_field" },
-        "expires_in": 60
+        "input_audio_noise_reduction": { "type": "near_field" }
+        # Do NOT pass top-level "model" or other undocumented fields here.
     }
 
     try:
         sess = requests.post(
             f"{OAI_BASE}/realtime/transcription_sessions",
-            headers=JSON_HEADERS,
+            headers=COMMON_JSON_HEADERS,
             data=json.dumps(session_payload),
             timeout=20
         )
@@ -283,7 +285,7 @@ def rtc_transcribe_connect():
         return Response(f"Session error: {e}", status=502)
 
     if not sess.ok:
-        log.error("Session create failed: %s", sess.text)
+        log.error("Session create failed (%s): %s", sess.status_code, sess.text)
         return Response(sess.text or "Failed to create session", status=sess.status_code)
 
     client_secret = (sess.json().get("client_secret") or {}).get("value")
@@ -292,17 +294,20 @@ def rtc_transcribe_connect():
         return Response("Missing client_secret", status=502)
 
     # 2) Exchange SDP with Realtime endpoint using ephemeral secret
-    #    Important: Do NOT send model here. Use only intent=transcription.
+    # IMPORTANT: Do NOT send model here. Use only intent=transcription.
     sdp_headers = {
         "Authorization": f"Bearer {client_secret}",
         "Content-Type": "application/sdp",
         "OpenAI-Beta": "realtime=v1",
     }
+    upstream_url = f"{OAI_BASE}/realtime"
+    params = {"intent": "transcription"}
+    log.info("Posting SDP offer to %s with params=%s", upstream_url, params)
 
     try:
         ans = requests.post(
-            f"{OAI_BASE}/realtime",
-            params={"intent": "transcription"},
+            upstream_url,
+            params=params,
             headers=sdp_headers,
             data=offer_sdp,
             timeout=30
@@ -312,8 +317,8 @@ def rtc_transcribe_connect():
         return Response(f"SDP exchange error: {e}", status=502)
 
     if not ans.ok:
-        # Pass upstream body so frontend console shows exact error
-        log.error("SDP exchange failed: %s", ans.text)
+        # Pass upstream body so the frontend can log exact error text
+        log.error("SDP exchange failed (%s): %s", ans.status_code, ans.text)
         return Response(ans.text or "SDP exchange failed", status=ans.status_code)
 
     answer_sdp = ans.text.strip()
@@ -325,8 +330,6 @@ def rtc_transcribe_connect():
 
     # 3) Return raw SDP answer
     return Response(answer_sdp, status=200, mimetype="application/sdp")
-
-
 
 # === Main Execution ===
 if __name__ == "__main__":

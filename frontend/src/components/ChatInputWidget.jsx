@@ -6,7 +6,7 @@ import "../styles/ChatInputWidget.css";
 
 /**
  * Explicit backend base URL (hardcoded for production).
- * Change to localhost:5050 for local dev if needed.
+ * Change to "http://localhost:5050" for local dev if needed.
  */
 const API_BASE = "https://ai-platform-dsah-backend-chatbot.onrender.com";
 const SDP_URL = `${API_BASE}/api/rtc-transcribe-connect`;
