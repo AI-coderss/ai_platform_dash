@@ -5,16 +5,15 @@ import json
 import re
 import base64
 import threading
+import requests
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
-from flask_socketio import SocketIO
-import eventlet
+
+
 from flask_cors import CORS
 import qdrant_client
 from openai import OpenAI
-import websocket # <-- REPLACED websockets with websocket-client
-
 from prompts.prompt import engineeredprompt
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
@@ -22,20 +21,18 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
-# Ensure eventlet patches the standard libraries
-eventlet.monkey_patch()
+
 
 # Load env vars
 load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
-if not openai_api_key:
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY not found. Please set it in your .env file.")
 
 app = Flask(__name__)
 # IMPORTANT: Use the correct origins for production
 CORS(app, origins=["https://ai-platform-dash.onrender.com", "http://localhost:3000"])
-app.config['SECRET_KEY'] = 'a_very_secret_key'
-socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+
 
 # === UPDATED for new OpenAI Real-Time Transcription API ===
 OPENAI_REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription"
@@ -234,111 +231,69 @@ Response: {ai_response}
 
     return jsonify({"card_id": card_id})
 
-# === REAL-TIME TRANSCRIPTION LOGIC (REFACTORED) ===
+OAI_BASE = "https://api.openai.com/v1"
+HEADERS = {
+    "Authorization": f"Bearer {OPENAI_API_KEY}",
+    "Content-Type": "application/json",
+    # Required beta header for Realtime:
+    "OpenAI-Beta": "realtime=v1",
+}
 
-def on_message(ws, message, sid):
-    """Callback function to handle messages from OpenAI."""
-    try:
-        data = json.loads(message)
-        # The new API sends transcription results in 'transcription_item.completed' events
-        if data.get("type") == "transcription_item.completed":
-            transcript = data.get("item", {}).get("text")
-            if transcript:
-                print(f"[{sid}] Transcription: {transcript}")
-                socketio.emit('transcript_update', {'text': transcript}, room=sid)
-        elif data.get("type") == "error":
-            error_message = data.get("error", {}).get("message", "Unknown OpenAI error")
-            print(f"[{sid}] Error from OpenAI: {error_message}")
-            socketio.emit('error', {'message': f"OpenAI error: {error_message}"}, room=sid)
-    except json.JSONDecodeError:
-        print(f"[{sid}] Received non-JSON message: {message}")
-    except Exception as e:
-        print(f"[{sid}] Error processing message from OpenAI: {e}")
+@app.get("/health")
+def health():
+    return {"ok": True}
 
-def on_error(ws, error, sid):
-    """Callback for WebSocket errors."""
-    print(f"[{sid}] OpenAI WebSocket Error: {error}")
-    if sid in openai_connections:
-        del openai_connections[sid]
-
-def on_close(ws, close_status_code, close_msg, sid):
-    """Callback for when the connection to OpenAI is closed."""
-    print(f"[{sid}] OpenAI connection closed: {close_status_code} - {close_msg}")
-    if sid in openai_connections:
-        del openai_connections[sid]
-
-def on_open(ws, sid):
-    """Callback for when the connection to OpenAI is established."""
-    print(f"[{sid}] Connected to OpenAI Realtime API.")
-    
-    # === UPDATED session configuration payload ===
-    session_config = {
-        "type": "transcription_session.update",
+@app.post("/realtime/token")
+def realtime_token():
+    """
+    Create a Realtime Transcription Session and return its ephemeral client_secret.
+    The browser will use this to authenticate its WebSocket to OpenAI directly.
+    """
+    payload = {
+        "model": "gpt-4o-transcribe",               # new streaming STT model
         "input_audio_format": "pcm16",
         "input_audio_transcription": {
-            "model": TRANSCRIPTION_MODEL,
+            "model": "gpt-4o-transcribe",
+            # Optional: "language": "en"  # set if you want to lock language
+            # Optional: "prompt": ""      # biasing prompt
         },
         "turn_detection": {
             "type": "server_vad",
-            "silence_duration_ms": 500,
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": 500
         },
+        "input_audio_noise_reduction": { "type": "near_field" },
+        # Keep tokens short-lived:
+        "expires_in": 60
     }
-    ws.send(json.dumps(session_config))
 
-def handle_openai_connection(sid):
-    """Manages the WebSocket connection to OpenAI for a specific client."""
-    headers = {"Authorization": f"Bearer {openai_api_key}"}
-    
-    ws_app = websocket.WebSocketApp(
-        OPENAI_REALTIME_URL,
-        header=headers,
-        on_open=lambda ws: on_open(ws, sid),
-        on_message=lambda ws, msg: on_message(ws, msg, sid),
-        on_error=lambda ws, err: on_error(ws, err, sid),
-        on_close=lambda ws, code, msg: on_close(ws, code, msg, sid)
+    r = requests.post(
+        f"{OAI_BASE}/realtime/transcription_sessions",
+        headers=HEADERS,
+        data=json.dumps(payload),
+        timeout=15
     )
-    
-    openai_connections[sid] = ws_app
-    ws_app.run_forever()
+    if r.status_code >= 400:
+        return jsonify({"error": r.text}), r.status_code
 
+    data = r.json()
+    # OpenAI returns a structure containing client_secret.value
+    client_secret = (data.get("client_secret") or {}).get("value")
+    if not client_secret:
+        return jsonify({"error": "No client_secret in response"}), 500
 
-@socketio.on('connect')
-def handle_connect():
-    sid = request.sid
-    print(f"Client connected: {sid}")
-    # Start a background green thread for the OpenAI connection
-    socketio.start_background_task(handle_openai_connection, sid)
+    # Return only what the browser needs
+    return jsonify({
+        "client_secret": client_secret,
+        "session_id": data.get("id")
+    })
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    sid = request.sid
-    print(f"Client disconnected: {sid}")
-    # Clean up the OpenAI connection for this client
-    if sid in openai_connections:
-        openai_connections[sid].close()
-        del openai_connections[sid]
-
-@socketio.on('audio_data')
-def handle_audio_data(data):
-    """Receives audio data from the client and forwards it to OpenAI."""
-    sid = request.sid
-    if sid in openai_connections and openai_connections[sid].sock and openai_connections[sid].sock.connected:
-        try:
-            # The client already sends base64, so we just wrap it in the API's required format.
-            audio_payload = {
-                "type": "input_audio_buffer.append",
-                "audio": data['audio']
-            }
-            openai_connections[sid].send(json.dumps(audio_payload))
-        except Exception as e:
-            print(f"[{sid}] Error forwarding audio data: {e}")
-    else:
-        print(f"[{sid}] Cannot send audio, OpenAI connection not ready or closed.")
 
 # === Main Execution ===
 if __name__ == "__main__":
-    # Use socketio.run for development to ensure eventlet is used correctly
-    socketio.run(app, host="127.0.0.1", port=5050, debug=True)
+     # No Socket.IO / WS server here; just REST.
+    app.run(host="0.0.0.0", port=5050, debug=True)
 
 
 
