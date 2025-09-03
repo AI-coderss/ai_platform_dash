@@ -250,18 +250,17 @@ def rtc_transcribe_connect():
       1) Create a Realtime Transcription Session -> ephemeral client_secret
       2) POST the browser SDP to OpenAI Realtime WebRTC endpoint with ?intent=transcription
          (DO NOT pass model here; model is defined by the session)
-      3) Return the answer SDP (text/plain) back to the browser
+      3) Return the answer SDP (application/sdp) back to the browser **as raw bytes** (no decoding/strip)
     """
-    offer_sdp = request.get_data(as_text=True)
+    offer_sdp = request.get_data()  # raw bytes; don't decode here
     if not offer_sdp:
         return Response("No SDP provided", status=400)
 
-    # 1) Create ephemeral transcription session
-    # Keep payload conservative to avoid "unknown parameter" errors.
+    # 1) Create ephemeral transcription session (minimal, documented fields only)
     session_payload = {
         "input_audio_format": "pcm16",
         "input_audio_transcription": {
-            "model": "gpt-4o-transcribe"  # choose the streaming STT model
+            "model": "gpt-4o-transcribe"
         },
         "turn_detection": {
             "type": "server_vad",
@@ -270,7 +269,6 @@ def rtc_transcribe_connect():
             "silence_duration_ms": 500
         },
         "input_audio_noise_reduction": { "type": "near_field" }
-        # Do NOT pass top-level "model" or other undocumented fields here.
     }
 
     try:
@@ -305,6 +303,7 @@ def rtc_transcribe_connect():
     log.info("Posting SDP offer to %s with params=%s", upstream_url, params)
 
     try:
+        # Use the raw bytes we received; requests will send them as-is.
         ans = requests.post(
             upstream_url,
             params=params,
@@ -321,15 +320,15 @@ def rtc_transcribe_connect():
         log.error("SDP exchange failed (%s): %s", ans.status_code, ans.text)
         return Response(ans.text or "SDP exchange failed", status=ans.status_code)
 
-    answer_sdp = ans.text.strip()
-    if not answer_sdp.startswith("v="):
+    # 3) Return the raw SDP answer bytes exactly as received (no text decode, no strip)
+    answer_bytes = ans.content
+    if not answer_bytes.startswith(b"v="):
         # Not an SDP body; surface it for easier debugging
-        log.error("Upstream returned non-SDP body: %s", answer_sdp[:2000])
-        return Response(f"Non-SDP response from upstream:\n{answer_sdp}",
-                        status=502, mimetype="text/plain")
+        preview = answer_bytes[:2000]
+        log.error("Upstream returned non-SDP body (first bytes): %r", preview)
+        return Response(answer_bytes, status=502, mimetype="text/plain")
 
-    # 3) Return raw SDP answer
-    return Response(answer_sdp, status=200, mimetype="application/sdp")
+    return Response(answer_bytes, status=200, mimetype="application/sdp")
 
 # === Main Execution ===
 if __name__ == "__main__":

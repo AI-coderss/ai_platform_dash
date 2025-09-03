@@ -149,13 +149,14 @@ const ChatInputWidget = ({ onSendMessage }) => {
         throw new Error(`SDP exchange failed: ${resp.status}`);
       }
 
-      const answerSdp = body.trim();
-      if (!answerSdp.startsWith("v=")) {
-        console.error("Non-SDP response from backend:", answerSdp);
+      // Normalize line endings to CRLF to satisfy strict SDP parsers
+      const normalized = body.replace(/\r?\n/g, "\r\n").trim();
+      if (!normalized.startsWith("v=")) {
+        console.error("Non-SDP response from backend:", normalized);
         throw new Error("Backend returned non-SDP body (see console)");
       }
 
-      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      await pc.setRemoteDescription({ type: "answer", sdp: normalized });
       setState("recording");
     } catch (err) {
       console.error("Start transcription error:", err);
@@ -253,8 +254,3 @@ const ChatInputWidget = ({ onSendMessage }) => {
 };
 
 export default ChatInputWidget;
-
-
-
-
-
