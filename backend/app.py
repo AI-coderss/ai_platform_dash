@@ -231,12 +231,13 @@ Response: {ai_response}
 
     return jsonify({"card_id": card_id})
 
+# === Real-Time Transcription with OpenAI's API Using WebRTC ===
+
 OAI_BASE = "https://api.openai.com/v1"
 HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
     "Content-Type": "application/json",
-    # Required beta header for Realtime:
-    "OpenAI-Beta": "realtime=v1",
+    "OpenAI-Beta": "realtime=v1",   # required beta header
 }
 
 @app.get("/health")
@@ -247,15 +248,15 @@ def health():
 def realtime_token():
     """
     Create a Realtime Transcription Session and return its ephemeral client_secret.
-    The browser will use this to authenticate its WebSocket to OpenAI directly.
+    The browser will use this to authenticate its WebRTC exchange directly with OpenAI.
     """
     payload = {
-        "model": "gpt-4o-transcribe",               # new streaming STT model
+        "model": "gpt-4o-transcribe",
         "input_audio_format": "pcm16",
         "input_audio_transcription": {
             "model": "gpt-4o-transcribe",
-            # Optional: "language": "en"  # set if you want to lock language
-            # Optional: "prompt": ""      # biasing prompt
+            # "language": "en",          # optional fixed language
+            # "prompt": "",              # optional biasing prompt
         },
         "turn_detection": {
             "type": "server_vad",
@@ -264,8 +265,7 @@ def realtime_token():
             "silence_duration_ms": 500
         },
         "input_audio_noise_reduction": { "type": "near_field" },
-        # Keep tokens short-lived:
-        "expires_in": 60
+        "expires_in": 60  # short-lived
     }
 
     r = requests.post(
@@ -278,17 +278,14 @@ def realtime_token():
         return jsonify({"error": r.text}), r.status_code
 
     data = r.json()
-    # OpenAI returns a structure containing client_secret.value
     client_secret = (data.get("client_secret") or {}).get("value")
     if not client_secret:
         return jsonify({"error": "No client_secret in response"}), 500
 
-    # Return only what the browser needs
     return jsonify({
         "client_secret": client_secret,
         "session_id": data.get("id")
     })
-
 
 # === Main Execution ===
 if __name__ == "__main__":
