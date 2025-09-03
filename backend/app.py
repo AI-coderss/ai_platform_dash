@@ -33,7 +33,7 @@ app = Flask(__name__)
 CORS(app, origins=["https://ai-platform-dash.onrender.com", "http://localhost:3000"])
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("rtc")
+log = logging.getLogger("rtc-transcribe")
 
 # ==========================================================
 
@@ -231,7 +231,6 @@ Response: {ai_response}
 
 # === Real-Time Transcription with OpenAI's API Using WebRTC ===
 
-
 OAI_BASE = "https://api.openai.com/v1"
 JSON_HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -249,7 +248,8 @@ def rtc_transcribe_connect():
     Browser sends an SDP offer (text).
     Steps:
       1) Create a Realtime Transcription Session -> ephemeral client_secret
-      2) POST the browser SDP offer to OpenAI Realtime WebRTC endpoint (intent=transcription)
+      2) POST the browser SDP offer to OpenAI Realtime WebRTC endpoint with ?intent=transcription
+         (do NOT pass model here; it's defined by the session)
       3) Return the answer SDP (text/plain) back to browser
     """
     offer_sdp = request.get_data(as_text=True)
@@ -292,6 +292,7 @@ def rtc_transcribe_connect():
         return Response("Missing client_secret", status=502)
 
     # 2) Exchange SDP with Realtime endpoint using ephemeral secret
+    #    Important: Do NOT send model here. Use only intent=transcription.
     sdp_headers = {
         "Authorization": f"Bearer {client_secret}",
         "Content-Type": "application/sdp",
@@ -301,7 +302,7 @@ def rtc_transcribe_connect():
     try:
         ans = requests.post(
             f"{OAI_BASE}/realtime",
-            params={"model": "gpt-4o-transcribe", "intent": "transcription"},
+            params={"intent": "transcription"},
             headers=sdp_headers,
             data=offer_sdp,
             timeout=30
@@ -321,8 +322,11 @@ def rtc_transcribe_connect():
         log.error("Upstream returned non-SDP body: %s", answer_sdp[:2000])
         return Response(f"Non-SDP response from upstream:\n{answer_sdp}",
                         status=502, mimetype="text/plain")
+
     # 3) Return raw SDP answer
     return Response(answer_sdp, status=200, mimetype="application/sdp")
+
+
 
 # === Main Execution ===
 if __name__ == "__main__":

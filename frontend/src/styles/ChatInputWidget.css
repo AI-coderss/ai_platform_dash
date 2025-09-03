@@ -155,3 +155,11 @@
 .icon-btn.recording { animation:pulse 1.2s ease-in-out infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.icon-btn.connecting .spinner {
+  display:inline-block;width:18px;height:18px;border-radius:50%;
+  border:2px solid currentColor;border-right-color:transparent;
+  animation:spin .8s linear infinite;
+}
+.icon-btn.recording { animation:pulse 1.2s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
