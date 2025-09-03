@@ -34,9 +34,7 @@ app = Flask(__name__)
 CORS(app, origins=["https://ai-platform-dash.onrender.com", "http://localhost:3000"])
 
 
-# === UPDATED for new OpenAI Real-Time Transcription API ===
-OPENAI_REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription"
-TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
+
 # ==========================================================
 
 chat_sessions = {}
@@ -237,7 +235,7 @@ OAI_BASE = "https://api.openai.com/v1"
 HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
     "Content-Type": "application/json",
-    "OpenAI-Beta": "realtime=v1",   # required beta header
+    "OpenAI-Beta": "realtime=v1",   # required for Realtime
 }
 
 @app.get("/health")
@@ -248,16 +246,12 @@ def health():
 def realtime_token():
     """
     Create a Realtime Transcription Session and return its ephemeral client_secret.
-    The browser will use this to authenticate its WebRTC exchange directly with OpenAI.
+    The browser will use this to authenticate its WebRTC session directly with OpenAI.
     """
     payload = {
-        "model": "gpt-4o-transcribe",
+        "model": "gpt-4o-transcribe",            # realtime transcription model
         "input_audio_format": "pcm16",
-        "input_audio_transcription": {
-            "model": "gpt-4o-transcribe",
-            # "language": "en",          # optional fixed language
-            # "prompt": "",              # optional biasing prompt
-        },
+        "input_audio_transcription": { "model": "gpt-4o-transcribe" },
         "turn_detection": {
             "type": "server_vad",
             "threshold": 0.5,
@@ -265,7 +259,7 @@ def realtime_token():
             "silence_duration_ms": 500
         },
         "input_audio_noise_reduction": { "type": "near_field" },
-        "expires_in": 60  # short-lived
+        "expires_in": 60
     }
 
     r = requests.post(
@@ -286,7 +280,6 @@ def realtime_token():
         "client_secret": client_secret,
         "session_id": data.get("id")
     })
-
 # === Main Execution ===
 if __name__ == "__main__":
      # No Socket.IO / WS server here; just REST.

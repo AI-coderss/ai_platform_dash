@@ -1,10 +1,11 @@
+/* eslint-disable no-const-assign */
 import React, { useEffect, useRef, useState } from "react";
 import SendIcon from "@mui/icons-material/Send";
 import MicIcon from "@mui/icons-material/Mic";
 import StopIcon from "@mui/icons-material/Stop";
 import "../styles/ChatInputWidget.css";
 
-const REALTIME_URL = "https://api.openai.com/v1/realtime?model=gpt-4o-transcribe";
+const REALTIME_SDP_URL = "https://api.openai.com/v1/realtime?model=gpt-4o-transcribe";
 
 const ChatInputWidget = ({ onSendMessage }) => {
   const [inputText, setInputText] = useState("");
@@ -13,8 +14,8 @@ const ChatInputWidget = ({ onSendMessage }) => {
   const textAreaRef = useRef(null);
   const transcriptionRef = useRef("");
   const pcRef = useRef(null);
+  const dcRef = useRef(null);
   const mediaStreamRef = useRef(null);
-  const dataChanRef = useRef(null);
 
   const adjustTextAreaHeight = (reset = false) => {
     if (!textAreaRef.current) return;
@@ -23,29 +24,38 @@ const ChatInputWidget = ({ onSendMessage }) => {
       textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
     }
   };
-
   useEffect(() => adjustTextAreaHeight(), []);
 
-  // Parse various event shapes the Realtime API may emit for transcription
+  // Wait until ICE gathering completes so our SDP has candidates
+  const waitForIceGatheringComplete = (pc) =>
+    new Promise((resolve) => {
+      if (pc.iceGatheringState === "complete") return resolve();
+      const check = () => {
+        if (pc.iceGatheringState === "complete") {
+          pc.removeEventListener("icegatheringstatechange", check);
+          resolve();
+        }
+      };
+      pc.addEventListener("icegatheringstatechange", check);
+      setTimeout(resolve, 1500); // safety timeout
+    });
+
   const handleTranscriptEvent = (evt) => {
     try {
       const msg = JSON.parse(evt.data);
 
-      // Common forms for completed text (names can vary by release):
+      const isDelta =
+        msg.type === "input_audio_transcription.delta" ||
+        msg.type === "transcription.delta";
+
       const isCompleted =
         msg.type === "input_audio_transcription.completed" ||
         msg.type === "transcription.completed" ||
         msg.type === "conversation.item.input_audio_transcription.completed";
 
-      // Optional: incremental updates if provided by your account
-      const isDelta =
-        msg.type === "input_audio_transcription.delta" ||
-        msg.type === "transcription.delta";
-
       if (isDelta) {
         const t = msg.delta?.text || msg.text || "";
         if (t) {
-          // show partials (non-destructive)
           const preview = (transcriptionRef.current + " " + t).trim();
           setInputText(preview);
           adjustTextAreaHeight();
@@ -69,112 +79,94 @@ const ChatInputWidget = ({ onSendMessage }) => {
         console.error("Realtime error:", msg.error || msg);
       }
     } catch {
-      // Non-JSON frames can occur; ignore
+      // Ignore non-JSON frames
     }
   };
 
   const startLiveTranscription = async () => {
+    // 1) Get short-lived token from your backend
+    const r = await fetch("/realtime/token", { method: "POST" });
+    const { client_secret } = await r.json();
+    if (!client_secret) {
+      console.error("No client_secret from backend");
+      return;
+    }
+
+    // Reset UI
     transcriptionRef.current = "";
     setInputText("");
     adjustTextAreaHeight(true);
 
-    // 1) Get ephemeral token from your backend
-    const tokenResp = await fetch("/realtime/token", { method: "POST" });
-    const tokenJson = await tokenResp.json();
-    if (!tokenJson.client_secret) {
-      console.error("No client_secret from backend:", tokenJson);
-      return;
-    }
-
-    // 2) Build WebRTC PeerConnection
+    // 2) Build WebRTC peer connection
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
     });
     pcRef.current = pc;
 
-    // 3) Create a data channel for events
+    // For debugging
+    pc.oniceconnectionstatechange = () =>
+      console.log("ICE state:", pc.iceConnectionState);
+
+    // 3) Data channel for events (transcripts)
     const dc = pc.createDataChannel("oai-events");
     dc.onmessage = handleTranscriptEvent;
-    dataChanRef.current = dc;
+    dcRef.current = dc;
 
-    // 4) Mic stream
+    // 4) Mic
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaStreamRef.current = stream;
     stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-        console.warn("PeerConnection state:", pc.connectionState);
-      }
-    };
-
-    // 5) Create SDP offer
-    const offer = await pc.createOffer({
-      offerToReceiveAudio: false,  // transcription only; no TTS/audio return
-      offerToReceiveVideo: false,
-    });
+    // 5) Offer → wait for ICE → POST to OpenAI with ephemeral token
+    const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
     await pc.setLocalDescription(offer);
+    await waitForIceGatheringComplete(pc);
 
-    // 6) Exchange SDP with OpenAI using the ephemeral token
-    //    Authorization: Bearer <client_secret> (not your real API key)
-    const sdpResp = await fetch(REALTIME_URL, {
+    const sdpResp = await fetch(REALTIME_SDP_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${tokenJson.client_secret}`,
+        Authorization: `Bearer ${client_secret}`,  // ephemeral
         "Content-Type": "application/sdp",
         "OpenAI-Beta": "realtime=v1",
       },
-      body: offer.sdp,
+      body: pc.localDescription.sdp,
     });
-
     if (!sdpResp.ok) {
-      const txt = await sdpResp.text();
-      console.error("SDP exchange failed:", txt);
+      console.error("SDP exchange failed:", await sdpResp.text());
       return;
     }
-
     const answerSdp = await sdpResp.text();
     await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
 
-    // 7) Configure transcription session over the data channel (optional;
-    //    you already set defaults server-side, but you can tweak here)
+    // 6) Optional: refine session config at runtime
     const sessionUpdate = {
       type: "transcription_session.update",
       input_audio_format: "pcm16",
-      input_audio_transcription: {
-        model: "gpt-4o-transcribe",
-        // language: "en",
-        // prompt: "",
-      },
+      input_audio_transcription: { model: "gpt-4o-transcribe" },
       turn_detection: {
         type: "server_vad",
         threshold: 0.5,
         prefix_padding_ms: 300,
-        silence_duration_ms: 500,
+        silence_duration_ms: 500
       },
       input_audio_noise_reduction: { type: "near_field" },
       include: ["item.input_audio_transcription.logprobs"],
     };
-    dc.readyState === "open"
-      ? dc.send(JSON.stringify(sessionUpdate))
-      : (dc.onopen = () => dc.send(JSON.stringify(sessionUpdate)));
+    if (dc.readyState === "open") dc.send(JSON.stringify(sessionUpdate));
+    else dc.onopen = () => dc.send(JSON.stringify(sessionUpdate));
 
     setIsRecording(true);
   };
 
   const stopLiveTranscription = () => {
-    try {
-      dataChanRef.current?.close();
-    } catch {}
+    try { dcRef.current?.close(); } catch {}
     try {
       pcRef.current?.getSenders().forEach((s) => s.track && s.track.stop());
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     } catch {}
-    try {
-      pcRef.current?.close();
-    } catch {}
-    dataChanRef.current = null;
-    mediaStreamRef.current = null;
+    try { pcRef.current?.close(); } catch {}
+    dcRef.current = null;
+    mediaStreamRef = null;
     pcRef.current = null;
     setIsRecording(false);
   };
@@ -201,11 +193,8 @@ const ChatInputWidget = ({ onSendMessage }) => {
   };
 
   const handleIconClick = () => {
-    if (inputText.trim()) {
-      handleSendMessage();
-    } else {
-      isRecording ? stopLiveTranscription() : startLiveTranscription();
-    }
+    if (inputText.trim()) handleSendMessage();
+    else isRecording ? stopLiveTranscription() : startLiveTranscription();
   };
 
   useEffect(() => {
