@@ -9,6 +9,10 @@ openai
 python-dotenv
 flask
 flask-cors
+flask_socketio
+websockets
+eventlet
+asyncio
 gunicorn
 tiktoken
 resend
