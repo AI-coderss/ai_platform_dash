@@ -1,27 +1,29 @@
 import os
 import tempfile
 from uuid import uuid4
-from datetime import datetime
 import json
 import re
 import base64
-import random
-import asyncio
+import threading
 
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, Response, stream_with_context,render_template
-from flask_socketio import SocketIO, emit
-import websockets
+from flask import Flask, request, jsonify, Response, stream_with_context
+from flask_socketio import SocketIO
 import eventlet
 from flask_cors import CORS
 import qdrant_client
 from openai import OpenAI
+import websocket # <-- REPLACED websockets with websocket-client
+
 from prompts.prompt import engineeredprompt
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+
+# Ensure eventlet patches the standard libraries
+eventlet.monkey_patch()
 
 # Load env vars
 load_dotenv()
@@ -30,21 +32,26 @@ if not openai_api_key:
     raise ValueError("OPENAI_API_KEY not found. Please set it in your .env file.")
 
 app = Flask(__name__)
-CORS(app, origins=["https://ai-platform-dash.onrender.com"])
-app.config['SECRET_KEY'] = 'a_secret_key'
+# IMPORTANT: Use the correct origins for production
+CORS(app, origins=["https://ai-platform-dash.onrender.com", "http://localhost:3000"])
+app.config['SECRET_KEY'] = 'a_very_secret_key'
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
 
-# OpenAI Realtime API URL
-OPENAI_REALTIME_URL = "wss://api.openai.com/v1/realtime"
-# The model can be changed as new versions are released
-MODEL = "gpt-4o-realtime-preview"
+# === UPDATED for new OpenAI Real-Time Transcription API ===
+OPENAI_REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription"
+TRANSCRIPTION_MODEL = "gpt-4o-transcribe"
+# ==========================================================
+
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
 
 # Initialize OpenAI client
 client = OpenAI()
 
-# === VECTOR STORE ===
+# Active WebSocket connections to OpenAI
+openai_connections = {}
+
+# === VECTOR STORE & RAG ===
 def get_vector_store():
     qdrant = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
@@ -54,12 +61,9 @@ def get_vector_store():
     embeddings = OpenAIEmbeddings()
     return Qdrant(client=qdrant, collection_name=collection_name, embeddings=embeddings)
 
-vector_store = get_vector_store()
-
-# === RAG Chain ===
 def get_context_retriever_chain():
     llm = ChatOpenAI(model="gpt-4o")
-    retriever = vector_store.as_retriever()
+    retriever = get_vector_store().as_retriever()
     prompt = ChatPromptTemplate.from_messages([
         MessagesPlaceholder("chat_history"),
         ("user", "{input}"),
@@ -79,7 +83,11 @@ def get_conversational_rag_chain():
 
 conversation_rag_chain = get_conversational_rag_chain()
 
-# === /stream ===
+# === Standard HTTP Routes ===
+@app.route("/")
+def index():
+    return "Real-time transcription server is running."
+
 @app.route("/stream", methods=["POST"])
 def stream():
     data = request.get_json()
@@ -93,8 +101,6 @@ def stream():
 
     def generate():
         answer = ""
-
-        # === Pure RAG only ===
         try:
             for chunk in conversation_rag_chain.stream(
                 {"chat_history": chat_sessions[session_id], "input": user_input}
@@ -105,17 +111,12 @@ def stream():
         except Exception as e:
             yield f"\n[Vector error: {str(e)}]"
 
-        # Save session
         chat_sessions[session_id].append({"role": "user", "content": user_input})
         chat_sessions[session_id].append({"role": "assistant", "content": answer})
 
-    return Response(
-        stream_with_context(generate()),
-        content_type="text/plain",
-        headers={"Access-Control-Allow-Origin": "https://ai-platform-dash.onrender.com"}
-    )
+    return Response(stream_with_context(generate()), content_type="text/plain")
 
-# === /generate ===
+
 @app.route("/generate", methods=["POST"])
 def generate():
     data = request.get_json()
@@ -123,21 +124,16 @@ def generate():
     user_input = data.get("message", "")
     if not user_input:
         return jsonify({"error": "No input message"}), 400
-
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
-
     response = conversation_rag_chain.invoke(
         {"chat_history": chat_sessions[session_id], "input": user_input}
     )
     answer = response["answer"]
-
     chat_sessions[session_id].append({"role": "user", "content": user_input})
     chat_sessions[session_id].append({"role": "assistant", "content": answer})
-
     return jsonify({"response": answer, "session_id": session_id})
 
-# === /tts ===
 @app.route("/tts", methods=["POST"])
 def tts():
     text = (request.json or {}).get("text", "").strip()
@@ -149,21 +145,22 @@ def tts():
         voice="fable",
         input=text
     )
-    audio_file = "temp_audio.mp3"
-    response.stream_to_file(audio_file)
-    with open(audio_file, "rb") as f:
-        audio_bytes = f.read()
+    # Using a temporary file to handle the audio stream
+    with tempfile.NamedTemporaryFile(delete=True, suffix='.mp3') as fp:
+        response.stream_to_file(fp.name)
+        fp.seek(0)
+        audio_bytes = fp.read()
+    
     audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
     return jsonify({"audio_base64": audio_base64})
 
-# === /reset ===
 @app.route("/reset", methods=["POST"])
 def reset():
     session_id = request.json.get("session_id")
     if session_id in chat_sessions:
         del chat_sessions[session_id]
     return jsonify({"message": "Session reset"}), 200
-# === /generate-followups ===
+
 @app.route("/generate-followups", methods=["POST"])
 def generate_followups():
     data = request.get_json()
@@ -188,14 +185,18 @@ def generate_followups():
         )
 
         text = completion.choices[0].message.content.strip()
-        match = re.search(r'\[(.*?)\]', text, re.DOTALL)
-        questions = json.loads(f"[{match.group(1)}]") if match else []
+        # A more robust way to find and parse the JSON array
+        match = re.search(r'\[.*?\]', text, re.DOTALL)
+        if match:
+            questions = json.loads(match.group(0))
+        else:
+            questions = []
         return jsonify({"followups": questions})
 
     except Exception as e:
         print(f"Error generating followups: {e}")
         return jsonify({"followups": []})
-    
+
 @app.route("/classify", methods=["POST"])
 def classify_question():
     data = request.get_json()
@@ -232,91 +233,112 @@ Response: {ai_response}
         card_id = None
 
     return jsonify({"card_id": card_id})
-# Active WebSocket connections to OpenAI
-openai_connections = {}
 
-async def handle_openai_connection(ws, sid):
-    """Manages the WebSocket connection to OpenAI for a specific client."""
+# === REAL-TIME TRANSCRIPTION LOGIC (REFACTORED) ===
+
+def on_message(ws, message, sid):
+    """Callback function to handle messages from OpenAI."""
     try:
-        headers = {
-            "Authorization": f"Bearer {openai_api_key}",
-            "OpenAI-Beta": "realtime=v1"
-        }
-
-        url_with_model = f"{OPENAI_REALTIME_URL}?model={MODEL}"
-        
-        async with websockets.connect(url_with_model, extra_headers=headers) as openai_ws:
-            print(f"[{sid}] Connected to OpenAI Realtime API.")
-            openai_connections[sid] = openai_ws
-
-            # Configure the session for transcription
-            await openai_ws.send(json.dumps({
-                "type": "session.update",
-                "session": {
-                    "input_audio_transcription": {"model": MODEL},
-                    "input_audio_format": "pcm16"
-                }
-            }))
-
-            # Listen for and forward transcription events from OpenAI
-            async for message in openai_ws:
-                data = json.loads(message)
-                if data.get("type") == "conversation.item.input_audio_transcription.completed":
-                    transcript = data.get("transcript")
-                    print(f"[{sid}] Transcription: {transcript}")
-                    socketio.emit('transcript_update', {'text': transcript}, room=sid)
-                elif data.get("type") == "error":
-                    print(f"[{sid}] Error from OpenAI: {data['error']['message']}")
-                    socketio.emit('error', {'message': f"OpenAI error: {data['error']['message']}"}, room=sid)
-
-    except websockets.exceptions.ConnectionClosed as e:
-        print(f"[{sid}] OpenAI connection closed: {e}")
+        data = json.loads(message)
+        # The new API sends transcription results in 'transcription_item.completed' events
+        if data.get("type") == "transcription_item.completed":
+            transcript = data.get("item", {}).get("text")
+            if transcript:
+                print(f"[{sid}] Transcription: {transcript}")
+                socketio.emit('transcript_update', {'text': transcript}, room=sid)
+        elif data.get("type") == "error":
+            error_message = data.get("error", {}).get("message", "Unknown OpenAI error")
+            print(f"[{sid}] Error from OpenAI: {error_message}")
+            socketio.emit('error', {'message': f"OpenAI error: {error_message}"}, room=sid)
+    except json.JSONDecodeError:
+        print(f"[{sid}] Received non-JSON message: {message}")
     except Exception as e:
-        print(f"[{sid}] An error occurred with OpenAI connection: {e}")
-    finally:
-        if sid in openai_connections:
-            del openai_connections[sid]
+        print(f"[{sid}] Error processing message from OpenAI: {e}")
 
-@app.route('/')
-def index():
-    return "This is the server. Your React client should handle the UI."
+def on_error(ws, error, sid):
+    """Callback for WebSocket errors."""
+    print(f"[{sid}] OpenAI WebSocket Error: {error}")
+    if sid in openai_connections:
+        del openai_connections[sid]
+
+def on_close(ws, close_status_code, close_msg, sid):
+    """Callback for when the connection to OpenAI is closed."""
+    print(f"[{sid}] OpenAI connection closed: {close_status_code} - {close_msg}")
+    if sid in openai_connections:
+        del openai_connections[sid]
+
+def on_open(ws, sid):
+    """Callback for when the connection to OpenAI is established."""
+    print(f"[{sid}] Connected to OpenAI Realtime API.")
+    
+    # === UPDATED session configuration payload ===
+    session_config = {
+        "type": "transcription_session.update",
+        "input_audio_format": "pcm16",
+        "input_audio_transcription": {
+            "model": TRANSCRIPTION_MODEL,
+        },
+        "turn_detection": {
+            "type": "server_vad",
+            "silence_duration_ms": 500,
+        },
+    }
+    ws.send(json.dumps(session_config))
+
+def handle_openai_connection(sid):
+    """Manages the WebSocket connection to OpenAI for a specific client."""
+    headers = {"Authorization": f"Bearer {openai_api_key}"}
+    
+    ws_app = websocket.WebSocketApp(
+        OPENAI_REALTIME_URL,
+        header=headers,
+        on_open=lambda ws: on_open(ws, sid),
+        on_message=lambda ws, msg: on_message(ws, msg, sid),
+        on_error=lambda ws, err: on_error(ws, err, sid),
+        on_close=lambda ws, code, msg: on_close(ws, code, msg, sid)
+    )
+    
+    openai_connections[sid] = ws_app
+    ws_app.run_forever()
+
 
 @socketio.on('connect')
 def handle_connect():
-    print(f"Client {request.sid} connected")
-    # Start a background task for the OpenAI connection
-    socketio.start_background_task(handle_openai_connection, None, request.sid)
+    sid = request.sid
+    print(f"Client connected: {sid}")
+    # Start a background green thread for the OpenAI connection
+    socketio.start_background_task(handle_openai_connection, sid)
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print(f"Client {request.sid} disconnected")
+    sid = request.sid
+    print(f"Client disconnected: {sid}")
     # Clean up the OpenAI connection for this client
-    if request.sid in openai_connections:
-        eventlet.spawn(openai_connections[request.sid].close())
-        del openai_connections[request.sid]
+    if sid in openai_connections:
+        openai_connections[sid].close()
+        del openai_connections[sid]
 
 @socketio.on('audio_data')
 def handle_audio_data(data):
     """Receives audio data from the client and forwards it to OpenAI."""
     sid = request.sid
-    if sid in openai_connections:
+    if sid in openai_connections and openai_connections[sid].sock and openai_connections[sid].sock.connected:
         try:
-            audio_bytes = base64.b64decode(data['audio'])
-            
-            # Forward the raw audio bytes to OpenAI's WebSocket
-            eventlet.spawn(openai_connections[sid].send, json.dumps({
+            # The client already sends base64, so we just wrap it in the API's required format.
+            audio_payload = {
                 "type": "input_audio_buffer.append",
-                "audio": base64.b64encode(audio_bytes).decode('utf-8')
-            }))
+                "audio": data['audio']
+            }
+            openai_connections[sid].send(json.dumps(audio_payload))
         except Exception as e:
             print(f"[{sid}] Error forwarding audio data: {e}")
-            socketio.emit('error', {'message': 'Error processing audio.'}, room=sid)
+    else:
+        print(f"[{sid}] Cannot send audio, OpenAI connection not ready or closed.")
 
-
-# === Run ===
+# === Main Execution ===
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5050, debug=True)
-
+    # Use socketio.run for development to ensure eventlet is used correctly
+    socketio.run(app, host="127.0.0.1", port=5050, debug=True)
 
 
 

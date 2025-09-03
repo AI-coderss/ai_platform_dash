@@ -10,7 +10,8 @@ python-dotenv
 flask
 flask-cors
 flask_socketio
-websockets
+websocket-client
+python-socketio
 eventlet
 asyncio
 gunicorn
