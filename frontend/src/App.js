@@ -938,15 +938,15 @@ const App = () => {
       id: 3, name: "📊 AI-Powered Data Analyst",
       description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
-      link: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
-      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
+      link: "/videos/unddev.mp4",
+      helpVideo: "/videos/unddev.mp4",
     },
     {
       id: 4, name: "🧠 Medical Report Enhancement App",
       description: "Enhance the quality of medical reports using AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-      helpVideo: "/videos/medicalreport.mp4",
+      helpVideo: "/videos/medreport.mp4",
     },
     {
       id: 5, name: "🧠 IVF Virtual Training Assistant",
@@ -960,7 +960,7 @@ const App = () => {
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
+      helpVideo: "/videos/unddev.mp4",
     },
   ];
 
