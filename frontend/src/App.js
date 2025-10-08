@@ -924,7 +924,7 @@ const App = () => {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
-      link: "https://dsahdoctoraiassistantbot.onrender.com",
+      link: "https://ai-doctor-assistant-app-dev.onrender.com",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
@@ -953,7 +953,7 @@ const App = () => {
       description: "Designed to assist IVF fellowships at DSAH using RAG technology",
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
+      helpVideo: "/videos/ivf.mp4",
     },
     {
       id: 6, name: "💬 Patient Assistant",
