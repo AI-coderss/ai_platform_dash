@@ -932,7 +932,7 @@ const App = () => {
       description: "Generate structured medical notes from consultations",
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/24T0hx6AfAA?autoplay=1&mute=1",
+      helpVideo: "/videos/transcriptionapp.mp4",
     },
     {
       id: 3, name: "📊 AI-Powered Data Analyst",
@@ -946,7 +946,7 @@ const App = () => {
       description: "Enhance the quality of medical reports using AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/1amAKukvQ2Q?autoplay=1&mute=1",
+      helpVideo: "/videos/medicalreport.mp4",
     },
     {
       id: 5, name: "🧠 IVF Virtual Training Assistant",
