@@ -925,7 +925,7 @@ const App = () => {
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://ai-doctor-assistant-app-dev.onrender.com",
-      helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
+      helpVideo: "/videos/doctorai.mp4",
     },
     {
       id: 2, name: "📋 Medical Transcription App",
