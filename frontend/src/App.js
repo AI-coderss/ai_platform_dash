@@ -14,7 +14,7 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
-import DIDAvatarWidget from "./components/DIDAvatarWidget";
+/* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 /* import TestimonialSection from "./components/TestimonialSection"; */
 
 
@@ -1017,16 +1017,7 @@ const App = () => {
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
-      <DIDAvatarWidget
-        mode="fabio"
-        clientKey="Z29vZ2xlLW9hdXRoMnwxMTI1MzgwMDI5NzAxNDIxMTMxNDI6TG5FLWVDS1IyaE9VMEcyS2FUVnh0"
-        agentId="v2_agt_uxCkm0YX"
-        name="did-agent"
-        monitor={true}
-        orientation="horizontal"
-        position="right"
-        persistAcrossRoutes={true}
-      />
+      
       <VoiceAssistant />
       <ChatBot />
       <Footer />
