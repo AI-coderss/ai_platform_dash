@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 // App.js
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./App.css";
@@ -15,6 +15,7 @@ import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
 /* import TestimonialSection from "./components/TestimonialSection"; */
+
 
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
@@ -48,30 +49,16 @@ const NavBar = ({ theme, onToggleTheme }) => {
         </a>
 
         <div className="topnav-links">
-          <a href="#hero" onClick={(e) => handleNav(e, "hero")}>
-            About
-          </a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")}>
-            Products
-          </a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>
-            Our Policy
-          </a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>
-            Contact
-          </a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>
-            Footer
-          </a>
+          <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
         </div>
 
         <div className="topnav-actions">
           {/* NEW THEME SWITCH (Uiverse) — replaces old button.theme-toggle */}
-          <label
-            className="switch"
-            aria-label="Toggle theme"
-            title="Toggle theme"
-          >
+          <label className="switch" aria-label="Toggle theme" title="Toggle theme">
             <input
               id="input"
               type="checkbox"
@@ -89,25 +76,13 @@ const NavBar = ({ theme, onToggleTheme }) => {
                 <svg id="moon-dot-3" className="moon-dot" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="50"></circle>
                 </svg>
-                <svg
-                  id="light-ray-1"
-                  className="light-ray"
-                  viewBox="0 0 100 100"
-                >
+                <svg id="light-ray-1" className="light-ray" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="50"></circle>
                 </svg>
-                <svg
-                  id="light-ray-2"
-                  className="light-ray"
-                  viewBox="0 0 100 100"
-                >
+                <svg id="light-ray-2" className="light-ray" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="50"></circle>
                 </svg>
-                <svg
-                  id="light-ray-3"
-                  className="light-ray"
-                  viewBox="0 0 100 100"
-                >
+                <svg id="light-ray-3" className="light-ray" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="50"></circle>
                 </svg>
 
@@ -147,34 +122,18 @@ const NavBar = ({ theme, onToggleTheme }) => {
             </div>
           </label>
 
-          <button
-            className="hamburger"
-            onClick={() => setOpen((s) => !s)}
-            aria-label="Menu"
-          >
-            <span />
-            <span />
-            <span />
+          <button className="hamburger" onClick={() => setOpen((s) => !s)} aria-label="Menu">
+            <span /><span /><span />
           </button>
         </div>
       </div>
 
       <div className="topnav-mobile">
-        <a href="#hero" onClick={(e) => handleNav(e, "hero")}>
-          About
-        </a>
-        <a href="#products" onClick={(e) => handleNav(e, "products")}>
-          Products
-        </a>
-        <a href="#policy" onClick={(e) => handleNav(e, "policy")}>
-          Our Policy
-        </a>
-        <a href="#contact" onClick={(e) => handleNav(e, "contact")}>
-          Contact
-        </a>
-        <a href="#footer" onClick={(e) => handleNav(e, "footer")}>
-          Footer
-        </a>
+        <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
       </div>
     </nav>
   );
@@ -190,7 +149,7 @@ const HeroLogoParticles = ({ theme }) => {
   const clockRef = useRef(new THREE.Clock());
 
   const sceneRef = useRef(null);
-  const groupRef = useRef(null); // cube + particles
+  const groupRef = useRef(null);   // cube + particles
   const cubeRef = useRef(null);
 
   const pointsRef = useRef(null);
@@ -211,64 +170,49 @@ const HeroLogoParticles = ({ theme }) => {
 
   const draggingRef = useRef(false);
   const dragMovedRef = useRef(false);
-  const lastMouseRef = useRef({ x: 0, y: 0 });
+  const lastMouseRef = useRef({x:0,y:0});
 
   const flashRef = useRef({ t: 0, active: false });
 
   // morph → bounce → disperse
-  const bounceRef = useRef({
-    active: false,
-    started: false,
-    t: 0,
-    duration: 2.5,
-  });
+  const bounceRef = useRef({ active:false, started:false, t:0, duration:2.5 });
   const disperseQueuedRef = useRef(false);
 
   const raycaster = useRef(new THREE.Raycaster()).current;
   const mouseNDC = useRef(new THREE.Vector2()).current;
-  const zPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)).current;
+  const zPlane = useRef(new THREE.Plane(new THREE.Vector3(0,0,1), 0)).current;
 
   const getVar = (name, fallback) => {
-    const v = getComputedStyle(document.documentElement)
-      .getPropertyValue(name)
-      .trim();
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return v || fallback;
   };
   const getThemeColors = () => {
-    const primary = getVar(
-      "--brand-primary",
-      theme === "dark" ? "#7aa2ff" : "#4f46e5"
-    );
-    const accent = getVar(
-      "--brand-accent",
-      theme === "dark" ? "#8be9fd" : "#06b6d4"
-    );
+    const primary = getVar("--brand-primary", theme === "dark" ? "#7aa2ff" : "#4f46e5");
+    const accent  = getVar("--brand-accent",  theme === "dark" ? "#8be9fd" : "#06b6d4");
     return { primary, accent };
   };
 
   // ====== GSAP SplitType animation for hero title (updated) ======
-  useEffect(() => {
-    // Split into lines + words + chars so browser respects line wrapping
-    const split = new SplitType(".hero-title", {
-      types: "lines, words, chars",
-    });
+useEffect(() => {
+  // Split into lines + words + chars so browser respects line wrapping
+  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
 
-    // Animate each char, but keep words/lines together
-    const tween = gsap.from(split.chars, {
-      x: 150,
-      opacity: 0,
-      duration: 0.7,
-      ease: "power4",
-      stagger: 0.04,
-      repeat: -1,
-      repeatDelay: 2,
-    });
+  // Animate each char, but keep words/lines together
+  const tween = gsap.from(split.chars, {
+    x: 150,
+    opacity: 0,
+    duration: 0.7,
+    ease: "power4",
+    stagger: 0.04,
+    repeat: -1,
+    repeatDelay: 2,
+  });
 
-    return () => {
-      tween.kill();
-      split.revert();
-    };
-  }, []);
+  return () => {
+    tween.kill();
+    split.revert();
+  };
+}, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
@@ -277,8 +221,8 @@ const HeroLogoParticles = ({ theme }) => {
     const mat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       uniforms: {
-        top: { value: new THREE.Color(0xf5f7fb) },
-        mid: { value: new THREE.Color(0xdfe4ee) },
+        top:    { value: new THREE.Color(0xf5f7fb) },
+        mid:    { value: new THREE.Color(0xdfe4ee) },
         bottom: { value: new THREE.Color(0xbfc7d8) },
       },
       vertexShader: `
@@ -304,13 +248,7 @@ const HeroLogoParticles = ({ theme }) => {
     const pmrem = new THREE.PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
     const envRT = pmrem.fromScene(envScene, 0.5);
-    return {
-      envMap: envRT.texture,
-      dispose: () => {
-        envRT.dispose();
-        pmrem.dispose();
-      },
-    };
+    return { envMap: envRT.texture, dispose: () => { envRT.dispose(); pmrem.dispose(); } };
   };
 
   /* ------------------- Animated ripple normal map for glass -------------------- */
@@ -326,16 +264,11 @@ const HeroLogoParticles = ({ theme }) => {
     const draw = (time) => {
       const img = ctx.getImageData(0, 0, size, size);
       const d = img.data;
-      const f1 = 12.0,
-        f2 = 9.0,
-        sp1 = 0.35,
-        sp2 = -0.27,
-        amp = 0.65;
+      const f1 = 12.0, f2 = 9.0, sp1 = 0.35, sp2 = -0.27, amp = 0.65;
       let p = 0;
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
-          const u = x / size,
-            v = y / size;
+          const u = x / size, v = y / size;
           const nx = Math.sin((u * f1 + time * sp1) * Math.PI * 2) * amp;
           const ny = Math.sin((v * f2 + time * sp2) * Math.PI * 2) * amp;
           d[p++] = (nx * 0.5 + 0.5) * 255;
@@ -360,26 +293,19 @@ const HeroLogoParticles = ({ theme }) => {
       im.src = src;
     });
 
-    const maxW = 900,
-      maxH = 320;
+    const maxW = 900, maxH = 320;
     const aspect = img.width / img.height;
-    let W = maxW,
-      H = Math.round(W / aspect);
-    if (H > maxH) {
-      H = maxH;
-      W = Math.round(H * aspect);
-    }
+    let W = maxW, H = Math.round(W / aspect);
+    if (H > maxH) { H = maxH; W = Math.round(H * aspect); }
 
     const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0,0,W,H);
     ctx.drawImage(img, 0, 0, W, H);
 
     const { data } = ctx.getImageData(0, 0, W, H);
-    const pts = [],
-      cols = [];
+    const pts = [], cols = [];
     const step = 1;
 
     for (let y = 0; y < H; y += step) {
@@ -387,10 +313,8 @@ const HeroLogoParticles = ({ theme }) => {
         const i = (y * W + x) * 4;
         const a = data[i + 3];
         if (a > 40) {
-          const r = data[i] / 255,
-            g = data[i + 1] / 255,
-            b = data[i + 2] / 255;
-          pts.push([x - W / 2, -(y - H / 2), (Math.random() - 0.5) * 6]);
+          const r = data[i] / 255, g = data[i+1]/255, b = data[i+2]/255;
+          pts.push([x - W/2, -(y - H/2), (Math.random()-0.5)*6]);
           cols.push([r, g, b]);
         }
       }
@@ -398,34 +322,28 @@ const HeroLogoParticles = ({ theme }) => {
 
     if (pts.length > maxPts) {
       const stride = Math.ceil(pts.length / maxPts);
-      const downPts = [],
-        downCols = [];
-      for (let i = 0; i < pts.length; i += stride) {
-        downPts.push(pts[i]);
-        downCols.push(cols[i]);
-      }
-      pts.length = 0;
-      cols.length = 0;
+      const downPts = [], downCols = [];
+      for (let i = 0; i < pts.length; i += stride) { downPts.push(pts[i]); downCols.push(cols[i]); }
+      pts.length = 0; cols.length = 0;
       Array.prototype.push.apply(pts, downPts);
       Array.prototype.push.apply(cols, downCols);
     }
 
     const RADIUS = 120;
     let maxAbs = 1;
-    for (const [x, y] of pts)
-      maxAbs = Math.max(maxAbs, Math.abs(x), Math.abs(y));
-    const HEART_SCALE = 0.3; // approved scale
+    for (const [x, y] of pts) maxAbs = Math.max(maxAbs, Math.abs(x), Math.abs(y));
+    const HEART_SCALE = 0.30; // approved scale
     const scale = (RADIUS * HEART_SCALE) / maxAbs;
 
     const tPositions = new Float32Array(pts.length * 3);
     const tColors = new Float32Array(pts.length * 3);
     for (let i = 0; i < pts.length; i++) {
-      tPositions[i * 3] = pts[i][0] * scale;
-      tPositions[i * 3 + 1] = pts[i][1] * scale;
-      tPositions[i * 3 + 2] = pts[i][2] * 0.8;
-      tColors[i * 3] = cols[i][0];
-      tColors[i * 3 + 1] = cols[i][1];
-      tColors[i * 3 + 2] = cols[i][2];
+      tPositions[i*3]     = pts[i][0] * scale;
+      tPositions[i*3 + 1] = pts[i][1] * scale;
+      tPositions[i*3 + 2] = pts[i][2] * 0.8;
+      tColors[i*3]     = cols[i][0];
+      tColors[i*3 + 1] = cols[i][1];
+      tColors[i*3 + 2] = cols[i][2];
     }
     return { tPositions, tColors, count: pts.length };
   };
@@ -439,20 +357,11 @@ const HeroLogoParticles = ({ theme }) => {
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      mount.clientWidth / mount.clientHeight,
-      0.1,
-      2000
-    );
+    const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.1, 2000);
     camera.position.set(0, 0, 80); // fixed; not tied to scroll
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -472,9 +381,8 @@ const HeroLogoParticles = ({ theme }) => {
 
     /* ----------------------------- Glass Cube ----------------------------- */
     const CUBE_SIZE = 170;
-    const ripple = buildRippleTexture();
-
     const cubeGeo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+    const ripple = buildRippleTexture();
 
     const cubeMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
@@ -498,11 +406,7 @@ const HeroLogoParticles = ({ theme }) => {
 
     // subtle white edges so the cube reads clearly (no colored borders)
     const edgeGeom = new THREE.EdgesGeometry(cubeGeo, 1);
-    const edgeMat = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.18,
-    });
+    const edgeMat  = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
     const edgeLines = new THREE.LineSegments(edgeGeom, edgeMat);
     cube.add(edgeLines);
 
@@ -519,7 +423,7 @@ const HeroLogoParticles = ({ theme }) => {
     const sizes = new Float32Array(COUNT);
     const colors = new Float32Array(COUNT * 3);
 
-    const half = CUBE_SIZE / 2 - 4; // soft walls
+    const half = (CUBE_SIZE / 2) - 4; // soft walls
 
     for (let i = 0; i < COUNT; i++) {
       const r = RADIUS * Math.cbrt(Math.random());
@@ -535,12 +439,12 @@ const HeroLogoParticles = ({ theme }) => {
       z = THREE.MathUtils.clamp(z, -half, half);
 
       positions[ix] = base[ix] = x;
-      positions[ix + 1] = base[ix + 1] = y;
-      positions[ix + 2] = base[ix + 2] = z;
-      velocities[ix] = velocities[ix + 1] = velocities[ix + 2] = 0;
+      positions[ix+1] = base[ix+1] = y;
+      positions[ix+2] = base[ix+2] = z;
+      velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0;
       speeds[i] = 0.24 + Math.random() * 0.8;
       sizes[i] = Math.random() * 0.6 + 1.2;
-      colors[ix] = colors[ix + 1] = colors[ix + 2] = 1.0;
+      colors[ix] = colors[ix+1] = colors[ix+2] = 1.0;
     }
 
     posRef.current = positions;
@@ -587,29 +491,26 @@ const HeroLogoParticles = ({ theme }) => {
 
     // lighting (envMap does most of the work)
     scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.4);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.40);
     dir.position.set(1, 1, 1);
     scene.add(dir);
 
     // build heart targets
     (async () => {
-      const { tPositions, tColors, count } = await buildLogoTargets(
-        LOGO_URL,
-        9000
-      );
+      const { tPositions, tColors, count } = await buildLogoTargets(LOGO_URL, 9000);
       targetRef.current = tPositions;
       targetCountRef.current = count;
 
       const colAttr = colorRef.current;
       for (let i = 0; i < count; i++) {
-        colAttr[i * 3] = tColors[i * 3];
-        colAttr[i * 3 + 1] = tColors[i * 3 + 1];
-        colAttr[i * 3 + 2] = tColors[i * 3 + 2];
+        colAttr[i*3]     = tColors[i*3];
+        colAttr[i*3 + 1] = tColors[i*3 + 1];
+        colAttr[i*3 + 2] = tColors[i*3 + 2];
       }
       const tint = new THREE.Color(primary);
       for (let i = count; i < colors.length / 3; i++) {
-        const ix = i * 3;
-        colors[ix] = tint.r * 0.8;
+        const ix = i*3;
+        colors[ix]     = tint.r * 0.8;
         colors[ix + 1] = tint.g * 0.8;
         colors[ix + 2] = tint.b * 0.8;
       }
@@ -618,12 +519,8 @@ const HeroLogoParticles = ({ theme }) => {
 
     const wrapper = mount;
 
-    const onEnter = () => {
-      hoverRef.current = true;
-    };
-    const onLeave = () => {
-      hoverRef.current = false;
-    };
+    const onEnter = () => { hoverRef.current = true; };
+    const onLeave = () => { hoverRef.current = false; };
     wrapper.addEventListener("mouseenter", onEnter);
     wrapper.addEventListener("mouseleave", onLeave);
 
@@ -640,16 +537,14 @@ const HeroLogoParticles = ({ theme }) => {
       const pos = posRef.current;
       const vel = velRef.current;
 
-      for (let i = 0; i < pos.length / 3; i++) {
-        const ix = i * 3;
-        const dx = pos[ix] - hit.x,
-          dy = pos[ix + 1] - hit.y,
-          dz = pos[ix + 2] - hit.z;
-        const d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.0001;
+      for (let i = 0; i < pos.length/3; i++) {
+        const ix = i*3;
+        const dx = pos[ix] - hit.x, dy = pos[ix+1] - hit.y, dz = pos[ix+2] - hit.z;
+        const d = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.0001;
         const s = (strength / d) * 0.5;
-        vel[ix] += (dx / d) * s + (Math.random() - 0.5) * 0.35;
-        vel[ix + 1] += (dy / d) * s + (Math.random() - 0.5) * 0.35;
-        vel[ix + 2] += (dz / d) * 0.25;
+        vel[ix]     += (dx/d) * s + (Math.random()-0.5)*0.35;
+        vel[ix + 1] += (dy/d) * s + (Math.random()-0.5)*0.35;
+        vel[ix + 2] += (dz/d) * 0.25;
       }
     };
 
@@ -662,8 +557,8 @@ const HeroLogoParticles = ({ theme }) => {
     };
     const onPointerMove = (e) => {
       if (!draggingRef.current || !groupRef.current) return;
-      const dx = e.clientX - lastMouseRef.current.x;
-      const dy = e.clientY - lastMouseRef.current.y;
+      const dx = (e.clientX - lastMouseRef.current.x);
+      const dy = (e.clientY - lastMouseRef.current.y);
       if (Math.abs(dx) + Math.abs(dy) > 2) dragMovedRef.current = true;
       groupRef.current.rotation.y += dx * 0.003;
       groupRef.current.rotation.x += dy * 0.003;
@@ -680,13 +575,8 @@ const HeroLogoParticles = ({ theme }) => {
 
         const pm = pointsRef.current.material;
         const lm = linesRef.current.mesh.material;
-        if (lockRef.current) {
-          pm.opacity = 0.96;
-          lm.opacity = 0.22;
-        } else {
-          pm.opacity = 0.88;
-          lm.opacity = 0.12;
-        }
+        if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
+        else { pm.opacity = 0.88; lm.opacity = 0.12; }
 
         burst(e.clientX, e.clientY, lockRef.current ? 26 : 20);
       }
@@ -720,11 +610,11 @@ const HeroLogoParticles = ({ theme }) => {
       const N = Math.min(500, tCount);
       let acc = 0;
       for (let i = 0; i < N; i++) {
-        const ix = i * 3;
+        const ix = i*3;
         const dx = pos[ix] - targets[ix];
-        const dy = pos[ix + 1] - targets[ix + 1];
-        const dz = pos[ix + 2] - targets[ix + 2];
-        acc += dx * dx + dy * dy + dz * dz;
+        const dy = pos[ix+1] - targets[ix+1];
+        const dz = pos[ix+2] - targets[ix+2];
+        acc += dx*dx + dy*dy + dz*dz;
       }
       return Math.sqrt(acc / N);
     };
@@ -737,10 +627,7 @@ const HeroLogoParticles = ({ theme }) => {
       const t = clockRef.current.elapsedTime;
 
       // water ripple normals
-      const ripple = cubeMat.normalMap;
-      if (ripple && ripple.image && ripple.image.getContext) {
-        // no-op (handled below where we created it), left for clarity
-      }
+      ripple.draw(t);
 
       // group motion + bounce + idle spin
       if (groupRef.current) {
@@ -754,38 +641,26 @@ const HeroLogoParticles = ({ theme }) => {
           const tau = bounceRef.current.t;
           const bounceY = A * Math.exp(-damping * tau) * Math.sin(w * tau);
           g.position.y = bounceY;
-          const pulse =
-            1 +
-            0.02 * Math.exp(-damping * tau) * Math.sin(w * tau + Math.PI / 3);
+          const pulse = 1 + 0.02 * Math.exp(-damping * tau) * Math.sin(w * tau + Math.PI/3);
           g.scale.setScalar(pulse);
 
-          if (
-            bounceRef.current.t >= bounceRef.current.duration &&
-            !disperseQueuedRef.current
-          ) {
+          if (bounceRef.current.t >= bounceRef.current.duration && !disperseQueuedRef.current) {
             disperseQueuedRef.current = true;
             const vel = velRef.current;
             const pos = posRef.current;
             for (let i = 0; i < pos.length / 3; i++) {
-              const ix = i * 3;
-              const n = new THREE.Vector3(
-                pos[ix],
-                pos[ix + 1],
-                pos[ix + 2]
-              ).normalize();
-              vel[ix] += n.x * (1.2 + Math.random() * 0.6);
-              vel[ix + 1] += n.y * (1.2 + Math.random() * 0.6);
-              vel[ix + 2] += n.z * (0.8 + Math.random() * 0.4);
+              const ix = i*3;
+              const n = new THREE.Vector3(pos[ix], pos[ix+1], pos[ix+2]).normalize();
+              vel[ix]     += n.x * (1.2 + Math.random()*0.6);
+              vel[ix + 1] += n.y * (1.2 + Math.random()*0.6);
+              vel[ix + 2] += n.z * (0.8 + Math.random()*0.4);
             }
             lockRef.current = false;
           }
-          if (
-            disperseQueuedRef.current &&
-            bounceRef.current.t >= bounceRef.current.duration + 0.2
-          ) {
+          if (disperseQueuedRef.current && bounceRef.current.t >= bounceRef.current.duration + 0.2) {
             bounceRef.current.active = false;
             g.position.y = 0;
-            g.scale.set(1, 1, 1);
+            g.scale.set(1,1,1);
           }
         } else {
           g.position.y = Math.sin(t * 0.6) * 1.0;
@@ -806,16 +681,11 @@ const HeroLogoParticles = ({ theme }) => {
       const targets = targetRef.current;
       const tCount = targetCountRef.current;
 
-      const hoverPull = hoverRef.current ? 0.1 : 0.0;
-      const lockPull = lockRef.current ? 0.22 : 0.0;
-      const relax = lockRef.current ? 0.02 : 0.012;
+      const hoverPull = hoverRef.current ? 0.10 : 0.0;
+      const lockPull  = lockRef.current ? 0.22 : 0.0;
+      const relax     = lockRef.current ? 0.02 : 0.012;
 
-      if (
-        lockRef.current &&
-        !bounceRef.current.started &&
-        targets &&
-        tCount > 0
-      ) {
+      if (lockRef.current && !bounceRef.current.started && targets && tCount > 0) {
         const err = morphError();
         if (err < 2.8) {
           bounceRef.current.started = true;
@@ -824,65 +694,61 @@ const HeroLogoParticles = ({ theme }) => {
         }
       }
 
-      const halfCube = 170 / 2 - 4;
+      const halfCube = (CUBE_SIZE / 2) - 4;
       for (let i = 0; i < pos.length / 3; i++) {
-        const ix = i * 3;
+        const ix = i*3;
 
         // organic drift
-        pos[ix] *= 1.0 + Math.sin(t * 0.12 * spd[i] + i) * drift;
-        pos[ix + 1] *= 1.0 + Math.cos(t * 0.1 * spd[i] + i * 0.7) * drift;
+        pos[ix]     *= 1.0 + Math.sin(t * 0.12 * spd[i] + i) * drift;
+        pos[ix + 1] *= 1.0 + Math.cos(t * 0.10 * spd[i] + i * 0.7) * drift;
         pos[ix + 2] *= 1.0 + Math.sin(t * 0.08 * spd[i] + i * 0.2) * drift;
 
-        if (targets && i < tCount && hoverPull + lockPull > 0) {
-          const tx = targets[ix],
-            ty = targets[ix + 1],
-            tz = targets[ix + 2];
+        if (targets && i < tCount && (hoverPull + lockPull) > 0) {
+          const tx = targets[ix], ty = targets[ix+1], tz = targets[ix+2];
           const pull = hoverPull + lockPull;
-          pos[ix] += (tx - pos[ix]) * pull;
+          pos[ix]     += (tx - pos[ix]) * pull;
           pos[ix + 1] += (ty - pos[ix + 1]) * pull;
           pos[ix + 2] += (tz - pos[ix + 2]) * pull * 0.95;
         } else {
           const haloPull = lockRef.current ? 0.035 : 0.012;
-          pos[ix] += (base[ix] - pos[ix]) * haloPull;
+          pos[ix]     += (base[ix] - pos[ix]) * haloPull;
           pos[ix + 1] += (base[ix + 1] - pos[ix + 1]) * haloPull;
           pos[ix + 2] += (base[ix + 2] - pos[ix + 2]) * haloPull;
         }
 
         // integrate velocities
-        pos[ix] += vel[ix] * dt;
+        pos[ix]     += vel[ix] *  dt;
         pos[ix + 1] += vel[ix + 1] * dt;
         pos[ix + 2] += vel[ix + 2] * dt;
-        vel[ix] *= damping;
+        vel[ix]     *= damping;
         vel[ix + 1] *= damping;
         vel[ix + 2] *= damping;
 
         // soft collision with cube walls
-        if (pos[ix] > halfCube) {
-          pos[ix] = halfCube;
-          vel[ix] *= -0.65;
-        }
-        if (pos[ix] < -halfCube) {
-          pos[ix] = -halfCube;
-          vel[ix] *= -0.65;
-        }
-        if (pos[ix + 1] > halfCube) {
-          pos[ix + 1] = halfCube;
-          vel[ix + 1] *= -0.65;
-        }
-        if (pos[ix + 1] < -halfCube) {
-          pos[ix + 1] = -halfCube;
-          vel[ix + 1] *= -0.65;
-        }
-        if (pos[ix + 2] > halfCube) {
-          pos[ix + 2] = halfCube;
-          vel[ix + 2] *= -0.65;
-        }
-        if (pos[ix + 2] < -halfCube) {
-          pos[ix + 2] = -halfCube;
-          vel[ix + 2] *= -0.65;
-        }
+        if (pos[ix] >  halfCube) { pos[ix] =  halfCube; vel[ix] *= -0.65; }
+        if (pos[ix] < -halfCube) { pos[ix] = -halfCube; vel[ix] *= -0.65; }
+        if (pos[ix+1] >  halfCube) { pos[ix+1] =  halfCube; vel[ix+1] *= -0.65; }
+        if (pos[ix+1] < -halfCube) { pos[ix+1] = -halfCube; vel[ix+1] *= -0.65; }
+        if (pos[ix+2] >  halfCube) { pos[ix+2] =  halfCube; vel[ix+2] *= -0.65; }
+        if (pos[ix+2] < -halfCube) { pos[ix+2] = -halfCube; vel[ix+2] *= -0.65; }
       }
       geomPos.needsUpdate = true;
+      // flash pulse
+      if (flashRef.current.active) {
+        flashRef.current.t += dt;
+        const pm = pointsRef.current.material;
+        const lm = linesRef.current.mesh.material;
+        const k = Math.max(0, 1 - flashRef.current.t / 0.9);
+        pm.size = 1.0 + k * 1.2;
+        pm.opacity = 0.96 + k * 0.2;
+        lm.opacity = 0.22 + k * 0.18;
+        if (flashRef.current.t > 0.9) {
+          flashRef.current.active = false;
+          pm.size = 1.0;
+          pm.opacity = lockRef.current ? 0.96 : 0.88;
+          lm.opacity = lockRef.current ? 0.22 : 0.12;
+        }
+      }
 
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
@@ -902,34 +768,21 @@ const HeroLogoParticles = ({ theme }) => {
         mount.removeChild(rendererRef.current.domElement);
         rendererRef.current.dispose();
       }
+      disposeEnv();
       scene.clear();
     };
   }, []);
 
   useEffect(() => {
     if (!pointsRef.current || !linesRef.current || !cubeRef.current) return;
-    const getVar = (name, fallback) => {
-      const v = getComputedStyle(document.documentElement)
-        .getPropertyValue(name)
-        .trim();
-      return v || fallback;
-    };
-    const primary = getVar(
-      "--brand-primary",
-      theme === "dark" ? "#7aa2ff" : "#4f46e5"
-    );
-    const accent = getVar(
-      "--brand-accent",
-      theme === "dark" ? "#8be9fd" : "#06b6d4"
-    );
-
+    const { primary, accent } = getThemeColors();
     const colors = colorRef.current;
     const count = targetCountRef.current;
     if (colors && pointsRef.current.geometry?.attributes?.color) {
       const tint = new THREE.Color(primary);
       for (let i = count; i < colors.length / 3; i++) {
-        const ix = i * 3;
-        colors[ix] = tint.r * 0.8;
+        const ix = i*3;
+        colors[ix]     = tint.r * 0.8;
         colors[ix + 1] = tint.g * 0.8;
         colors[ix + 2] = tint.b * 0.8;
       }
@@ -938,24 +791,18 @@ const HeroLogoParticles = ({ theme }) => {
     linesRef.current.mesh.material.color = new THREE.Color(accent);
   }, [theme]);
 
+  // split hero
   return (
     <section id="hero" className="hero">
       <div className="hero-inner">
         <div className="hero-copy">
-          <h1 className="hero-title">
-            Intelligent Healthcare, Seamlessly Delivered
-          </h1>
+          <h1 className="hero-title">Intelligent Healthcare, Seamlessly Delivered</h1>
           <p className="hero-subtitle">
-            We build AI assistants for doctors and patients—reliable, secure,
-            and integrated with DSAH workflows.
+            We build AI assistants for doctors and patients—reliable, secure, and integrated with DSAH workflows.
           </p>
           <div className="hero-ctas">
-            <a href="#products" className="btn primary">
-              Explore Products
-            </a>
-            <a href="#contact" className="btn ghost">
-              Talk to Us
-            </a>
+            <a href="#products" className="btn primary">Explore Products</a>
+            <a href="#contact" className="btn ghost">Talk to Us</a>
           </div>
         </div>
 
@@ -989,9 +836,7 @@ const AppCard = ({ app, onPlay }) => {
       if (p && typeof p.then === "function") p.catch(() => {});
     } else if (!isActive && audioEl) {
       audioEl.pause();
-      try {
-        audioEl.currentTime = 0;
-      } catch (e) {}
+      try { audioEl.currentTime = 0; } catch(e) {}
     }
   }, [isActive, app.id]);
 
@@ -1002,32 +847,16 @@ const AppCard = ({ app, onPlay }) => {
       tabIndex="0"
       aria-live="polite"
     >
-      {isActive && (
-        <>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </>
-      )}
+      {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
       <div className="content">
         <img src={app.icon} alt={app.name} className="app-icon" />
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
 
-        <div className="app-actions" style={{ display: "flex", gap: "1rem" }}>
-          <a
-            href={app.link}
-            className="btn"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Launch
-          </a>
-          <button onClick={() => onPlay(app.helpVideo)} className="btn">
-            Help
-          </button>
+        <div className="app-actions" style={{ display: 'flex', gap: '1rem' }}>
+          <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">Launch</a>
+          <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
         </div>
 
         {isActive && (
@@ -1057,15 +886,9 @@ const Footer = () => (
       <div className="footer-col">
         <h4>Quick Links</h4>
         <ul>
-          <li>
-            <a href="#hero">About</a>
-          </li>
-          <li>
-            <a href="#products">Products</a>
-          </li>
-          <li>
-            <a href="#contact">Contact</a>
-          </li>
+          <li><a href="#hero">About</a></li>
+          <li><a href="#products">Products</a></li>
+          <li><a href="#contact">Contact</a></li>
         </ul>
       </div>
       <div className="footer-col">
@@ -1073,141 +896,9 @@ const Footer = () => (
         <p>Email: mohmmed.bahageel@dsah.sa</p>
       </div>
     </div>
-    <div className="footer-bottom">
-      © {new Date().getFullYear()} DSAH — All rights reserved.
-    </div>
+    <div className="footer-bottom">© {new Date().getFullYear()} DSAH — All rights reserved.</div>
   </footer>
 );
-
-/* ============================ NEW: VideoModal ============================ */
-/** Renders YouTube in an iframe; local files with a <video> element */
-const VideoModal = ({ url, onClose }) => {
-  const isYouTube = useMemo(
-    () => /youtube\.com|youtu\.be/.test(url || ""),
-    [url]
-  );
-  const isHls = useMemo(() => /\.m3u8($|\?)/i.test(url || ""), [url]); // future-proof
-  const videoRef = useRef(null);
-  const [loading, setLoading] = useState(!isYouTube);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!url) return;
-    if (isYouTube) return; // iframe handles itself
-
-    const v = videoRef.current;
-    if (!v) return;
-
-    setLoading(true);
-    setError(null);
-
-    const tryPlay = async () => {
-      try {
-        // Attempt normal autoplay
-        await v.play();
-      } catch (e) {
-        // Autoplay policy: require muted to start
-        try {
-          v.muted = true;
-          await v.play();
-        } catch (err) {
-          // Last resort: show controls and let the user press play
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Auto-play when the metadata is loaded (ensures dimensions/seeking work)
-    const onLoadedMeta = () => tryPlay();
-    const onCanPlay = () => setLoading(false);
-    const onWaiting = () => setLoading(true);
-    const onPlaying = () => setLoading(false);
-    const onStalled = () => setLoading(true);
-    const onError = () => {
-      setError("Unable to play this video. Please check the file and server.");
-      setLoading(false);
-    };
-
-    v.addEventListener("loadedmetadata", onLoadedMeta);
-    v.addEventListener("canplay", onCanPlay);
-    v.addEventListener("playing", onPlaying);
-    v.addEventListener("waiting", onWaiting);
-    v.addEventListener("stalled", onStalled);
-    v.addEventListener("error", onError);
-
-    // Kick off early in case metadata event delays
-    tryPlay();
-
-    return () => {
-      v.pause();
-      // clear src to stop network requests when closing
-      v.removeEventListener("loadedmetadata", onLoadedMeta);
-      v.removeEventListener("canplay", onCanPlay);
-      v.removeEventListener("playing", onPlaying);
-      v.removeEventListener("waiting", onWaiting);
-      v.removeEventListener("stalled", onStalled);
-      v.removeEventListener("error", onError);
-    };
-  }, [url, isYouTube]);
-
-  return (
-    <div
-      className="video-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Help Video"
-    >
-      <div className="video-wrapper">
-        <button
-          className="close-video"
-          onClick={onClose}
-          aria-label="Close video"
-        >
-          ✖
-        </button>
-
-        {isYouTube ? (
-          <iframe
-            src={url}
-            title="Help Video"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-            loading="eager"
-          />
-        ) : (
-          <>
-            {loading && <div className="video-loading">Loading video…</div>}
-            {error && <div className="video-error">{error}</div>}
-            <video
-              key={url}
-              ref={videoRef}
-              src={url}
-              controls
-              playsInline
-              preload="auto"
-              controlsList="nodownload"
-              // disablePictureInPicture // uncomment if you want to force inline
-              onClick={(e) => e.stopPropagation()}
-              style={{ width: "100%", height: "100%" }}
-            >
-              {/* Extend if you later add WebM/OGG sources */}
-              <track
-                kind="captions"
-                srcLang="en"
-                label="English"
-                src=""
-                default={false}
-              />
-              Sorry, your browser doesn’t support embedded videos.
-            </video>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-/* ========================== END: VideoModal ========================== */
 
 /* -------------------------------- App ------------------------------- */
 const App = () => {
@@ -1226,89 +917,52 @@ const App = () => {
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
-  const surveyUrl =
-    "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
+  const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
 
   const apps = [
     {
-      id: 1,
-      name: "🧠 AI Doctor Assistant",
-      description:
-        "Get instant AI-powered medical opinions, based on the latest RAG technology",
+      id: 1, name: "🧠 AI Doctor Assistant",
+      description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://ai-doctor-assistant-app-dev.onrender.com",
       helpVideo: "https://www.youtube.com/embed/FbEV-LrmZl0?autoplay=1&mute=1",
     },
     {
-      id: 2,
-      name: "📋 Medical Transcription App",
+      id: 2, name: "📋 Medical Transcription App",
       description: "Generate structured medical notes from consultations",
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
       helpVideo: "/videos/transcriptionapp.mp4",
     },
     {
-      id: 3,
-      name: "📊 AI-Powered Data Analyst",
-      description:
-        "Upload and analyze hospital data instantly, visualize the results",
+      id: 3, name: "📊 AI-Powered Data Analyst",
+      description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
       link: "/videos/unddev.mp4",
       helpVideo: "/videos/unddev.mp4",
     },
     {
-      id: 4,
-      name: "🧠 Medical Report Enhancement App",
+      id: 4, name: "🧠 Medical Report Enhancement App",
       description: "Enhance the quality of medical reports using AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
       helpVideo: "/videos/medreport.mp4",
     },
     {
-      id: 5,
-      name: "🧠 IVF Virtual Training Assistant",
-      description:
-        "Designed to assist IVF fellowships at DSAH using RAG technology",
+      id: 5, name: "🧠 IVF Virtual Training Assistant",
+      description: "Designed to assist IVF fellowships at DSAH using RAG technology",
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
       helpVideo: "/videos/ivf.mp4",
     },
     {
-      id: 6,
-      name: "💬 Patient Assistant",
+      id: 6, name: "💬 Patient Assistant",
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
       helpVideo: "/videos/unddev.mp4",
     },
   ];
-
-  /* --------- NEW: Preload local video files to reduce start/stop --------- */
-  useEffect(() => {
-    const links = [];
-    apps.forEach((a) => {
-      if (
-        a.helpVideo &&
-        /^\/videos\/.+\.(mp4|webm|ogg)(\?.*)?$/i.test(a.helpVideo)
-      ) {
-        const l = document.createElement("link");
-        l.rel = "preload";
-        l.as = "video";
-        l.href = a.helpVideo;
-        // Optional: hint MIME type
-        if (/\.mp4(\?.*)?$/i.test(a.helpVideo)) l.type = "video/mp4";
-        if (/\.webm(\?.*)?$/i.test(a.helpVideo)) l.type = "video/webm";
-        if (/\.og(g)?(\?.*)?$/i.test(a.helpVideo)) l.type = "video/ogg";
-        document.head.appendChild(l);
-        links.push(l);
-      }
-    });
-    return () => {
-      links.forEach((l) => l.parentNode && l.parentNode.removeChild(l));
-    };
-  }, []); // once on mount
-
-  const isYouTube = (u) => /youtube\.com|youtu\.be/.test(u || "");
 
   return (
     <div className="container">
@@ -1317,20 +971,14 @@ const App = () => {
       {/* Header (kept) */}
       <div className="header">
         <div className="logo-container">
-          <img
-            src="/assets/logo.png"
-            alt="Hospital Logo"
-            className="hospital-logo"
-          />
+          <img src="/assets/logo.png" alt="Hospital Logo" className="hospital-logo" />
         </div>
         <div className="title-block">
           <div id="BrushCursor">
             <div className="container">
               <div className="p p1">DSAH AI PLATFORM 🧠</div>
               <div className="p p2">DSAH AI PLATFORM 🧠</div>
-              <div className="p p3">
-                DSAH AI PLATFORM 🧠<div className="cursor"></div>
-              </div>
+              <div className="p p3">DSAH AI PLATFORM 🧠<div className="cursor"></div></div>
             </div>
           </div>
         </div>
@@ -1339,18 +987,21 @@ const App = () => {
       {/* Hero with text (left) + GLASS CUBE with heart (right) */}
       <HeroLogoParticles theme={theme} />
 
-      {/* Video modal (UPDATED: uses VideoModal) */}
+      {/* Video modal */}
       {videoUrl && (
-        <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />
+        <div className="video-modal">
+          <div className="video-wrapper">
+            <button className="close-video" onClick={() => setVideoUrl(null)}>✖</button>
+            <iframe src={videoUrl} title="Help Video" allow="autoplay; encrypted-media" allowFullScreen />
+          </div>
+        </div>
       )}
 
       {/* Products */}
       <section id="products" className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (
-            <AppCard key={app.id} app={app} onPlay={setVideoUrl} />
-          ))}
+          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
         </div>
       </section>
       <CardCarousel />
@@ -1358,13 +1009,7 @@ const App = () => {
         <LaptopSection3D />
       </section>
       {/* <TestimonialSection /> */}
-      <a
-        href={surveyUrl}
-        className="btn survey-fab-button"
-        target="_blank"
-        rel="noopener noreferrer"
-        title="Take our Survey"
-      >
+      <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>
 
