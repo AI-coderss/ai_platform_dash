@@ -8,15 +8,12 @@ import useCardStore from "./store/useCardStore";
 
 /**
  * Draggable D-ID widget notes (Updated Logic):
- * - We inject the D-ID script on initial component load.
- * - Once the script builds its avatar, we detect it via MutationObserver and
- *   move/re-parent it into our "docked" container (dockRef) inside the chat box.
- * - The avatar starts visible in this docked state on first load.
- * - A "Float Avatar" button moves the avatar to a fixed-position, draggable container.
- * - The floating container has no visible chrome; only the D-ID widget is visible.
- * - A tiny '✖' close chip on the floating avatar docks it back to its original position.
- * - On Close (dock), we re-parent the widget back. The flow is: Open → float; Close → dock.
- * - The script is never removed; we just move the DOM node around.
+ * - The avatar is now completely contained within the chat box, even when "floating".
+ * - On load, the script injects the avatar into a "docked" position in the chat body's normal flow.
+ * - The "Float Avatar" button changes its positioning to 'absolute' within the chat box.
+ * - Dragging is maintained but is now constrained to the boundaries of the chat box.
+ * - This new implementation prevents the widget from ever overlapping with the global chat FAB.
+ * - The script is never removed; we just move the DOM node between the docked and floating containers.
  *
  * If D-ID changes DOM structure, update CANDIDATE_SELECTORS below.
  */
@@ -64,21 +61,21 @@ const ChatBot = () => {
     return id;
   });
 
-  // ---- D-ID draggable widget state (REVISED) ----
+  // ---- D-ID draggable widget state ----
   const [isDidFloating, setIsDidFloating] = useState(false);
   const [didAttached, setDidAttached] = useState(false);
-  const dockRef = useRef(null); // The new container for the docked avatar
-  const didContainerRef = useRef(null); // The ref for the floating container
+  const dockRef = useRef(null); // Container for the docked avatar
+  const didContainerRef = useRef(null); // Ref for the floating container
   const observerRef = useRef(null);
+  const chatBoxRef = useRef(null); // Ref for the chat box to constrain dragging
 
-  // Draggable initial position
-  const x = useMotionValue(typeof window !== "undefined" ? window.innerWidth - 360 : 0);
-  const y = useMotionValue(typeof window !== "undefined" ? window.innerHeight - 420 : 0);
+  // Draggable initial position (relative to the chat box)
+  const x = useMotionValue(50);
+  const y = useMotionValue(50);
 
   // Inject D-ID script
   const injectDidScript = () => {
     if (typeof document === "undefined" || document.getElementById(DID_SCRIPT_ID)) return;
-
     const s = document.createElement("script");
     s.type = "module";
     s.async = true;
@@ -103,7 +100,7 @@ const ChatBot = () => {
     return null;
   };
 
-  // Neutralize D-ID's inline styles so it fits our containers
+  // Neutralize D-ID's inline styles
   const neutralizeDidStyles = (el) => {
     el.style.position = "static";
     el.style.inset = "auto";
@@ -124,7 +121,7 @@ const ChatBot = () => {
     }
   };
 
-  // Observe DOM for the D-ID FAB and move it to the DOCKED container on first find
+  // Observe DOM for the D-ID FAB and move it to the DOCKED container
   const startObservingForDid = () => {
     if (observerRef.current) return;
     const obs = new MutationObserver(() => {
@@ -134,7 +131,7 @@ const ChatBot = () => {
           neutralizeDidStyles(didNode);
           dockRef.current.appendChild(didNode);
           setDidAttached(true);
-          stopObserving(); // We found it, no need to observe anymore
+          stopObserving();
         } catch (e) {
           console.warn("Failed to attach D-ID node to dock:", e);
         }
@@ -144,25 +141,24 @@ const ChatBot = () => {
     observerRef.current = obs;
   };
 
-  // --- NEW: Float/Dock logic ---
+  // --- Float/Dock logic ---
   const floatDid = () => {
-    setIsDidFloating(true); // Set state to render the floating container
+    setIsDidFloating(true);
   };
 
   const dockDid = () => {
     const didNode = findDidNode();
     if (didNode && dockRef.current) {
       try {
-        // Move the node from the floating container back to the dock
         dockRef.current.appendChild(didNode);
-        setIsDidFloating(false); // Then set state to remove the floating container
+        setIsDidFloating(false);
       } catch (e) {
         console.warn("Failed to dock D-ID node:", e);
       }
     }
   };
 
-  // --- REVISED: Load script on mount ---
+  // --- Load script on mount ---
   useEffect(() => {
     injectDidScript();
     startObservingForDid();
@@ -170,7 +166,7 @@ const ChatBot = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // This effect runs after the floating container is rendered to move the DOM node into it.
+  // Move the D-ID node into the floating container after it renders
   useEffect(() => {
     if (isDidFloating) {
       const didNode = findDidNode();
@@ -184,7 +180,7 @@ const ChatBot = () => {
     }
   }, [isDidFloating]);
 
-  // Keep scroll pinned to bottom while streaming
+  // Keep scroll pinned to bottom
   useLayoutEffect(() => {
     if (chatBodyRef.current) {
       requestAnimationFrame(() => {
@@ -195,29 +191,21 @@ const ChatBot = () => {
 
   const handleSendMessage = async ({ text }) => {
     if (!text?.trim()) return;
-
     const userMsg = { type: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     setAccordionOpen(false);
     setLoading(true);
-
     let botText = "";
     try {
-      const response = await fetch(
-        "https://ai-platform-dsah-backend-chatbot.onrender.com/stream",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, session_id: sessionId }),
-        }
-      );
-
+      const response = await fetch("https://ai-platform-dsah-backend-chatbot.onrender.com/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, session_id: sessionId }),
+      });
       if (!response.ok || !response.body) throw new Error("Streaming failed");
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       setMessages((prev) => [...prev, { type: "bot", text: "" }]);
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -228,17 +216,11 @@ const ChatBot = () => {
           return updated;
         });
       }
-
-      // Classify intent to highlight a card
-      const classifyRes = await fetch(
-        "https://ai-platform-dsah-backend-chatbot.onrender.com/classify",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, ai_response: botText }),
-        }
-      );
-
+      const classifyRes = await fetch("https://ai-platform-dsah-backend-chatbot.onrender.com/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, ai_response: botText }),
+      });
       if (classifyRes.ok) {
         const data = await classifyRes.json();
         if (data.card_id) setActiveCardId(data.card_id);
@@ -247,10 +229,7 @@ const ChatBot = () => {
       }
     } catch (err) {
       console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text: "⚠️ Error streaming response." },
-      ]);
+      setMessages((prev) => [...prev, { type: "bot", text: "⚠️ Error streaming response." }]);
     } finally {
       setLoading(false);
     }
@@ -264,37 +243,28 @@ const ChatBot = () => {
 
   return (
     <>
-      {/* Your existing Chat FAB */}
       <button className="chat-toggle" onClick={() => setOpen(!open)}>
         <img src="/icons/chat.svg" alt="Chat" className="chat-icon" />
       </button>
 
       {open && window.innerWidth <= 768 && (
-        <button className="chat-close-mobile" onClick={() => setOpen(false)}>
-          ✖
-        </button>
+        <button className="chat-close-mobile" onClick={() => setOpen(false)}>✖</button>
       )}
 
       {open && (
-        <div className="chat-box">
-          <div
-            className="chat-header"
-            style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}
-          >
+        <div
+          className="chat-box"
+          ref={chatBoxRef}
+          // This is crucial for containing the absolutely positioned floating widget
+          style={{ position: "relative", overflow: "hidden" }}
+        >
+          <div className="chat-header" style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}>
             AI Assistant
           </div>
 
           <div className="chat-body" ref={chatBodyRef}>
-            {/* --- REVISED: D-ID Controls & Dock --- */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                alignItems: "center",
-                margin: "6px 8px 10px",
-              }}
-            >
-              {/* This is where the D-ID avatar lives when docked. */}
+            {/* --- D-ID Controls & Dock --- */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "6px 8px 10px" }}>
               <div
                 ref={dockRef}
                 style={{
@@ -305,70 +275,40 @@ const ChatBot = () => {
                   justifyContent: "center",
                 }}
               >
-                {!didAttached && (
-                  <span style={{ fontSize: 12, color: "#666" }}>Loading avatar...</span>
-                )}
+                {!didAttached && <span style={{ fontSize: 12, color: "#666" }}>Loading avatar...</span>}
               </div>
-
-              {/* Button to float the avatar. Only shows when avatar is ready and docked. */}
               {didAttached && !isDidFloating && (
-                <button
-                  onClick={floatDid}
-                  className="predefined-q"
-                  title="Float and drag avatar"
+                <button onClick={floatDid} className="predefined-q" title="Float and drag avatar"
                   style={{
-                    background: "#0ea5e9",
-                    color: "white",
-                    borderRadius: 999,
-                    padding: "6px 10px",
-                    fontSize: 13,
-                    border: "none",
-                    boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
-                    cursor: "pointer",
-                  }}
-                >
+                    background: "#0ea5e9", color: "white", borderRadius: 999,
+                    padding: "6px 10px", fontSize: 13, border: "none",
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.12)", cursor: "pointer",
+                  }}>
                   🎭 Float Avatar
                 </button>
               )}
             </div>
 
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`chat-msg ${msg.type}`}
+              <div key={idx} className={`chat-msg ${msg.type}`}
                 style={{
-                  maxWidth: "70%",
-                  alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "70%", alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
                   background: msg.type === "user" ? "#2563eb" : "#f1f6fd",
-                  color: msg.type === "user" ? "#fff" : "#222",
-                  padding: "8px 12px",
-                  margin: msg.type === "user" ? "6px" : "0px 15px",
-                  borderRadius: "14px",
-                  fontSize: "14px",
-                  lineHeight: 1.4,
-                }}
-              >
+                  color: msg.type === "user" ? "#fff" : "#222", padding: "8px 12px",
+                  margin: msg.type === "user" ? "6px" : "0px 15px", borderRadius: "14px",
+                  fontSize: "14px", lineHeight: 1.4,
+                }}>
                 {msg.type === "bot" ? <ReactMarkdown>{msg.text}</ReactMarkdown> : msg.text}
               </div>
             ))}
-
-            {loading && (
-              <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}>
-                <span className="dot"></span>
-                <span className="dot"></span>
-                <span className="dot"></span>
-              </div>
-            )}
+            {loading && <div className="chat-msg bot loader" style={{ alignSelf: "flex-start" }}><span className="dot"></span><span className="dot"></span><span className="dot"></span></div>}
           </div>
 
           {visibleQuestions.length > 0 && (
             <div className="predefined-questions-container">
               {visibleQuestions.length > 3 ? (
                 <>
-                  <div
-                    className="accordion-header"
-                    onClick={() => setAccordionOpen((prev) => !prev)}
-                  >
+                  <div className="accordion-header" onClick={() => setAccordionOpen((prev) => !prev)}>
                     <span>Show Suggested Questions</span>
                     <span className={`chevron ${accordionOpen ? "rotate" : ""}`}>▼</span>
                   </div>
@@ -403,66 +343,44 @@ const ChatBot = () => {
           )}
 
           <ChatInputWidget onSendMessage={handleSendMessage} />
+
+          {/* ---------- Draggable D-ID container is NOW INSIDE THE CHAT BOX ---------- */}
+          {isDidFloating && (
+            <motion.div
+              ref={didContainerRef}
+              drag
+              dragConstraints={chatBoxRef} // This contains dragging within the chat box
+              dragMomentum={false}
+              style={{
+                position: "absolute", // Positioned relative to chat-box
+                top: 0,
+                left: 0,
+                x,
+                y,
+                zIndex: 100, // Z-index relative to other chat elements
+                cursor: "grab",
+              }}>
+              <button onClick={dockDid} title="Dock Avatar"
+                style={{
+                  position: "absolute", top: 0, right: 0,
+                  transform: "translate(40%, -40%)", background: "rgba(0, 0, 0, 0.7)",
+                  color: "white", border: "2px solid white", borderRadius: "50%",
+                  width: "24px", height: "24px", fontSize: "12px", lineHeight: "1",
+                  cursor: "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", zIndex: 101, boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+                }}>
+                ✖
+              </button>
+              {/* D-ID node will be appended here */}
+            </motion.div>
+          )}
         </div>
-      )}
-
-      {/* ---------- REVISED: Chrome-less Draggable D-ID container ---------- */}
-      {isDidFloating && (
-        <motion.div
-          ref={didContainerRef}
-          role="dialog"
-          aria-label="Floating D-ID Avatar"
-          drag
-          dragMomentum={false}
-          style={{
-            position: "fixed",
-            left: 0,
-            top: 0,
-            x,
-            y,
-            zIndex: 9999,
-            cursor: "grab",
-            // The container itself is invisible.
-            // The D-ID node provides the visuals.
-          }}
-        >
-          {/* The D-ID node will be programmatically appended here */}
-
-          {/* Tiny '✖' close chip to dock the avatar back */}
-          <button
-            onClick={dockDid}
-            title="Dock Avatar"
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              transform: "translate(40%, -40%)", // Position it nicely outside the corner
-              background: "rgba(0, 0, 0, 0.7)",
-              color: "white",
-              border: "2px solid white",
-              borderRadius: "50%",
-              width: "24px",
-              height: "24px",
-              fontSize: "12px",
-              lineHeight: "1",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10000,
-              boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-            }}
-          >
-            ✖
-          </button>
-        </motion.div>
       )}
     </>
   );
 };
 
 export default ChatBot;
-
 
 
 
