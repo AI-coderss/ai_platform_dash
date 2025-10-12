@@ -21,6 +21,9 @@ import LaptopSection3D from "./components/LaptopSection3D";
 import gsap from "gsap";
 import SplitType from "split-type";
 
+// ⬇️ NEW: html2canvas for vision-on-hover element capture
+import html2canvas from "html2canvas";
+
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -819,8 +822,8 @@ const HeroLogoParticles = ({ theme }) => {
   );
 };
 
-/* ------------------------ AppCard (now sends hover prompts) ------------------------ */
-const AppCard = ({ app, onPlay, onHoverExplain }) => {
+/* ------------------------ AppCard (now also vision-on-hover) ------------------------ */
+const AppCard = ({ app, onPlay, onHoverExplainVision }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
@@ -851,7 +854,7 @@ const AppCard = ({ app, onPlay, onHoverExplain }) => {
     // Debounced hover → avoid spam when moving across cards
     clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = setTimeout(() => {
-      onHoverExplain?.(app);
+      onHoverExplainVision?.(app, cardRef.current);
     }, 600); // small delay feels intentional
   };
 
@@ -869,11 +872,14 @@ const AppCard = ({ app, onPlay, onHoverExplain }) => {
       onMouseLeave={handleLeave}
       onFocus={handleEnter}
       onBlur={handleLeave}
+      data-vision-explain="true"
+      data-vision-label={app.name}
     >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
       <div className="content">
-        <img src={app.icon} alt={app.name} className="app-icon" />
+        {/* crossOrigin to prevent tainting the canvas when capturing */}
+        <img src={app.icon} alt={app.name} className="app-icon" crossOrigin="anonymous" />
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
 
@@ -997,8 +1003,6 @@ const App = () => {
    * Realtime: connect once
    * ========================= */
   useEffect(() => {
-    let cancelled = false;
-
     async function setupRealtime() {
       try {
         // 1) Create peer connection (recv-only for audio)
@@ -1026,7 +1030,6 @@ const App = () => {
           const [stream] = e.streams;
           if (audioRef.current) {
             audioRef.current.srcObject = stream;
-            // try to unlock autoplay on first user gesture
             audioRef.current.muted = false;
             const p = audioRef.current.play();
             if (p && typeof p.then === "function") p.catch(() => {});
@@ -1053,14 +1056,13 @@ const App = () => {
 
     setupRealtime();
     return () => {
-      cancelled = true;
       setRtReady(false);
       try { dcRef.current?.close(); } catch {}
       try { pcRef.current?.close(); } catch {}
     };
   }, []);
 
-  // Build a concise spoken prompt for a hovered app
+  // ---------- Helpers for voice & prompt building ----------
   const buildExplainPrompt = (app) => {
     return [
       `The user hovered the card "${app.name}".`,
@@ -1071,7 +1073,6 @@ const App = () => {
     ].join(" ");
   };
 
-  // Send a response.create event over the Realtime data channel
   const sendRealtimeText = (text) => {
     if (!rtReady || !dcRef.current || dcRef.current.readyState !== "open") return false;
     const event = {
@@ -1090,27 +1091,104 @@ const App = () => {
     }
   };
 
-  // Public handler passed into each AppCard
-  const handleHoverExplain = (app) => {
-    // Cooldown per app (avoid spam on fast mouse moves)
+  // Optional speech recognition: capture quick question if user speaks
+  const listenOnce = () =>
+    new Promise((resolve) => {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return resolve(null);
+      const rec = new SR();
+      rec.lang = "en-US"; // set to "ar-SA" if you prefer Arabic
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      let resolved = false;
+      const finish = (val) => {
+        if (!resolved) {
+          resolved = true;
+          try { rec.stop(); } catch {}
+          resolve(val ?? null);
+        }
+      };
+      rec.onresult = (evt) => {
+        try {
+          const t = evt.results[0][0].transcript;
+          finish(t);
+        } catch { finish(null); }
+      };
+      rec.onerror = () => finish(null);
+      rec.onend = () => finish(null);
+      try { rec.start(); } catch { resolve(null); }
+      setTimeout(() => finish(null), 3000);
+    });
+
+  // ---------- NEW: Vision-on-hover handler ----------
+  const handleHoverExplainVision = async (app, element) => {
+    // Per-app cooldown to avoid chatty repeats
     const now = Date.now();
     const last = lastFirePerAppRef.current.get(app.id) || 0;
     const COOLDOWN_MS = 9000;
     if (now - last < COOLDOWN_MS) return;
-
     lastFirePerAppRef.current.set(app.id, now);
 
-    // Try autoplay unlock (some browsers)
+    // Ensure autoplay unlocked where possible
     if (audioRef.current) {
       audioRef.current.muted = false;
       const p = audioRef.current.play();
       if (p && typeof p.then === "function") p.catch(() => {});
     }
 
-    const ok = sendRealtimeText(buildExplainPrompt(app));
+    // Try to capture user's spoken question; fallback to default
+    const spoken = await listenOnce();
+    const userPrompt =
+      (spoken && spoken.trim()) ||
+      "Explain what this UI card does and how to use its application step by step. Keep it concise.";
+
+    let explainedText = null;
+
+    try {
+      // 1) Capture the hovered element as PNG (transparent bg)
+      if (element) {
+        const canvas = await html2canvas(element, {
+          backgroundColor: null,
+          useCORS: true,
+          scale: Math.min(2, window.devicePixelRatio || 1),
+          removeContainer: true,
+          allowTaint: false,
+          logging: false,
+        });
+        const dataUrl = canvas.toDataURL("image/png", 0.92);
+
+        // 2) Send to backend vision endpoint (must be implemented server-side)
+        const res = await fetch("/api/element-explain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image_data_url: dataUrl,
+            prompt: `${userPrompt}\n\nApp meta:\n- Name: ${app.name}\n- Description: ${app.description}\n- Launch URL: ${app.link}`,
+          }),
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          explainedText = json?.text || null;
+        } else {
+          console.warn("Vision endpoint returned non-OK status");
+        }
+      }
+    } catch (err) {
+      console.error("Vision capture/explain error:", err);
+    }
+
+    // 3) Speak result via OpenAI Realtime voice. If vision failed, fall back to text-only prompt.
+    const toSpeak = explainedText || buildExplainPrompt(app);
+    const ok = sendRealtimeText(toSpeak);
     if (!ok) {
-      // Optional: you can show a toast “Voice assistant not ready”
-      // console.warn("Voice assistant is not ready yet.");
+      // (Optional) fallback to Web Speech API TTS if realtime isn't ready
+      try {
+        const utter = new SpeechSynthesisUtterance(toSpeak);
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utter);
+      } catch {}
     }
   };
 
@@ -1157,7 +1235,7 @@ const App = () => {
               key={app.id}
               app={app}
               onPlay={setVideoUrl}
-              onHoverExplain={handleHoverExplain}
+              onHoverExplainVision={handleHoverExplainVision}
             />
           ))}
         </div>
@@ -1189,4 +1267,5 @@ const App = () => {
 };
 
 export default App;
+
 
