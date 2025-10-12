@@ -2,8 +2,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
 
-// App.js
-import React, { useEffect, useRef, useState } from "react";
+// App.jsx
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as THREE from "three";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./App.css";
@@ -16,7 +16,6 @@ import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 /* import TestimonialSection from "./components/TestimonialSection"; */
-
 
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
@@ -131,10 +130,10 @@ const NavBar = ({ theme, onToggleTheme }) => {
 
       <div className="topnav-mobile">
         <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+        <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+        <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+        <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+        <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
       </div>
     </nav>
   );
@@ -194,26 +193,26 @@ const HeroLogoParticles = ({ theme }) => {
   };
 
   // ====== GSAP SplitType animation for hero title (updated) ======
-useEffect(() => {
-  // Split into lines + words + chars so browser respects line wrapping
-  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
+  useEffect(() => {
+    // Split into lines + words + chars so browser respects line wrapping
+    const split = new SplitType(".hero-title", { types: "lines, words, chars" });
 
-  // Animate each char, but keep words/lines together
-  const tween = gsap.from(split.chars, {
-    x: 150,
-    opacity: 0,
-    duration: 0.7,
-    ease: "power4",
-    stagger: 0.04,
-    repeat: -1,
-    repeatDelay: 2,
-  });
+    // Animate each char, but keep words/lines together
+    const tween = gsap.from(split.chars, {
+      x: 150,
+      opacity: 0,
+      duration: 0.7,
+      ease: "power4",
+      stagger: 0.04,
+      repeat: -1,
+      repeatDelay: 2,
+    });
 
-  return () => {
-    tween.kill();
-    split.revert();
-  };
-}, []);
+    return () => {
+      tween.kill();
+      split.revert();
+    };
+  }, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
@@ -776,7 +775,13 @@ useEffect(() => {
 
   useEffect(() => {
     if (!pointsRef.current || !linesRef.current || !cubeRef.current) return;
-    const { primary, accent } = getThemeColors();
+    const getVar = (name, fallback) => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
+    };
+    const primary = getVar("--brand-primary", theme === "dark" ? "#7aa2ff" : "#4f46e5");
+    const accent  = getVar("--brand-accent",  theme === "dark" ? "#8be9fd" : "#06b6d4");
+
     const colors = colorRef.current;
     const count = targetCountRef.current;
     if (colors && pointsRef.current.geometry?.attributes?.color) {
@@ -798,7 +803,7 @@ useEffect(() => {
       <div className="hero-inner">
         <div className="hero-copy">
           <h1 className="hero-title">Intelligent Healthcare, Seamlessly Delivered</h1>
-          <p className="hero-subtitle">
+        <p className="hero-subtitle">
             We build AI assistants for doctors and patients—reliable, secure, and integrated with DSAH workflows.
           </p>
           <div className="hero-ctas">
@@ -814,11 +819,12 @@ useEffect(() => {
   );
 };
 
-/* ------------------------ Product Card (audio ok) ------------------------ */
-const AppCard = ({ app, onPlay }) => {
+/* ------------------------ AppCard (now sends hover prompts) ------------------------ */
+const AppCard = ({ app, onPlay, onHoverExplain }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
+  const hoverTimerRef = useRef(null);
 
   useEffect(() => {
     if (isActive && cardRef.current) {
@@ -841,12 +847,28 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive, app.id]);
 
+  const handleEnter = () => {
+    // Debounced hover → avoid spam when moving across cards
+    clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      onHoverExplain?.(app);
+    }, 600); // small delay feels intentional
+  };
+
+  const handleLeave = () => {
+    clearTimeout(hoverTimerRef.current);
+  };
+
   return (
     <div
       ref={cardRef}
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
       aria-live="polite"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      onFocus={handleEnter}
+      onBlur={handleLeave}
     >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
@@ -909,18 +931,24 @@ const App = () => {
     return saved === "dark" ? "dark" : "light";
   });
 
+  // === Realtime Voice (hover) state ===
+  const pcRef = useRef(null);
+  const dcRef = useRef(null);
+  const audioRef = useRef(null);
+  const [rtReady, setRtReady] = useState(false);
+  const lastFirePerAppRef = useRef(new Map()); // id -> timestamp ms
+
   useEffect(() => {
     const root = document.documentElement;
     if (theme === "dark") root.setAttribute("data-theme", "dark");
     else root.removeAttribute("data-theme");
     localStorage.setItem("theme", theme);
   }, [theme]);
-
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
 
-  const apps = [
+  const apps = useMemo(() => ([
     {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
@@ -963,7 +991,128 @@ const App = () => {
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
       helpVideo: "/videos/unddev.mp4",
     },
-  ];
+  ]), []);
+
+  /* =========================
+   * Realtime: connect once
+   * ========================= */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function setupRealtime() {
+      try {
+        // 1) Create peer connection (recv-only for audio)
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+        });
+        pcRef.current = pc;
+
+        // We want to receive audio
+        pc.addTransceiver("audio", { direction: "recvonly" });
+
+        // 2) Data channel for events
+        const dc = pc.createDataChannel("oai-events");
+        dcRef.current = dc;
+        dc.onopen = () => setRtReady(true);
+        dc.onclose = () => setRtReady(false);
+        dc.onerror = () => setRtReady(false);
+        dc.onmessage = (evt) => {
+          // Optional: log model events for debugging
+          // console.log("Realtime message:", evt.data);
+        };
+
+        // 3) Remote audio track → play in hidden <audio>
+        pc.ontrack = (e) => {
+          const [stream] = e.streams;
+          if (audioRef.current) {
+            audioRef.current.srcObject = stream;
+            // try to unlock autoplay on first user gesture
+            audioRef.current.muted = false;
+            const p = audioRef.current.play();
+            if (p && typeof p.then === "function") p.catch(() => {});
+          }
+        };
+
+        // 4) SDP offer/answer via your Flask endpoint
+        const offer = await pc.createOffer({ offerToReceiveAudio: true });
+        await pc.setLocalDescription(offer);
+
+        const resp = await fetch("/api/rtc-connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/sdp" },
+          body: offer.sdp,
+        });
+
+        if (!resp.ok) throw new Error("RTC connect failed");
+        const answerSdp = await resp.text();
+        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      } catch (err) {
+        console.error("Realtime setup error:", err);
+      }
+    }
+
+    setupRealtime();
+    return () => {
+      cancelled = true;
+      setRtReady(false);
+      try { dcRef.current?.close(); } catch {}
+      try { pcRef.current?.close(); } catch {}
+    };
+  }, []);
+
+  // Build a concise spoken prompt for a hovered app
+  const buildExplainPrompt = (app) => {
+    return [
+      `The user hovered the card "${app.name}".`,
+      `Give a brief, friendly, step-by-step guide (under 30 seconds) on how to use this application on the DSAH AI Platform.`,
+      `Assume they clicked "Launch" to open ${app.link}.`,
+      `Context (one-liner): ${app.description}`,
+      `Avoid technical jargon. End with one actionable next step.`
+    ].join(" ");
+  };
+
+  // Send a response.create event over the Realtime data channel
+  const sendRealtimeText = (text) => {
+    if (!rtReady || !dcRef.current || dcRef.current.readyState !== "open") return false;
+    const event = {
+      type: "response.create",
+      response: {
+        instructions: text,
+        modalities: ["audio"], // voice is set in the server-side session
+      },
+    };
+    try {
+      dcRef.current.send(JSON.stringify(event));
+      return true;
+    } catch (e) {
+      console.error("Failed sending realtime text", e);
+      return false;
+    }
+  };
+
+  // Public handler passed into each AppCard
+  const handleHoverExplain = (app) => {
+    // Cooldown per app (avoid spam on fast mouse moves)
+    const now = Date.now();
+    const last = lastFirePerAppRef.current.get(app.id) || 0;
+    const COOLDOWN_MS = 9000;
+    if (now - last < COOLDOWN_MS) return;
+
+    lastFirePerAppRef.current.set(app.id, now);
+
+    // Try autoplay unlock (some browsers)
+    if (audioRef.current) {
+      audioRef.current.muted = false;
+      const p = audioRef.current.play();
+      if (p && typeof p.then === "function") p.catch(() => {});
+    }
+
+    const ok = sendRealtimeText(buildExplainPrompt(app));
+    if (!ok) {
+      // Optional: you can show a toast “Voice assistant not ready”
+      // console.warn("Voice assistant is not ready yet.");
+    }
+  };
 
   return (
     <div className="container">
@@ -993,6 +1142,7 @@ const App = () => {
         <div className="video-modal">
           <div className="video-wrapper">
             <button className="close-video" onClick={() => setVideoUrl(null)}>✖</button>
+            {/* Keep iframe because your videos are short promos; switch to <video> if self-hosted MP4s need better control */}
             <iframe src={videoUrl} title="Help Video" allow="autoplay; encrypted-media" allowFullScreen />
           </div>
         </div>
@@ -1002,9 +1152,17 @@ const App = () => {
       <section id="products" className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
+          {apps.map((app) => (
+            <AppCard
+              key={app.id}
+              app={app}
+              onPlay={setVideoUrl}
+              onHoverExplain={handleHoverExplain}
+            />
+          ))}
         </div>
       </section>
+
       <CardCarousel />
       <section id="policy" className="policy-section">
         <LaptopSection3D />
@@ -1017,12 +1175,18 @@ const App = () => {
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
-      
+
+      {/* Hidden audio element to play the realtime voice */}
+      <audio ref={audioRef} autoPlay playsInline style={{ display: "none" }} />
+
+      {/* Your existing assistants */}
       <VoiceAssistant />
       <ChatBot />
+
       <Footer />
     </div>
   );
 };
 
 export default App;
+

@@ -15,9 +15,13 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Allow your deployed frontend origin (adjust if you also run local dev)
 CORS(app, resources={
     r"/api/*": {
-        "origins": "https://ai-platform-dash.onrender.com",
+        "origins": [
+            "https://ai-platform-dash.onrender.com",
+            # "http://localhost:3000",  # uncomment for local testing if needed
+        ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
@@ -56,6 +60,10 @@ vector_store = get_vector_store()
 @app.route('/')
 def home():
     return "Flask API is running!"
+
+@app.route('/api/health')
+def health():
+    return jsonify({"ok": True})
 
 @app.route('/api/rtc-connect', methods=['POST'])
 def connect_rtc():
