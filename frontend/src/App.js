@@ -21,7 +21,7 @@ import LaptopSection3D from "./components/LaptopSection3D";
 import gsap from "gsap";
 import SplitType from "split-type";
 
-// ⬇️ NEW: html2canvas for vision-on-hover element capture
+// ⬇️ html2canvas to visually capture the hovered element for vision
 import html2canvas from "html2canvas";
 
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
@@ -542,7 +542,7 @@ const HeroLogoParticles = ({ theme }) => {
 
       for (let i = 0; i < pos.length/3; i++) {
         const ix = i*3;
-        const dx = pos[ix] - hit.x, dy = pos[ix+1] - hit.y, dz = pos[ix+2] - hit.z;
+        let dx = pos[ix] - hit.x, dy = pos[ix+1] - hit.y, dz = pos[ix+2] - hit.z;
         const d = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.0001;
         const s = (strength / d) * 0.5;
         vel[ix]     += (dx/d) * s + (Math.random()-0.5)*0.35;
@@ -822,8 +822,8 @@ const HeroLogoParticles = ({ theme }) => {
   );
 };
 
-/* ------------------------ AppCard (now also vision-on-hover) ------------------------ */
-const AppCard = ({ app, onPlay, onHoverExplainVision }) => {
+/* ------------------------ AppCard (vision-on-hover → generate query) ------------------------ */
+const AppCard = ({ app, onPlay, onHoverGenerateQuery }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
@@ -854,7 +854,7 @@ const AppCard = ({ app, onPlay, onHoverExplainVision }) => {
     // Debounced hover → avoid spam when moving across cards
     clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = setTimeout(() => {
-      onHoverExplainVision?.(app, cardRef.current);
+      onHoverGenerateQuery?.(app, cardRef.current);
     }, 600); // small delay feels intentional
   };
 
@@ -937,11 +937,8 @@ const App = () => {
     return saved === "dark" ? "dark" : "light";
   });
 
-  // === Realtime Voice (hover) state ===
-  const pcRef = useRef(null);
-  const dcRef = useRef(null);
-  const audioRef = useRef(null);
-  const [rtReady, setRtReady] = useState(false);
+  const [hoverQuery, setHoverQuery] = useState(null);  // latest generated query text
+  const [showQueryToast, setShowQueryToast] = useState(false);
   const lastFirePerAppRef = useRef(new Map()); // id -> timestamp ms
 
   useEffect(() => {
@@ -999,196 +996,54 @@ const App = () => {
     },
   ]), []);
 
-  /* =========================
-   * Realtime: connect once
-   * ========================= */
-  useEffect(() => {
-    async function setupRealtime() {
-      try {
-        // 1) Create peer connection (recv-only for audio)
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
-        });
-        pcRef.current = pc;
-
-        // We want to receive audio
-        pc.addTransceiver("audio", { direction: "recvonly" });
-
-        // 2) Data channel for events
-        const dc = pc.createDataChannel("oai-events");
-        dcRef.current = dc;
-        dc.onopen = () => setRtReady(true);
-        dc.onclose = () => setRtReady(false);
-        dc.onerror = () => setRtReady(false);
-        dc.onmessage = (evt) => {
-          // Optional: log model events for debugging
-          // console.log("Realtime message:", evt.data);
-        };
-
-        // 3) Remote audio track → play in hidden <audio>
-        pc.ontrack = (e) => {
-          const [stream] = e.streams;
-          if (audioRef.current) {
-            audioRef.current.srcObject = stream;
-            audioRef.current.muted = false;
-            const p = audioRef.current.play();
-            if (p && typeof p.then === "function") p.catch(() => {});
-          }
-        };
-
-        // 4) SDP offer/answer via your Flask endpoint
-        const offer = await pc.createOffer({ offerToReceiveAudio: true });
-        await pc.setLocalDescription(offer);
-
-        const resp = await fetch("/api/rtc-connect", {
-          method: "POST",
-          headers: { "Content-Type": "application/sdp" },
-          body: offer.sdp,
-        });
-
-        if (!resp.ok) throw new Error("RTC connect failed");
-        const answerSdp = await resp.text();
-        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
-      } catch (err) {
-        console.error("Realtime setup error:", err);
-      }
-    }
-
-    setupRealtime();
-    return () => {
-      setRtReady(false);
-      try { dcRef.current?.close(); } catch {}
-      try { pcRef.current?.close(); } catch {}
-    };
-  }, []);
-
-  // ---------- Helpers for voice & prompt building ----------
-  const buildExplainPrompt = (app) => {
-    return [
-      `The user hovered the card "${app.name}".`,
-      `Give a brief, friendly, step-by-step guide (under 30 seconds) on how to use this application on the DSAH AI Platform.`,
-      `Assume they clicked "Launch" to open ${app.link}.`,
-      `Context (one-liner): ${app.description}`,
-      `Avoid technical jargon. End with one actionable next step.`
-    ].join(" ");
-  };
-
-  const sendRealtimeText = (text) => {
-    if (!rtReady || !dcRef.current || dcRef.current.readyState !== "open") return false;
-    const event = {
-      type: "response.create",
-      response: {
-        instructions: text,
-        modalities: ["audio"], // voice is set in the server-side session
-      },
-    };
-    try {
-      dcRef.current.send(JSON.stringify(event));
-      return true;
-    } catch (e) {
-      console.error("Failed sending realtime text", e);
-      return false;
-    }
-  };
-
-  // Optional speech recognition: capture quick question if user speaks
-  const listenOnce = () =>
-    new Promise((resolve) => {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) return resolve(null);
-      const rec = new SR();
-      rec.lang = "en-US"; // set to "ar-SA" if you prefer Arabic
-      rec.continuous = false;
-      rec.interimResults = false;
-      rec.maxAlternatives = 1;
-      let resolved = false;
-      const finish = (val) => {
-        if (!resolved) {
-          resolved = true;
-          try { rec.stop(); } catch {}
-          resolve(val ?? null);
-        }
-      };
-      rec.onresult = (evt) => {
-        try {
-          const t = evt.results[0][0].transcript;
-          finish(t);
-        } catch { finish(null); }
-      };
-      rec.onerror = () => finish(null);
-      rec.onend = () => finish(null);
-      try { rec.start(); } catch { resolve(null); }
-      setTimeout(() => finish(null), 3000);
-    });
-
-  // ---------- NEW: Vision-on-hover handler ----------
-  const handleHoverExplainVision = async (app, element) => {
-    // Per-app cooldown to avoid chatty repeats
+  // ---------- NEW: Vision-on-hover → generate a single query ----------
+  const handleHoverGenerateQuery = async (app, element) => {
     const now = Date.now();
     const last = lastFirePerAppRef.current.get(app.id) || 0;
-    const COOLDOWN_MS = 9000;
+    const COOLDOWN_MS = 6000;
     if (now - last < COOLDOWN_MS) return;
     lastFirePerAppRef.current.set(app.id, now);
 
-    // Ensure autoplay unlocked where possible
-    if (audioRef.current) {
-      audioRef.current.muted = false;
-      const p = audioRef.current.play();
-      if (p && typeof p.then === "function") p.catch(() => {});
-    }
-
-    // Try to capture user's spoken question; fallback to default
-    const spoken = await listenOnce();
-    const userPrompt =
-      (spoken && spoken.trim()) ||
-      "Explain what this UI card does and how to use its application step by step. Keep it concise.";
-
-    let explainedText = null;
-
     try {
-      // 1) Capture the hovered element as PNG (transparent bg)
-      if (element) {
-        const canvas = await html2canvas(element, {
-          backgroundColor: null,
-          useCORS: true,
-          scale: Math.min(2, window.devicePixelRatio || 1),
-          removeContainer: true,
-          allowTaint: false,
-          logging: false,
-        });
-        const dataUrl = canvas.toDataURL("image/png", 0.92);
+      if (!element) return;
 
-        // 2) Send to backend vision endpoint (must be implemented server-side)
-        const res = await fetch("/api/element-explain", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            image_data_url: dataUrl,
-            prompt: `${userPrompt}\n\nApp meta:\n- Name: ${app.name}\n- Description: ${app.description}\n- Launch URL: ${app.link}`,
-          }),
-        });
+      const canvas = await html2canvas(element, {
+        backgroundColor: null,
+        useCORS: true,
+        scale: Math.min(2, window.devicePixelRatio || 1),
+        removeContainer: true,
+        allowTaint: false,
+        logging: false,
+      });
+      const dataUrl = canvas.toDataURL("image/png", 0.92);
 
-        if (res.ok) {
-          const json = await res.json();
-          explainedText = json?.text || null;
-        } else {
-          console.warn("Vision endpoint returned non-OK status");
-        }
-      }
-    } catch (err) {
-      console.error("Vision capture/explain error:", err);
-    }
+      const res = await fetch("/api/element-query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_data_url: dataUrl,
+          // The backend will ensure this is turned into one concise query
+          meta: { name: app.name, description: app.description, link: app.link }
+        }),
+      });
 
-    // 3) Speak result via OpenAI Realtime voice. If vision failed, fall back to text-only prompt.
-    const toSpeak = explainedText || buildExplainPrompt(app);
-    const ok = sendRealtimeText(toSpeak);
-    if (!ok) {
-      // (Optional) fallback to Web Speech API TTS if realtime isn't ready
+      if (!res.ok) return;
+      const json = await res.json();
+      const q = (json && json.query) ? json.query : null;
+      if (!q) return;
+
+      // Store + surface to user + broadcast (optional)
+      setHoverQuery(q);
+      setShowQueryToast(true);
+      localStorage.setItem("lastAutoQuery", q);
       try {
-        const utter = new SpeechSynthesisUtterance(toSpeak);
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utter);
+        window.dispatchEvent(new CustomEvent("assistant:autoQuery", { detail: { query: q, app } }));
       } catch {}
+
+      // auto-hide toast
+      setTimeout(() => setShowQueryToast(false), 6000);
+    } catch (err) {
+      console.error("Hover generate query failed:", err);
     }
   };
 
@@ -1235,11 +1090,46 @@ const App = () => {
               key={app.id}
               app={app}
               onPlay={setVideoUrl}
-              onHoverExplainVision={handleHoverExplainVision}
+              onHoverGenerateQuery={handleHoverGenerateQuery}
             />
           ))}
         </div>
       </section>
+
+      {/* Small toast showing the generated query (copy to clipboard) */}
+      {showQueryToast && hoverQuery && (
+        <div
+          style={{
+            position: "fixed",
+            right: "16px",
+            bottom: "16px",
+            zIndex: 10000,
+            background: "var(--card-bg, rgba(20,20,25,0.9))",
+            color: "white",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+            maxWidth: "480px",
+            display: "flex",
+            gap: "10px",
+            alignItems: "center"
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <span style={{ fontWeight: 600, opacity: 0.9 }}>Suggested query:</span>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+            {hoverQuery}
+          </span>
+          <button
+            className="btn"
+            onClick={() => navigator.clipboard?.writeText(hoverQuery)}
+            title="Copy"
+          >
+            Copy
+          </button>
+        </div>
+      )}
 
       <CardCarousel />
       <section id="policy" className="policy-section">
@@ -1254,10 +1144,7 @@ const App = () => {
         <ContactSection />
       </div>
 
-      {/* Hidden audio element to play the realtime voice */}
-      <audio ref={audioRef} autoPlay playsInline style={{ display: "none" }} />
-
-      {/* Your existing assistants */}
+      {/* Assistants (unchanged) */}
       <VoiceAssistant />
       <ChatBot />
 
@@ -1267,5 +1154,6 @@ const App = () => {
 };
 
 export default App;
+
 
 

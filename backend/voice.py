@@ -1,10 +1,4 @@
-# app.py
-# Flask backend for DSAH AI Platform
-# - Keeps your existing Realtime (WebRTC) voice assistant endpoint
-# - Keeps your /api/search (Qdrant) endpoint
-# - ADDS /api/element-explain to let the model "see" a hovered UI element
-#   via a client-side html2canvas PNG data URL + OpenAI Vision (Responses API)
-
+# backend/voice.py
 from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 import requests
@@ -18,7 +12,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 import qdrant_client
 
-# OpenAI Python SDK for Responses API (vision)
+# OpenAI Python SDK for Responses API (vision/text)
 from openai import OpenAI
 
 # Your system prompt (unchanged)
@@ -46,13 +40,13 @@ if not OPENAI_API_KEY:
     logger.error("OPENAI_API_KEY not set.")
     raise EnvironmentError("OPENAI_API_KEY environment variable not set.")
 
-# ----- Realtime (WebRTC) -----
+# ----- Realtime (WebRTC) (kept intact) -----
 OPENAI_SESSION_URL = "https://api.openai.com/v1/realtime/sessions"
 OPENAI_API_URL = "https://api.openai.com/v1/realtime"
 REALTIME_MODEL_ID = os.getenv("REALTIME_MODEL_ID", "gpt-4o-realtime-preview-2024-12-17")
 REALTIME_VOICE = os.getenv("REALTIME_VOICE", "ballad")
 
-# ----- Vision (Responses API) -----
+# ----- Vision/Text (Responses API) -----
 # Defaults to GPT-4.1 mini which supports image understanding per OpenAI docs.
 VISION_MODEL_ID = os.getenv("VISION_MODEL_ID", "gpt-4.1-mini")
 
@@ -85,17 +79,10 @@ def home():
 
 # ============================================================
 # Realtime (WebRTC) voice assistant session + SDP exchange
+# (kept intact; frontend no longer calls it for hover)
 # ============================================================
 @app.route('/api/rtc-connect', methods=['POST'])
 def connect_rtc():
-    """
-    Browser sends a local SDP offer here.
-    We:
-      1) Create a Realtime session with instructions + voice
-      2) Get ephemeral 'client_secret' for the peer
-      3) Forward the client's SDP to /v1/realtime with the ephemeral token
-      4) Return the model's SDP answer
-    """
     try:
         client_sdp = request.get_data(as_text=True)
         if not client_sdp:
@@ -133,7 +120,6 @@ def connect_rtc():
             params={
                 "model": REALTIME_MODEL_ID,
                 "voice": REALTIME_VOICE
-                # initial instructions already applied at session creation
             },
             data=client_sdp,
             timeout=20
@@ -150,22 +136,14 @@ def connect_rtc():
 
 
 # ============================================================
-# Vision-on-hover: explain an element screenshot
+# Vision-on-hover: full explanation (kept, optional)
 # ============================================================
 @app.route('/api/element-explain', methods=['POST'])
 def element_explain():
     """
     Expects JSON:
-      {
-        "image_data_url": "data:image/png;base64,....",
-        "prompt": "Explain what this card does..."
-      }
-
-    Returns:
-      { "text": "<model explanation>" }
-
-    We pass the data URL directly to OpenAI Responses API with a vision-capable model.
-    Per OpenAI docs, image inputs can be HTTP URLs or data URLs.
+      { "image_data_url": "data:image/png;base64,...", "prompt": "..." }
+    Returns: { "text": "<model explanation>" }
     """
     try:
         data = request.get_json(silent=True) or {}
@@ -175,14 +153,11 @@ def element_explain():
         if not image_data_url:
             return jsonify({"error": "image_data_url is required"}), 400
 
-        # You can optionally prepend your own system style to steer tone for hospital UX
         style_prefix = (
             "You are a helpful voice assistant for Dr. Samir Abbas Hospital's AI platform. "
             "Be concise, friendly, and actionable. Avoid internal implementation details."
         )
 
-        # Build a multimodal input (text + image)
-        # This matches your working snippet's structure.
         vision_input = [{
             "role": "user",
             "content": [
@@ -192,17 +167,13 @@ def element_explain():
         }]
 
         resp = oai_client.responses.create(
-            model=VISION_MODEL_ID,   # default: gpt-4.1-mini
+            model=VISION_MODEL_ID,
             input=vision_input,
         )
 
-        # The SDK exposes output_text for convenience.
         text = getattr(resp, "output_text", None)
-
-        # Fallback: assemble text if needed
         if not text:
             try:
-                # Newer SDKs expose .output list with blocks; we try to stitch them
                 blocks = getattr(resp, "output", None)
                 if isinstance(blocks, list):
                     text = "".join([b.get("text", "") for b in blocks if b.get("type") == "output_text"]).strip()
@@ -216,6 +187,79 @@ def element_explain():
 
     except Exception as e:
         logger.exception("element_explain error")
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# Vision-on-hover: generate a single concise QUERY (new)
+# ============================================================
+@app.route('/api/element-query', methods=['POST'])
+def element_query():
+    """
+    Expects JSON:
+      {
+        "image_data_url": "data:image/png;base64,...",
+        "meta": { "name": "...", "description": "...", "link": "..." }  # optional
+      }
+
+    Returns:
+      { "query": "<one-sentence question the user can ask the assistant>" }
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        image_data_url = data.get("image_data_url")
+        meta = data.get("meta") or {}
+        app_name = meta.get("name", "this application")
+        app_desc = meta.get("description", "")
+        app_link = meta.get("link", "")
+
+        if not image_data_url:
+            return jsonify({"error": "image_data_url is required"}), 400
+
+        system_style = (
+            "You generate exactly ONE short user query (a single sentence, under 160 characters). "
+            "Do NOT answer the question. Do NOT add quotes. "
+            "Prefer mentioning the app's name if known. No extra text."
+        )
+
+        # Build the textual instruction given the meta
+        text_prompt = (
+            f"{system_style}\n\n"
+            f"Context:\n- App name: {app_name}\n- App description: {app_desc}\n- Launch URL: {app_link}\n\n"
+            f"Task: Based on the screenshot and context, produce ONE helpful question to ask an assistant about how to use this app."
+        )
+
+        vision_input = [{
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": text_prompt},
+                {"type": "input_image", "image_url": image_data_url},
+            ],
+        }]
+
+        resp = oai_client.responses.create(
+            model=VISION_MODEL_ID,
+            input=vision_input,
+        )
+
+        query_text = getattr(resp, "output_text", None)
+        if not query_text:
+            try:
+                blocks = getattr(resp, "output", None)
+                if isinstance(blocks, list):
+                    query_text = "".join([b.get("text", "") for b in blocks if b.get("type") == "output_text"]).strip()
+            except Exception:
+                query_text = None
+
+        # Normalize to one line, trim length hard if needed
+        if not query_text:
+            query_text = f"How do I use {app_name} to get started?"
+
+        query_text = " ".join(query_text.split())[:180]  # soft cap
+        return jsonify({"query": query_text})
+
+    except Exception as e:
+        logger.exception("element_query error")
         return jsonify({"error": str(e)}), 500
 
 
@@ -258,3 +302,4 @@ if __name__ == '__main__':
   # Use PORT env if deploying (Render/Heroku/etc.)
   port = int(os.getenv("PORT", 8813))
   app.run(host="0.0.0.0", port=port, debug=True)
+
