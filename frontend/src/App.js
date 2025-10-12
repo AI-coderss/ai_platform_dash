@@ -2,8 +2,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-hooks/exhaustive-deps */
 
-// App.jsx
-import React, { useEffect, useRef, useState, useMemo } from "react";
+// App.js
+import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./App.css";
@@ -17,12 +17,10 @@ import LaptopSection3D from "./components/LaptopSection3D";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 /* import TestimonialSection from "./components/TestimonialSection"; */
 
+
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
 import SplitType from "split-type";
-
-// ⬇️ html2canvas to visually capture the hovered element for vision
-import html2canvas from "html2canvas";
 
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
@@ -133,10 +131,10 @@ const NavBar = ({ theme, onToggleTheme }) => {
 
       <div className="topnav-mobile">
         <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
-        <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
-        <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
-        <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
-        <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
       </div>
     </nav>
   );
@@ -196,26 +194,26 @@ const HeroLogoParticles = ({ theme }) => {
   };
 
   // ====== GSAP SplitType animation for hero title (updated) ======
-  useEffect(() => {
-    // Split into lines + words + chars so browser respects line wrapping
-    const split = new SplitType(".hero-title", { types: "lines, words, chars" });
+useEffect(() => {
+  // Split into lines + words + chars so browser respects line wrapping
+  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
 
-    // Animate each char, but keep words/lines together
-    const tween = gsap.from(split.chars, {
-      x: 150,
-      opacity: 0,
-      duration: 0.7,
-      ease: "power4",
-      stagger: 0.04,
-      repeat: -1,
-      repeatDelay: 2,
-    });
+  // Animate each char, but keep words/lines together
+  const tween = gsap.from(split.chars, {
+    x: 150,
+    opacity: 0,
+    duration: 0.7,
+    ease: "power4",
+    stagger: 0.04,
+    repeat: -1,
+    repeatDelay: 2,
+  });
 
-    return () => {
-      tween.kill();
-      split.revert();
-    };
-  }, []);
+  return () => {
+    tween.kill();
+    split.revert();
+  };
+}, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
@@ -542,7 +540,7 @@ const HeroLogoParticles = ({ theme }) => {
 
       for (let i = 0; i < pos.length/3; i++) {
         const ix = i*3;
-        let dx = pos[ix] - hit.x, dy = pos[ix+1] - hit.y, dz = pos[ix+2] - hit.z;
+        const dx = pos[ix] - hit.x, dy = pos[ix+1] - hit.y, dz = pos[ix+2] - hit.z;
         const d = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.0001;
         const s = (strength / d) * 0.5;
         vel[ix]     += (dx/d) * s + (Math.random()-0.5)*0.35;
@@ -778,13 +776,7 @@ const HeroLogoParticles = ({ theme }) => {
 
   useEffect(() => {
     if (!pointsRef.current || !linesRef.current || !cubeRef.current) return;
-    const getVar = (name, fallback) => {
-      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-      return v || fallback;
-    };
-    const primary = getVar("--brand-primary", theme === "dark" ? "#7aa2ff" : "#4f46e5");
-    const accent  = getVar("--brand-accent",  theme === "dark" ? "#8be9fd" : "#06b6d4");
-
+    const { primary, accent } = getThemeColors();
     const colors = colorRef.current;
     const count = targetCountRef.current;
     if (colors && pointsRef.current.geometry?.attributes?.color) {
@@ -806,7 +798,7 @@ const HeroLogoParticles = ({ theme }) => {
       <div className="hero-inner">
         <div className="hero-copy">
           <h1 className="hero-title">Intelligent Healthcare, Seamlessly Delivered</h1>
-        <p className="hero-subtitle">
+          <p className="hero-subtitle">
             We build AI assistants for doctors and patients—reliable, secure, and integrated with DSAH workflows.
           </p>
           <div className="hero-ctas">
@@ -822,12 +814,11 @@ const HeroLogoParticles = ({ theme }) => {
   );
 };
 
-/* ------------------------ AppCard (vision-on-hover → generate query) ------------------------ */
-const AppCard = ({ app, onPlay, onHoverGenerateQuery }) => {
+/* ------------------------ Product Card (audio ok) ------------------------ */
+const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
-  const hoverTimerRef = useRef(null);
 
   useEffect(() => {
     if (isActive && cardRef.current) {
@@ -850,36 +841,17 @@ const AppCard = ({ app, onPlay, onHoverGenerateQuery }) => {
     }
   }, [isActive, app.id]);
 
-  const handleEnter = () => {
-    // Debounced hover → avoid spam when moving across cards
-    clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => {
-      onHoverGenerateQuery?.(app, cardRef.current);
-    }, 600); // small delay feels intentional
-  };
-
-  const handleLeave = () => {
-    clearTimeout(hoverTimerRef.current);
-  };
-
   return (
     <div
       ref={cardRef}
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
       aria-live="polite"
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-      onFocus={handleEnter}
-      onBlur={handleLeave}
-      data-vision-explain="true"
-      data-vision-label={app.name}
     >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
       <div className="content">
-        {/* crossOrigin to prevent tainting the canvas when capturing */}
-        <img src={app.icon} alt={app.name} className="app-icon" crossOrigin="anonymous" />
+        <img src={app.icon} alt={app.name} className="app-icon" />
         <h3 className="title">{app.name}</h3>
         <p className="copy">{app.description}</p>
 
@@ -937,21 +909,18 @@ const App = () => {
     return saved === "dark" ? "dark" : "light";
   });
 
-  const [hoverQuery, setHoverQuery] = useState(null);  // latest generated query text
-  const [showQueryToast, setShowQueryToast] = useState(false);
-  const lastFirePerAppRef = useRef(new Map()); // id -> timestamp ms
-
   useEffect(() => {
     const root = document.documentElement;
     if (theme === "dark") root.setAttribute("data-theme", "dark");
     else root.removeAttribute("data-theme");
     localStorage.setItem("theme", theme);
   }, [theme]);
+
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
 
-  const apps = useMemo(() => ([
+  const apps = [
     {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
@@ -994,58 +963,7 @@ const App = () => {
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
       helpVideo: "/videos/unddev.mp4",
     },
-  ]), []);
-
-  // ---------- NEW: Vision-on-hover → generate a single query ----------
-  const handleHoverGenerateQuery = async (app, element) => {
-    const now = Date.now();
-    const last = lastFirePerAppRef.current.get(app.id) || 0;
-    const COOLDOWN_MS = 6000;
-    if (now - last < COOLDOWN_MS) return;
-    lastFirePerAppRef.current.set(app.id, now);
-
-    try {
-      if (!element) return;
-
-      const canvas = await html2canvas(element, {
-        backgroundColor: null,
-        useCORS: true,
-        scale: Math.min(2, window.devicePixelRatio || 1),
-        removeContainer: true,
-        allowTaint: false,
-        logging: false,
-      });
-      const dataUrl = canvas.toDataURL("image/png", 0.92);
-
-      const res = await fetch("/api/element-query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image_data_url: dataUrl,
-          // The backend will ensure this is turned into one concise query
-          meta: { name: app.name, description: app.description, link: app.link }
-        }),
-      });
-
-      if (!res.ok) return;
-      const json = await res.json();
-      const q = (json && json.query) ? json.query : null;
-      if (!q) return;
-
-      // Store + surface to user + broadcast (optional)
-      setHoverQuery(q);
-      setShowQueryToast(true);
-      localStorage.setItem("lastAutoQuery", q);
-      try {
-        window.dispatchEvent(new CustomEvent("assistant:autoQuery", { detail: { query: q, app } }));
-      } catch {}
-
-      // auto-hide toast
-      setTimeout(() => setShowQueryToast(false), 6000);
-    } catch (err) {
-      console.error("Hover generate query failed:", err);
-    }
-  };
+  ];
 
   return (
     <div className="container">
@@ -1075,7 +993,6 @@ const App = () => {
         <div className="video-modal">
           <div className="video-wrapper">
             <button className="close-video" onClick={() => setVideoUrl(null)}>✖</button>
-            {/* Keep iframe because your videos are short promos; switch to <video> if self-hosted MP4s need better control */}
             <iframe src={videoUrl} title="Help Video" allow="autoplay; encrypted-media" allowFullScreen />
           </div>
         </div>
@@ -1085,52 +1002,9 @@ const App = () => {
       <section id="products" className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (
-            <AppCard
-              key={app.id}
-              app={app}
-              onPlay={setVideoUrl}
-              onHoverGenerateQuery={handleHoverGenerateQuery}
-            />
-          ))}
+          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
         </div>
       </section>
-
-      {/* Small toast showing the generated query (copy to clipboard) */}
-      {showQueryToast && hoverQuery && (
-        <div
-          style={{
-            position: "fixed",
-            right: "16px",
-            bottom: "16px",
-            zIndex: 10000,
-            background: "var(--card-bg, rgba(20,20,25,0.9))",
-            color: "white",
-            padding: "12px 14px",
-            borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
-            maxWidth: "480px",
-            display: "flex",
-            gap: "10px",
-            alignItems: "center"
-          }}
-          role="status"
-          aria-live="polite"
-        >
-          <span style={{ fontWeight: 600, opacity: 0.9 }}>Suggested query:</span>
-          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
-            {hoverQuery}
-          </span>
-          <button
-            className="btn"
-            onClick={() => navigator.clipboard?.writeText(hoverQuery)}
-            title="Copy"
-          >
-            Copy
-          </button>
-        </div>
-      )}
-
       <CardCarousel />
       <section id="policy" className="policy-section">
         <LaptopSection3D />
@@ -1143,17 +1017,12 @@ const App = () => {
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
-
-      {/* Assistants (unchanged) */}
+      
       <VoiceAssistant />
       <ChatBot />
-
       <Footer />
     </div>
   );
 };
 
 export default App;
-
-
-
