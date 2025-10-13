@@ -2,27 +2,45 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import AudioWave from "./AudioWave"; // Import your new component
+import AudioWave from "./AudioWave";
 import "../styles/VoiceAssistant.css";
 
-const peerConnectionRef = React.createRef();
-const dataChannelRef = React.createRef();
-const localStreamRef = React.createRef();
+/** 
+ * You can pass voiceApiBase & visitorId from App; 
+ * fallback to localStorage visitor id if missing.
+ */
+const VoiceAssistant = ({ voiceApiBase = "", visitorId: propVisitorId }) => {
+  const peerConnectionRef = useRef(null);
+  const dataChannelRef = useRef(null);
+  const localStreamRef = useRef(null);
 
-const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMicActive, setIsMicActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("idle");
   const [transcript, setTranscript] = useState("");
   const [responseText, setResponseText] = useState("");
   const [remoteStream, setRemoteStream] = useState(null);
+  const [focusApp, setFocusApp] = useState(null); // NEW: show current hover focus
   const audioPlayerRef = useRef(null);
-  const dragConstraintsRef = useRef(null); // for dragging
+  const dragConstraintsRef = useRef(null);
+
+  // get visitor id
+  const visitorId = propVisitorId || localStorage.getItem("dsah_visitor_id") || "";
 
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
       dragConstraintsRef.current = document.body;
     }
+  }, []);
+
+  // Listen for structured prompt event to show focus
+  useEffect(() => {
+    const onHoverPrompt = (e) => {
+      const detail = e.detail || {};
+      setFocusApp(detail.app || null);
+    };
+    window.addEventListener("app-hover-prompt", onHoverPrompt);
+    return () => window.removeEventListener("app-hover-prompt", onHoverPrompt);
   }, []);
 
   const cleanupWebRTC = () => {
@@ -70,7 +88,6 @@ const VoiceAssistant = () => {
       peerConnectionRef.current = pc;
 
       pc.ontrack = (event) => {
-        console.log("✅ Received remote audio track!");
         if (event.streams && event.streams[0]) {
           const stream = event.streams[0];
           audioPlayerRef.current.srcObject = stream;
@@ -85,7 +102,6 @@ const VoiceAssistant = () => {
       dataChannelRef.current = channel;
 
       channel.onopen = () => {
-        console.log("✅ Data channel opened");
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
@@ -105,7 +121,6 @@ const VoiceAssistant = () => {
 
       channel.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
-        console.log("<- Received message:", msg);
         switch (msg.type) {
           case "conversation.item.input_audio_transcription.completed":
             setTranscript(msg.transcript);
@@ -115,7 +130,6 @@ const VoiceAssistant = () => {
             setResponseText((prev) => prev + msg.delta);
             break;
           case "response.done":
-            console.log("Response finished.");
             setTranscript("");
             break;
           default:
@@ -130,13 +144,11 @@ const VoiceAssistant = () => {
       };
 
       channel.onclose = () => {
-        console.log("Data channel closed");
         cleanupWebRTC();
       };
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
-        console.log(`Connection state changed to: ${state}`);
         if (state === 'failed' || state === 'disconnected' || state === 'closed') {
           cleanupWebRTC();
         }
@@ -145,7 +157,10 @@ const VoiceAssistant = () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect", {
+      // Pass visitorId so backend injects hover-context instructions
+      const url = `${voiceApiBase || ""}/api/rtc-connect${visitorId ? `?visitorId=${encodeURIComponent(visitorId)}` : ""}`;
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: offer.sdp,
@@ -171,7 +186,6 @@ const VoiceAssistant = () => {
       localStreamRef.current.getAudioTracks().forEach(track => {
         track.enabled = nextState;
       });
-      console.log(`Microphone ${nextState ? 'enabled' : 'disabled'}`);
     }
   };
 
@@ -203,6 +217,25 @@ const VoiceAssistant = () => {
               </button>
             </div>
 
+            {/* Current focus pill from hover (nice UX touch) */}
+            {focusApp && (
+              <div style={{
+                margin: "6px 12px 0",
+                fontSize: 12,
+                color: "#0f172a",
+                background: "#e2f3ff",
+                border: "1px solid #cde9ff",
+                padding: "4px 8px",
+                borderRadius: 999,
+                maxWidth: "100%",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}>
+                Primed for: {focusApp.name}
+              </div>
+            )}
+
             <div className="voice-visualizer-container">
               {remoteStream ? (
                 <AudioWave stream={remoteStream} />
@@ -231,5 +264,6 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
 
 
