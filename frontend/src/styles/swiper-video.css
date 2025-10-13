@@ -1,0 +1,208 @@
+/* Conflict-free VideoCarousel styles (vcx- prefix) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* Root container holds sizing tokens so they're locally scoped */
+.vcx-row {
+  --vcx-card-radius: 14px;
+  --vcx-card-gap: 16px;
+  --vcx-card-shadow: 0 10px 24px rgba(0,0,0,0.25);
+  --vcx-card-shadow-hover: 0 16px 42px rgba(0,0,0,0.35);
+
+  /* Moderate card size (single-slide view) */
+  --vcx-row-max: 1160px;
+  --vcx-card-w-min: 360px;
+  --vcx-card-w-ideal: 72vw;
+  --vcx-card-w-max: 880px;
+
+  --vcx-label-color: #fff;
+  --vcx-label-shadow: 0 2px 8px rgba(0,0,0,0.55);
+
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+  max-width: var(--vcx-row-max);
+  margin: 18px auto;
+  position: relative;
+}
+
+/* Particle background host & canvas */
+.vcx-wrap { position: relative; isolation: isolate; }
+.vcx-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Swiper container (scoped) */
+.vcx-swiper {
+  padding: 4px 0 24px;
+  overflow: hidden; /* hide hover growth outside */
+  position: relative;
+  z-index: 1;       /* above particle canvas */
+}
+
+/* Ensure each slide fills track width (single per view, no peeking) */
+.vcx-swiper .swiper-slide { width: 100% !important; }
+
+/* Card block */
+.vcx-card {
+  position: relative;
+  width: clamp(var(--vcx-card-w-min), var(--vcx-card-w-ideal), var(--vcx-card-w-max));
+  margin: 0 auto;
+  height: auto;
+  cursor: pointer;
+  user-select: none;
+  transform: translateZ(0);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+  border-radius: var(--vcx-card-radius);
+  overflow: visible; /* allow hover pop-out (clipped by .vcx-swiper overflow) */
+}
+
+.vcx-card:focus-visible {
+  outline: 2px solid #6ea8ff;
+  outline-offset: 2px;
+  border-radius: var(--vcx-card-radius);
+}
+
+/* Thumbnail (keeps 16:9) */
+.vcx-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--vcx-card-radius);
+  overflow: hidden;
+  box-shadow: var(--vcx-card-shadow);
+  background: #0e0e0e;
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+/* Video fits neatly */
+.vcx-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Hover effect */
+.vcx-card:hover .vcx-thumb,
+.vcx-card:focus-within .vcx-thumb {
+  box-shadow: var(--vcx-card-shadow-hover);
+  transform: translateY(-2px) scale(1.045);
+}
+.vcx-card:hover,
+.vcx-card:focus-within {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* Label / meta */
+.vcx-meta {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.vcx-label {
+  color: var(--vcx-label-color);
+  font-size: 0.97rem;
+  font-weight: 600;
+  text-shadow: var(--vcx-label-shadow);
+  letter-spacing: 0.2px;
+}
+
+/* Swiper controls (scoped so they don't affect other swipers) */
+.vcx-row :root {
+  --swiper-navigation-color: #ffffff;
+  --swiper-pagination-color: #ffffff;
+  --swiper-navigation-size: 28px;
+}
+.vcx-row .swiper-button-prev,
+.vcx-row .swiper-button-next {
+  background: rgba(0,0,0,0.28);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  transition: background-color 180ms ease, transform 180ms ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+}
+.vcx-row .swiper-button-prev:hover,
+.vcx-row .swiper-button-next:hover {
+  background: rgba(0,0,0,0.44);
+  transform: scale(1.06);
+}
+.vcx-row .swiper-pagination-bullet {
+  background: rgba(255,255,255,0.7);
+  opacity: 1;
+}
+.vcx-row .swiper-pagination-bullet-active { background: #fff; }
+
+/* Lightbox (modal) — fully prefixed */
+.vcx-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background-color: rgba(0,0,0,0.76);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: vcx-fadeIn 220ms ease;
+  padding: 20px;
+}
+.vcx-lightbox__content {
+  position: relative;
+  width: min(95vw, 1400px);
+  max-height: 95vh;
+  animation: vcx-zoomIn 220ms ease;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+}
+.vcx-lightbox__video {
+  width: 100%;
+  height: auto;
+  max-height: 95vh;
+  border-radius: 14px;
+}
+.vcx-lightbox__close {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 3rem;
+  font-weight: 300;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+}
+.vcx-lightbox__close:hover { transform: scale(1.08) rotate(3deg); color: #ff5555; }
+
+/* Animations */
+@keyframes vcx-fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes vcx-zoomIn { from { transform: scale(.96); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+
+/* Responsive tweaks (scoped) */
+@media (max-width: 1200px) {
+  .vcx-row {
+    --vcx-card-w-ideal: 68vw;
+    --vcx-card-w-max: 820px;
+  }
+}
+@media (max-width: 900px) {
+  .vcx-row { --vcx-row-max: 860px; }
+  .vcx-swiper { padding: 2px 0 20px; }
+  .vcx-card { width: min(90vw, 680px); }
+  .vcx-label { font-size: 0.94rem; }
+}
+@media (max-width: 540px) {
+  .vcx-card { width: 94vw; }
+  .vcx-label { font-size: 0.9rem; }
+}
+
