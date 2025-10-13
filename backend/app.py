@@ -39,8 +39,6 @@ log = logging.getLogger("rtc-transcribe")
 
 chat_sessions = {}
 collection_name = os.getenv("QDRANT_COLLECTION_NAME")
-# In-memory cache for latest structured prompt per visitor
-HOVER_PROMPTS_CHAT: dict[str, dict] = {}
 
 # Initialize OpenAI client
 client = OpenAI()
@@ -339,89 +337,7 @@ def rtc_transcribe_connect():
     resp.headers["Content-Disposition"] = "inline; filename=answer.sdp"
     resp.headers["Cache-Control"] = "no-store"
     return resp
-@app.post("/api/chatbot-prompt")
-def chatbot_prompt():
-    """
-    Receive {visitorId, app:{id,name,description,link,icon,tag}}
-    Generate a structured prompt (JSON) tailored for the chatbot UI.
-    Store it in memory keyed by visitorId and return it.
-    """
-    data = request.get_json(silent=True) or {}
-    visitor_id = data.get("visitorId")
-    appd = (data.get("app") or {})
-    if not visitor_id or not appd.get("name"):
-        return jsonify({"error": "visitorId and app.name required"}), 400
 
-    # Build a compact, well-structured prompt
-    sys = "You are a prompt generator for a healthcare AI platform. Output strictly valid JSON with keys: title, prompt, bullets[]. No extra commentary."
-    usr = f"""
-App:
-- id: {appd.get('id')}
-- name: {appd.get('name')}
-- description: {appd.get('description')}
-- link: {appd.get('link')}
-- tag: {appd.get('tag')}
-
-Goal:
-Create ONE concise, well-structured user prompt the human can send to an AI chat to learn about this app.
-Keep it concrete and action-oriented.
-Also produce 3 short follow-up bullet questions.
-
-JSON schema:
-{{
-  "title": "string (<= 70 chars)",
-  "prompt": "string (<= 500 chars)",
-  "bullets": ["string","string","string"]
-}}
-"""
-
-    try:
-      resp = client.chat.completions.create(
-          model="gpt-4o",
-          temperature=0.2,
-          messages=[
-              {"role": "system", "content": sys},
-              {"role": "user", "content": usr}
-          ]
-      )
-      txt = resp.choices[0].message.content.strip()
-      # Try to parse JSON payload from the model
-      # safer extraction
-      import re, json as pyjson
-      m = re.search(r"\{.*\}", txt, re.DOTALL)
-      payload = pyjson.loads(m.group(0)) if m else {}
-    except Exception as e:
-      # Fallback
-      payload = {
-          "title": f"Ask about {appd.get('name')}",
-          "prompt": f'Explain how "{appd.get("name")}" works. Key features, benefits, and first steps. ' + (f'Reference: {appd.get("link")}' if appd.get("link") else ""),
-          "bullets": [
-              f"What problems does {appd.get('name')} solve?",
-              f"Main features of {appd.get('name')}?",
-              "How to get started?",
-          ],
-      }
-
-    HOVER_PROMPTS_CHAT[visitor_id] = {
-        "app": appd,
-        "title": payload.get("title"),
-        "prompt": payload.get("prompt"),
-        "bullets": payload.get("bullets", []),
-        "ts": int(__import__("time").time() * 1000),
-    }
-    return jsonify(HOVER_PROMPTS_CHAT[visitor_id])
-
-@app.get("/api/chatbot-prompt")
-def get_chatbot_prompt():
-    """
-    Query latest structured prompt for a visitorId.
-    /api/chatbot-prompt?visitorId=abc
-    """
-    visitor_id = request.args.get("visitorId")
-    if not visitor_id:
-        return jsonify({"error": "visitorId required"}), 400
-    payload = HOVER_PROMPTS_CHAT.get(visitor_id)
-    return jsonify(payload or {})
 # === Main Execution ===
 if __name__ == "__main__":
      # No Socket.IO / WS server here; just REST.

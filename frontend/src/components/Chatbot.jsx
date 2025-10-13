@@ -6,6 +6,17 @@ import ChatInputWidget from "./ChatInputWidget";
 import "../styles/ChatBot.css";
 import useCardStore from "./store/useCardStore";
 
+/**
+ * Draggable D-ID widget notes:
+ * - We lazy-inject the D-ID script when the user presses the in-chat "Avatar" button.
+ * - Once the script builds its default FAB, we detect it via MutationObserver and
+ *   move/re-parent that DOM into our own fixed-position, draggable container.
+ * - We neutralize any fixed positioning/styles the script sets so the widget stays inside our container.
+ * - The container is position:fixed so users can drag it outside the chat box freely.
+ *
+ * If D-ID changes DOM structure, update CANDIDATE_SELECTORS below.
+ */
+
 const DID_AGENT_SRC = "https://agent.d-id.com/v2/index.js";
 const DID_SCRIPT_ID = "did-agent-loader-v2";
 const CANDIDATE_SELECTORS = [
@@ -19,6 +30,8 @@ const CANDIDATE_SELECTORS = [
 const DID_CLIENT_KEY = "Z29vZ2xlLW9hdXRoMnwxMTI1MzgwMDI5NzAxNDIxMTMxNDI6TG5FLWVDS1IyaE9VMEcyS2FUVnh0";
 const DID_AGENT_ID = "v2_agt_uxCkm0YX";
 
+// ---- Chat content ----------------------------------------------------------------
+
 const initialQuestions = [
   "What can the AI Doctor Assistant do?",
   "How does the Medical Transcription App work?",
@@ -30,19 +43,16 @@ const initialQuestions = [
   "How does the IVF Virtual Training Assistant work?",
 ];
 
-const ChatBot = ({ visitorId, chatApiBase = "" }) => {
+const ChatBot = () => {
   const [open, setOpen] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { type: "bot", text: "Hi! Hover a product card to generate a structured question, then send it with one click — or ask me anything." },
+    { type: "bot", text: "Hi! Ask me anything about these AI tools." },
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [loading, setLoading] = useState(false);
   const chatBodyRef = useRef(null);
   const { setActiveCardId } = useCardStore();
-
-  // 🌟 NEW: hover-generated structured prompt banner
-  const [hoverSuggestion, setHoverSuggestion] = useState(null);
 
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
@@ -53,111 +63,17 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
   // ---- D-ID draggable widget state ------------------------------------------
   const [showDid, setShowDid] = useState(false);
   const [didAttached, setDidAttached] = useState(false);
-  const didContainerRef = useRef(null);
+  const didContainerRef = useRef(null); // Where we re-parent the D-ID DOM
   const observerRef = useRef(null);
 
+  // Draggable initial position (fixed coords). Start near bottom-right, above your chat FAB.
   const x = useMotionValue(typeof window !== "undefined" ? window.innerWidth - 360 : 0);
   const y = useMotionValue(typeof window !== "undefined" ? window.innerHeight - 420 : 0);
 
-  // Listen for structured prompt events from card hover
-  useEffect(() => {
-    const onHoverPrompt = (e) => {
-      const detail = e.detail || {};
-      setHoverSuggestion({
-        title: detail.title || `Ask about ${detail?.app?.name || "this app"}`,
-        prompt: detail.prompt,
-        bullets: detail.bullets || [],
-        app: detail.app,
-        tag: detail.tag,
-        ts: detail.ts || Date.now(),
-      });
-    };
-    window.addEventListener("app-hover-prompt", onHoverPrompt);
-    return () => window.removeEventListener("app-hover-prompt", onHoverPrompt);
-  }, []);
-
-  // Keep scroll pinned to bottom while streaming
-  useLayoutEffect(() => {
-    if (chatBodyRef.current) {
-      requestAnimationFrame(() => {
-        chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-      });
-    }
-  }, [messages, loading]);
-
-  const handleSendMessage = async ({ text }) => {
-    if (!text?.trim()) return;
-
-    const userMsg = { type: "user", text };
-    setMessages((prev) => [...prev, userMsg]);
-    setAccordionOpen(false);
-    setLoading(true);
-
-    let botText = "";
-    try {
-      const response = await fetch(
-        `${chatApiBase}/stream`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, session_id: sessionId }),
-        }
-      );
-
-      if (!response.ok || !response.body) throw new Error("Streaming failed");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      setMessages((prev) => [...prev, { type: "bot", text: "" }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        botText += decoder.decode(value, { stream: true });
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { type: "bot", text: botText };
-          return updated;
-        });
-      }
-
-      // 🔁 classify -> setActiveCardId
-      const classifyRes = await fetch(
-        `${chatApiBase}/classify`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, ai_response: botText }),
-        }
-      );
-
-      if (classifyRes.ok) {
-        const data = await classifyRes.json();
-        if (data.card_id) {
-          setActiveCardId(data.card_id);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text: "⚠️ Error streaming response." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuestionClick = (question) => {
-    handleSendMessage({ text: question });
-    setVisibleQuestions((prev) => prev.filter((q) => q !== question));
-    setAccordionOpen(false);
-  };
-
-  // ===== D-ID: inject & drag support (unchanged behavior) =====
+  // Inject D-ID script on demand
   const injectDidScript = () => {
     if (typeof document === "undefined") return;
-    if (document.getElementById(DID_SCRIPT_ID)) return;
+    if (document.getElementById(DID_SCRIPT_ID)) return; // already injected
 
     const s = document.createElement("script");
     s.type = "module";
@@ -165,17 +81,21 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
     s.src = DID_AGENT_SRC;
     s.id = DID_SCRIPT_ID;
 
+    // data-* attributes to configure the agent
     s.dataset.mode = "fabio";
     s.dataset.clientKey = DID_CLIENT_KEY;
     s.dataset.agentId = DID_AGENT_ID;
     s.dataset.name = "did-agent";
     s.dataset.monitor = "true";
     s.dataset.orientation = "horizontal";
+    // Let us control position; script may try to stick it to an edge.
+    // We'll reparent & strip its fixed positioning afterward.
     s.dataset.position = "right";
 
     document.body.appendChild(s);
   };
 
+  // Observe DOM for the D-ID FAB and re-parent it into our container
   const startObservingForDid = () => {
     if (observerRef.current) return;
 
@@ -186,6 +106,7 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
           neutralizeDidStyles(didNode);
           didContainerRef.current.appendChild(didNode);
           setDidAttached(true);
+          // Once attached, no need to keep observing:
           if (observerRef.current) {
             observerRef.current.disconnect();
             observerRef.current = null;
@@ -216,6 +137,7 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
   };
 
   const neutralizeDidStyles = (el) => {
+    // The D-ID FAB/bubble often uses fixed positioning. Remove those so our container controls layout.
     el.style.position = "static";
     el.style.inset = "auto";
     el.style.right = "auto";
@@ -223,7 +145,11 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
     el.style.bottom = "auto";
     el.style.top = "auto";
     el.style.margin = "0";
+
+    // Make sure it doesn't overflow our container horizontally.
     el.style.maxWidth = "100%";
+
+    // If they inject inner wrappers with fixed positions, try to reset them too:
     el.querySelectorAll("*").forEach((n) => {
       const cs = window.getComputedStyle(n);
       if (cs.position === "fixed") {
@@ -240,6 +166,8 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
     stopObserving();
     const script = document.getElementById(DID_SCRIPT_ID);
     if (script) script.remove();
+
+    // best-effort cleanup of any created nodes
     CANDIDATE_SELECTORS.forEach((sel) => {
       document.querySelectorAll(sel).forEach((n) => n.remove());
     });
@@ -257,6 +185,87 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
     removeDidScriptAndNode();
   };
 
+  // Keep scroll pinned to bottom while streaming
+  useLayoutEffect(() => {
+    if (chatBodyRef.current) {
+      requestAnimationFrame(() => {
+        chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+      });
+    }
+  }, [messages, loading]);
+
+  const handleSendMessage = async ({ text }) => {
+    if (!text?.trim()) return;
+
+    const userMsg = { type: "user", text };
+    setMessages((prev) => [...prev, userMsg]);
+    setAccordionOpen(false);
+    setLoading(true);
+
+    let botText = "";
+    try {
+      const response = await fetch(
+        "https://ai-platform-dsah-backend-chatbot.onrender.com/stream",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, session_id: sessionId }),
+        }
+      );
+
+      if (!response.ok || !response.body) throw new Error("Streaming failed");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      setMessages((prev) => [...prev, { type: "bot", text: "" }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        botText += decoder.decode(value, { stream: true });
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { type: "bot", text: botText };
+          return updated;
+        });
+      }
+
+      // 🔁 classify -> setActiveCardId
+      const classifyRes = await fetch(
+        "https://ai-platform-dsah-backend-chatbot.onrender.com/classify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text, ai_response: botText }),
+        }
+      );
+
+      if (classifyRes.ok) {
+        const data = await classifyRes.json();
+        if (data.card_id) {
+          setActiveCardId(data.card_id);
+        }
+      } else {
+        console.warn("Classification request failed");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => [
+        ...prev,
+        { type: "bot", text: "⚠️ Error streaming response." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuestionClick = (question) => {
+    handleSendMessage({ text: question });
+    setVisibleQuestions((prev) => prev.filter((q) => q !== question));
+    setAccordionOpen(false);
+  };
+
+  // Cleanup observer on unmount just in case
   useEffect(() => {
     return () => {
       stopObserving();
@@ -264,78 +273,9 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // UI — little banner showing the generated prompt with Send/Copy/Dismiss
-  const SuggestionBanner = () => {
-    if (!hoverSuggestion?.prompt) return null;
-    const { app, title, bullets, prompt } = hoverSuggestion;
-
-    const copyToClipboard = async () => {
-      try {
-        await navigator.clipboard.writeText(prompt);
-      } catch {}
-    };
-
-    return (
-      <div
-        className="hover-suggestion"
-        style={{
-          display: "flex",
-          gap: 10,
-          padding: "10px 12px",
-          margin: "8px",
-          borderRadius: 12,
-          background: "#eef5ff",
-          border: "1px solid #cfe0ff",
-          alignItems: "center",
-        }}
-      >
-        {app?.icon && (
-          <img src={app.icon} alt="" style={{ width: 28, height: 28 }} />
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
-            {title || `Ask about ${app?.name || "this app"}`}
-          </div>
-          <div style={{ fontSize: 12, color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {prompt}
-          </div>
-          {bullets?.length > 0 && (
-            <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
-              {bullets.slice(0, 3).map((b, i) => (
-                <li key={i} style={{ fontSize: 12 }}>{b}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <button
-            className="btn"
-            onClick={() => {
-              handleSendMessage({ text: prompt });
-              setHoverSuggestion(null);
-            }}
-            style={{ padding: "6px 10px" }}
-          >
-            Send
-          </button>
-          <button className="btn ghost" onClick={copyToClipboard} style={{ padding: "6px 10px" }}>
-            Copy
-          </button>
-          <button
-            className="btn ghost"
-            onClick={() => setHoverSuggestion(null)}
-            style={{ padding: "6px 10px" }}
-          >
-            Dismiss
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
-      {/* Chat FAB */}
+      {/* Your existing Chat FAB */}
       <button className="chat-toggle" onClick={() => setOpen(!open)}>
         <img src="/icons/chat.svg" alt="Chat" className="chat-icon" />
       </button>
@@ -354,9 +294,6 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
           >
             AI Assistant
           </div>
-
-          {/* NEW: hover suggestion banner */}
-          <SuggestionBanner />
 
           <div className="chat-body" ref={chatBodyRef}>
             {/* In-chat controls row */}
@@ -484,11 +421,12 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
             top: 0,
             x,
             y,
-            width: 340,
+            width: 340, // adjust as you like
             zIndex: 9999,
             pointerEvents: "auto",
           }}
         >
+          {/* Card chrome + drag handle */}
           <div
             style={{
               background: "rgba(255,255,255,0.95)",
@@ -500,6 +438,7 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
             }}
           >
             <div
+              // Drag handle area (bigger target)
               style={{
                 cursor: "grab",
                 padding: "8px 12px",
@@ -516,6 +455,7 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={() => {
+                    // Snap to bottom-right quickly
                     x.set(window.innerWidth - 360);
                     y.set(window.innerHeight - 420);
                   }}
@@ -530,9 +470,11 @@ const ChatBot = ({ visitorId, chatApiBase = "" }) => {
               </div>
             </div>
 
+            {/* Where we mount the D-ID DOM */}
             <div
               ref={didContainerRef}
               style={{
+                // Size of the live agent bubble/player; adjust if needed
                 width: "100%",
                 minHeight: 72,
                 padding: 8,
@@ -573,7 +515,6 @@ const iconBtnStyle = {
 };
 
 export default ChatBot;
-
 
 
 

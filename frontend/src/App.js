@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 
 // App.js
 import React, { useEffect, useRef, useState } from "react";
@@ -16,20 +17,12 @@ import LaptopSection3D from "./components/LaptopSection3D";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 /* import TestimonialSection from "./components/TestimonialSection"; */
 
+
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
 import SplitType from "split-type";
 
-/* ---------------------- API BASES ---------------------- */
-/** 
- * Set these to your deploys. 
- * - CHAT_API_BASE → your `app.py` (chatbot) host (empty = same origin as site).
- * - VOICE_API_BASE → your `voice.py` (voice) host.
- */
-const CHAT_API_BASE = ""; 
-const VOICE_API_BASE = "https://ai-platform-dash-voice-chatbot-togglabe.onrender.com";
-
-/* ---------------------- AUDIO MAP ---------------------- */
+/* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
   2: "/assets/audio/medical_transcription.mp3",
@@ -39,103 +32,7 @@ const audioMap = {
   6: "/assets/audio/patient_assistant.mp3",
 };
 
-/* ---------------------- HOVER → PROMPT ---------------------- */
-const slugify = (s) =>
-  (s || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-
-/**
- * Fires both:
- *  - Chatbot prompt generator:  POST {CHAT_API_BASE}/api/chatbot-prompt
- *  - Voice prompt generator:    POST {VOICE_API_BASE}/api/voice-prompt
- * …then dispatches a window event ("app-hover-prompt") so both Chatbot and
- * VoiceAssistant update immediately with the returned structured prompt.
- */
-const sendHoverPrompt = async ({ visitorId, app }) => {
-  if (!visitorId || !app) return;
-  const tag = slugify(app.name);
-
-  const body = {
-    visitorId,
-    app: {
-      id: app.id,
-      name: app.name,
-      description: app.description,
-      link: app.link,
-      icon: app.icon,
-      tag,
-    },
-  };
-
-  try {
-    // fire both in parallel; keep running if one fails
-    const [chatRes, voiceRes] = await Promise.allSettled([
-      fetch(`${CHAT_API_BASE}/api/chatbot-prompt`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        keepalive: true,
-        body: JSON.stringify(body),
-      }),
-      fetch(`${VOICE_API_BASE}/api/voice-prompt`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        keepalive: true,
-        body: JSON.stringify(body),
-      }),
-    ]);
-
-    // Prefer the chatbot’s structured prompt for display (has bullets)
-    let structured = null;
-
-    if (chatRes.status === "fulfilled" && chatRes.value.ok) {
-      structured = await chatRes.value.json();
-    } else if (voiceRes.status === "fulfilled" && voiceRes.value.ok) {
-      const v = await voiceRes.value.json();
-      structured = {
-        app: body.app,
-        prompt: v?.instructions || "",
-        title: v?.title || `Ask about ${app.name}`,
-        bullets: v?.bullets || [],
-      };
-    } else {
-      // fallback: lightweight local stub
-      structured = {
-        app: body.app,
-        title: `Ask about ${app.name}`,
-        prompt:
-          `Explain how "${app.name}" works. Provide a concise walkthrough, key features, advantages, and basic steps to use it. ` +
-          (app.link ? `Reference: ${app.link}` : ""),
-        bullets: [
-          `What problems does ${app.name} solve?`,
-          `Key features of ${app.name}?`,
-          `How do I get started with ${app.name}?`,
-        ],
-      };
-    }
-
-    // Notify the UI (Chat & Voice) with the new structured prompt
-    window.dispatchEvent(
-      new CustomEvent("app-hover-prompt", {
-        detail: {
-          visitorId,
-          app: body.app,
-          title: structured?.title,
-          prompt: structured?.prompt,
-          bullets: structured?.bullets || [],
-          tag,
-          ts: Date.now(),
-        },
-      })
-    );
-  } catch (e) {
-    // silence network errors to avoid UI disruption
-  }
-};
-/* -------------------- END HOVER → PROMPT -------------------- */
-
-/* -------------------- Top Navigation ------------------- */
+/* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
   const [open, setOpen] = useState(false);
   const handleNav = (e, id) => {
@@ -161,6 +58,7 @@ const NavBar = ({ theme, onToggleTheme }) => {
         </div>
 
         <div className="topnav-actions">
+          {/* NEW THEME SWITCH (Uiverse) — replaces old button.theme-toggle */}
           <label className="switch" aria-label="Toggle theme" title="Toggle theme">
             <input
               id="input"
@@ -170,25 +68,57 @@ const NavBar = ({ theme, onToggleTheme }) => {
             />
             <div className="slider round">
               <div className="sun-moon">
-                <svg id="moon-dot-1" className="moon-dot" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="moon-dot-2" className="moon-dot" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="moon-dot-3" className="moon-dot" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="light-ray-1" className="light-ray" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="light-ray-2" className="light-ray" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="light-ray-3" className="light-ray" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
+                <svg id="moon-dot-1" className="moon-dot" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="moon-dot-2" className="moon-dot" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="moon-dot-3" className="moon-dot" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="light-ray-1" className="light-ray" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="light-ray-2" className="light-ray" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="light-ray-3" className="light-ray" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
 
-                <svg id="cloud-1" className="cloud-dark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="cloud-2" className="cloud-dark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="cloud-3" className="cloud-dark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="cloud-4" className="cloud-light" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="cloud-5" className="cloud-light" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
-                <svg id="cloud-6" className="cloud-light" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" /></svg>
+                <svg id="cloud-1" className="cloud-dark" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-2" className="cloud-dark" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-3" className="cloud-dark" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-4" className="cloud-light" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-5" className="cloud-light" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
+                <svg id="cloud-6" className="cloud-light" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="50"></circle>
+                </svg>
               </div>
               <div className="stars">
-                <svg id="star-1" className="star" viewBox="0 0 20 20"><path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z" /></svg>
-                <svg id="star-2" className="star" viewBox="0 0 20 20"><path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z" /></svg>
-                <svg id="star-3" className="star" viewBox="0 0 20 20"><path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z" /></svg>
-                <svg id="star-4" className="star" viewBox="0 0 20 20"><path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z" /></svg>
+                <svg id="star-1" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+                <svg id="star-2" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+                <svg id="star-3" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
+                <svg id="star-4" className="star" viewBox="0 0 20 20">
+                  <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                </svg>
               </div>
             </div>
           </label>
@@ -201,10 +131,10 @@ const NavBar = ({ theme, onToggleTheme }) => {
 
       <div className="topnav-mobile">
         <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
-        <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
-        <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
-        <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
-        <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
       </div>
     </nav>
   );
@@ -263,23 +193,27 @@ const HeroLogoParticles = ({ theme }) => {
     return { primary, accent };
   };
 
-  // ====== GSAP SplitType animation for hero title ======
-  useEffect(() => {
-    const split = new SplitType(".hero-title", { types: "lines, words, chars" });
-    const tween = gsap.from(split.chars, {
-      x: 150,
-      opacity: 0,
-      duration: 0.7,
-      ease: "power4",
-      stagger: 0.04,
-      repeat: -1,
-      repeatDelay: 2,
-    });
-    return () => {
-      tween.kill();
-      split.revert();
-    };
-  }, []);
+  // ====== GSAP SplitType animation for hero title (updated) ======
+useEffect(() => {
+  // Split into lines + words + chars so browser respects line wrapping
+  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
+
+  // Animate each char, but keep words/lines together
+  const tween = gsap.from(split.chars, {
+    x: 150,
+    opacity: 0,
+    duration: 0.7,
+    ease: "power4",
+    stagger: 0.04,
+    repeat: -1,
+    repeatDelay: 2,
+  });
+
+  return () => {
+    tween.kill();
+    split.revert();
+  };
+}, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
@@ -399,7 +333,7 @@ const HeroLogoParticles = ({ theme }) => {
     const RADIUS = 120;
     let maxAbs = 1;
     for (const [x, y] of pts) maxAbs = Math.max(maxAbs, Math.abs(x), Math.abs(y));
-    const HEART_SCALE = 0.30;
+    const HEART_SCALE = 0.30; // approved scale
     const scale = (RADIUS * HEART_SCALE) / maxAbs;
 
     const tPositions = new Float32Array(pts.length * 3);
@@ -425,7 +359,7 @@ const HeroLogoParticles = ({ theme }) => {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.1, 2000);
-    camera.position.set(0, 0, 80);
+    camera.position.set(0, 0, 80); // fixed; not tied to scroll
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -471,6 +405,7 @@ const HeroLogoParticles = ({ theme }) => {
     const cube = new THREE.Mesh(cubeGeo, cubeMat);
     cubeRef.current = cube;
 
+    // subtle white edges so the cube reads clearly (no colored borders)
     const edgeGeom = new THREE.EdgesGeometry(cubeGeo, 1);
     const edgeMat  = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
     const edgeLines = new THREE.LineSegments(edgeGeom, edgeMat);
@@ -489,7 +424,7 @@ const HeroLogoParticles = ({ theme }) => {
     const sizes = new Float32Array(COUNT);
     const colors = new Float32Array(COUNT * 3);
 
-    const half = (CUBE_SIZE / 2) - 4;
+    const half = (CUBE_SIZE / 2) - 4; // soft walls
 
     for (let i = 0; i < COUNT; i++) {
       const r = RADIUS * Math.cbrt(Math.random());
@@ -540,7 +475,7 @@ const HeroLogoParticles = ({ theme }) => {
     pointsRef.current = points;
     group.add(points);
 
-    // connective lines (visual polish)
+    // connective lines
     const MAX_LINKS = 1600;
     const lpos = new Float32Array(MAX_LINKS * 2 * 3);
     const lgeom = new THREE.BufferGeometry();
@@ -555,7 +490,7 @@ const HeroLogoParticles = ({ theme }) => {
     linesRef.current = { mesh: links, positions: lpos, max: MAX_LINKS };
     scene.add(links);
 
-    // lighting
+    // lighting (envMap does most of the work)
     scene.add(new THREE.AmbientLight(0xffffff, 0.45));
     const dir = new THREE.DirectionalLight(0xffffff, 0.40);
     dir.position.set(1, 1, 1);
@@ -595,10 +530,8 @@ const HeroLogoParticles = ({ theme }) => {
       const rect = mount.getBoundingClientRect();
       const x = ((clientX - rect.left) / rect.width) * 2 - 1;
       const y = -(((clientY - rect.top) / rect.height) * 2 - 1);
-      const mouseNDC = new THREE.Vector2(x, y);
-      const raycaster = new THREE.Raycaster();
+      mouseNDC.set(x, y);
       raycaster.setFromCamera(mouseNDC, camera);
-      const zPlane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
       const hit = new THREE.Vector3();
       raycaster.ray.intersectPlane(zPlane, hit);
 
@@ -616,7 +549,7 @@ const HeroLogoParticles = ({ theme }) => {
       }
     };
 
-    // drag rotation; click toggles morph lock (visual only)
+    // rotate on drag; click toggles morph lock
     const onPointerDown = (e) => {
       draggingRef.current = true;
       dragMovedRef.current = false;
@@ -640,6 +573,12 @@ const HeroLogoParticles = ({ theme }) => {
         bounceRef.current.active = false;
         bounceRef.current.t = 0;
         disperseQueuedRef.current = false;
+
+        const pm = pointsRef.current.material;
+        const lm = linesRef.current.mesh.material;
+        if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
+        else { pm.opacity = 0.88; lm.opacity = 0.12; }
+
         burst(e.clientX, e.clientY, lockRef.current ? 26 : 20);
       }
       draggingRef.current = false;
@@ -654,7 +593,7 @@ const HeroLogoParticles = ({ theme }) => {
     };
     wrapper.addEventListener("dblclick", onDblClick);
 
-    // resize
+    // resize (no scroll coupling)
     const onResize = () => {
       camera.aspect = mount.clientWidth / mount.clientHeight;
       camera.updateProjectionMatrix();
@@ -663,7 +602,7 @@ const HeroLogoParticles = ({ theme }) => {
     };
     window.addEventListener("resize", onResize);
 
-    // simple morph check & subtle animation loop
+    // morph accuracy check to start bounce
     const morphError = () => {
       const pos = posRef.current;
       const targets = targetRef.current;
@@ -681,17 +620,54 @@ const HeroLogoParticles = ({ theme }) => {
       return Math.sqrt(acc / N);
     };
 
+    // animate
     const animate = () => {
       if (disposeRequested) return;
 
       const dt = Math.min(clockRef.current.getDelta(), 0.033);
       const t = clockRef.current.elapsedTime;
 
-      // group motion + idle spin
+      // water ripple normals
+      ripple.draw(t);
+
+      // group motion + bounce + idle spin
       if (groupRef.current) {
         const g = groupRef.current;
-        g.position.y = Math.sin(t * 0.6) * 1.0;
-        if (!draggingRef.current) g.rotation.y += 0.0007;
+
+        if (bounceRef.current.active) {
+          bounceRef.current.t += dt;
+          const w = 2 * Math.PI * 1.2;
+          const damping = 1.6;
+          const A = 3.0;
+          const tau = bounceRef.current.t;
+          const bounceY = A * Math.exp(-damping * tau) * Math.sin(w * tau);
+          g.position.y = bounceY;
+          const pulse = 1 + 0.02 * Math.exp(-damping * tau) * Math.sin(w * tau + Math.PI/3);
+          g.scale.setScalar(pulse);
+
+          if (bounceRef.current.t >= bounceRef.current.duration && !disperseQueuedRef.current) {
+            disperseQueuedRef.current = true;
+            const vel = velRef.current;
+            const pos = posRef.current;
+            for (let i = 0; i < pos.length / 3; i++) {
+              const ix = i*3;
+              const n = new THREE.Vector3(pos[ix], pos[ix+1], pos[ix+2]).normalize();
+              vel[ix]     += n.x * (1.2 + Math.random()*0.6);
+              vel[ix + 1] += n.y * (1.2 + Math.random()*0.6);
+              vel[ix + 2] += n.z * (0.8 + Math.random()*0.4);
+            }
+            lockRef.current = false;
+          }
+          if (disperseQueuedRef.current && bounceRef.current.t >= bounceRef.current.duration + 0.2) {
+            bounceRef.current.active = false;
+            g.position.y = 0;
+            g.scale.set(1,1,1);
+          }
+        } else {
+          g.position.y = Math.sin(t * 0.6) * 1.0;
+        }
+
+        if (!draggingRef.current) g.rotation.y += 0.0007; // idle spin
       }
 
       const pos = posRef.current;
@@ -703,6 +679,23 @@ const HeroLogoParticles = ({ theme }) => {
       const damping = 0.966;
       const drift = 0.0006;
 
+      const targets = targetRef.current;
+      const tCount = targetCountRef.current;
+
+      const hoverPull = hoverRef.current ? 0.10 : 0.0;
+      const lockPull  = lockRef.current ? 0.22 : 0.0;
+      const relax     = lockRef.current ? 0.02 : 0.012;
+
+      if (lockRef.current && !bounceRef.current.started && targets && tCount > 0) {
+        const err = morphError();
+        if (err < 2.8) {
+          bounceRef.current.started = true;
+          bounceRef.current.active = true;
+          bounceRef.current.t = 0;
+        }
+      }
+
+      const halfCube = (CUBE_SIZE / 2) - 4;
       for (let i = 0; i < pos.length / 3; i++) {
         const ix = i*3;
 
@@ -711,11 +704,18 @@ const HeroLogoParticles = ({ theme }) => {
         pos[ix + 1] *= 1.0 + Math.cos(t * 0.10 * spd[i] + i * 0.7) * drift;
         pos[ix + 2] *= 1.0 + Math.sin(t * 0.08 * spd[i] + i * 0.2) * drift;
 
-        // soft pull to base
-        const haloPull = 0.012;
-        pos[ix]     += (base[ix] - pos[ix]) * haloPull;
-        pos[ix + 1] += (base[ix + 1] - pos[ix + 1]) * haloPull;
-        pos[ix + 2] += (base[ix + 2] - pos[ix + 2]) * haloPull;
+        if (targets && i < tCount && (hoverPull + lockPull) > 0) {
+          const tx = targets[ix], ty = targets[ix+1], tz = targets[ix+2];
+          const pull = hoverPull + lockPull;
+          pos[ix]     += (tx - pos[ix]) * pull;
+          pos[ix + 1] += (ty - pos[ix + 1]) * pull;
+          pos[ix + 2] += (tz - pos[ix + 2]) * pull * 0.95;
+        } else {
+          const haloPull = lockRef.current ? 0.035 : 0.012;
+          pos[ix]     += (base[ix] - pos[ix]) * haloPull;
+          pos[ix + 1] += (base[ix + 1] - pos[ix + 1]) * haloPull;
+          pos[ix + 2] += (base[ix + 2] - pos[ix + 2]) * haloPull;
+        }
 
         // integrate velocities
         pos[ix]     += vel[ix] *  dt;
@@ -724,9 +724,32 @@ const HeroLogoParticles = ({ theme }) => {
         vel[ix]     *= damping;
         vel[ix + 1] *= damping;
         vel[ix + 2] *= damping;
-      }
 
+        // soft collision with cube walls
+        if (pos[ix] >  halfCube) { pos[ix] =  halfCube; vel[ix] *= -0.65; }
+        if (pos[ix] < -halfCube) { pos[ix] = -halfCube; vel[ix] *= -0.65; }
+        if (pos[ix+1] >  halfCube) { pos[ix+1] =  halfCube; vel[ix+1] *= -0.65; }
+        if (pos[ix+1] < -halfCube) { pos[ix+1] = -halfCube; vel[ix+1] *= -0.65; }
+        if (pos[ix+2] >  halfCube) { pos[ix+2] =  halfCube; vel[ix+2] *= -0.65; }
+        if (pos[ix+2] < -halfCube) { pos[ix+2] = -halfCube; vel[ix+2] *= -0.65; }
+      }
       geomPos.needsUpdate = true;
+      // flash pulse
+      if (flashRef.current.active) {
+        flashRef.current.t += dt;
+        const pm = pointsRef.current.material;
+        const lm = linesRef.current.mesh.material;
+        const k = Math.max(0, 1 - flashRef.current.t / 0.9);
+        pm.size = 1.0 + k * 1.2;
+        pm.opacity = 0.96 + k * 0.2;
+        lm.opacity = 0.22 + k * 0.18;
+        if (flashRef.current.t > 0.9) {
+          flashRef.current.active = false;
+          pm.size = 1.0;
+          pm.opacity = lockRef.current ? 0.96 : 0.88;
+          lm.opacity = lockRef.current ? 0.22 : 0.12;
+        }
+      }
 
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
@@ -751,6 +774,24 @@ const HeroLogoParticles = ({ theme }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!pointsRef.current || !linesRef.current || !cubeRef.current) return;
+    const { primary, accent } = getThemeColors();
+    const colors = colorRef.current;
+    const count = targetCountRef.current;
+    if (colors && pointsRef.current.geometry?.attributes?.color) {
+      const tint = new THREE.Color(primary);
+      for (let i = count; i < colors.length / 3; i++) {
+        const ix = i*3;
+        colors[ix]     = tint.r * 0.8;
+        colors[ix + 1] = tint.g * 0.8;
+        colors[ix + 2] = tint.b * 0.8;
+      }
+      pointsRef.current.geometry.attributes.color.needsUpdate = true;
+    }
+    linesRef.current.mesh.material.color = new THREE.Color(accent);
+  }, [theme]);
+
   // split hero
   return (
     <section id="hero" className="hero">
@@ -773,8 +814,8 @@ const HeroLogoParticles = ({ theme }) => {
   );
 };
 
-/* ------------------------ Product Card ------------------------ */
-const AppCard = ({ app, onPlay, visitorId }) => {
+/* ------------------------ Product Card (audio ok) ------------------------ */
+const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
@@ -785,7 +826,7 @@ const AppCard = ({ app, onPlay, visitorId }) => {
     }
   }, [isActive]);
 
-  // auto play/pause showcase audio when highlighted
+  // Play when highlighted; pause/reset when not
   useEffect(() => {
     if (!cardRef.current) return;
     const audioEl = cardRef.current.querySelector("audio");
@@ -800,18 +841,12 @@ const AppCard = ({ app, onPlay, visitorId }) => {
     }
   }, [isActive, app.id]);
 
-  const handleHoverPrompt = () => {
-    sendHoverPrompt({ visitorId, app });
-  };
-
   return (
     <div
       ref={cardRef}
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
       aria-live="polite"
-      onMouseEnter={handleHoverPrompt}
-      onFocus={handleHoverPrompt} // keyboard users
     >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
@@ -873,18 +908,6 @@ const App = () => {
     const saved = localStorage.getItem("theme");
     return saved === "dark" ? "dark" : "light";
   });
-  const [visitorId, setVisitorId] = useState(null);
-
-  // stable per-browser visitor id to correlate hover prompts with sessions
-  useEffect(() => {
-    let id = localStorage.getItem("dsah_visitor_id");
-    if (!id) {
-      if (window.crypto?.randomUUID) id = crypto.randomUUID();
-      else id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      localStorage.setItem("dsah_visitor_id", id);
-    }
-    setVisitorId(id);
-  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -946,7 +969,7 @@ const App = () => {
     <div className="container">
       <NavBar theme={theme} onToggleTheme={toggleTheme} />
 
-      {/* Header */}
+      {/* Header (kept) */}
       <div className="header">
         <div className="logo-container">
           <img src="/assets/logo.png" alt="Hospital Logo" className="hospital-logo" />
@@ -962,7 +985,7 @@ const App = () => {
         </div>
       </div>
 
-      {/* Hero with text + GLASS CUBE */}
+      {/* Hero with text (left) + GLASS CUBE with heart (right) */}
       <HeroLogoParticles theme={theme} />
 
       {/* Video modal */}
@@ -979,18 +1002,14 @@ const App = () => {
       <section id="products" className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (
-            <AppCard key={app.id} app={app} onPlay={setVideoUrl} visitorId={visitorId} />
-          ))}
+          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
         </div>
       </section>
-
       <CardCarousel />
-
       <section id="policy" className="policy-section">
         <LaptopSection3D />
       </section>
-
+      {/* <TestimonialSection /> */}
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>
@@ -998,16 +1017,12 @@ const App = () => {
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
-
-      {/* Voice + Chat receive hover prompt via event */}
-      <VoiceAssistant visitorId={visitorId} voiceApiBase={VOICE_API_BASE} />
-      <ChatBot visitorId={visitorId} chatApiBase={CHAT_API_BASE} />
-
+      
+      <VoiceAssistant />
+      <ChatBot />
       <Footer />
     </div>
   );
 };
 
 export default App;
-
-
