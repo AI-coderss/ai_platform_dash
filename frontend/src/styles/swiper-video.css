@@ -8,7 +8,7 @@
   --vcx-card-shadow: 0 10px 24px rgba(0,0,0,0.25);
   --vcx-card-shadow-hover: 0 16px 42px rgba(0,0,0,0.35);
 
-  /* Moderate card size (single-slide view) */
+  /* Card size (single-slide view) */
   --vcx-row-max: 1160px;
   --vcx-card-w-min: 360px;
   --vcx-card-w-ideal: 72vw;
@@ -21,16 +21,18 @@
   width: 100%;
   max-width: var(--vcx-row-max);
   margin: 18px auto;
-  position: relative;
+  position: relative;       /* defines the row height */
 }
 
-/* Particle background host & canvas */
+/* ===== Full-bleed particles: width = 100vw, height = .vcx-row height ===== */
 .vcx-wrap { position: relative; isolation: isolate; }
 .vcx-particles {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%); /* center the 100vw canvas under the centered row */
+  width: 100vw;                /* full screen width */
+  height: 100%;                /* match the row height */
   z-index: 0;
   pointer-events: none;
   opacity: 0.8;

@@ -54,8 +54,10 @@ const NavBar = ({ theme, onToggleTheme }) => {
           <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
           <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
           <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")}>Watch Tutorial</a>
           <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
           <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+          
         </div>
 
         <div className="topnav-actions">
@@ -133,6 +135,7 @@ const NavBar = ({ theme, onToggleTheme }) => {
       <div className="topnav-mobile">
         <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
           <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")}>Watch Tutorial</a>
           <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
           <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
           <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
@@ -1011,7 +1014,9 @@ const App = () => {
         <LaptopSection3D />
       </section>
       {/* <TestimonialSection /> */}
-      <VideoCarousel />
+      <div className="section-title" href="#watch_tutorial" id="watch_tutorial">
+        <VideoCarousel />
+      </div>
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>

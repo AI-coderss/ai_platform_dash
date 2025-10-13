@@ -25,8 +25,8 @@ const VideoCarousel = () => {
   const swiperRef = useRef(null);
 
   // Particle background refs
-  const rootRef = useRef(null);
-  const canvasRef = useRef(null);
+  const rootRef = useRef(null);     // the centered carousel host (controls height)
+  const canvasRef = useRef(null);   // the particles canvas (now full-bleed width)
   const animRef = useRef(0);
 
   // Play only the active slide's video; pause others
@@ -104,12 +104,14 @@ const VideoCarousel = () => {
     const color = "#e2dedeff";
 
     let width = 0, height = 0;
-    const resizeToHost = () => {
-      const r = host.getBoundingClientRect();
-      width = (canvas.width = Math.max(1, Math.round(r.width)));
-      height = (canvas.height = Math.max(1, Math.round(r.height)));
+
+    // ⬇️ Full-bleed width (viewport), height matches the carousel block
+    const resizeToViewportWidth = () => {
+      const hostRect = host.getBoundingClientRect();
+      width  = canvas.width  = Math.max(1, Math.round(window.innerWidth));
+      height = canvas.height = Math.max(1, Math.round(hostRect.height));
     };
-    resizeToHost();
+    resizeToViewportWidth();
 
     ctx.fillStyle = colorDot;
     ctx.lineWidth = 0.8;
@@ -134,7 +136,7 @@ const VideoCarousel = () => {
       for (let i = 0; i < dots.nb; i++) {
         const d = dots.array[i];
         if (d.y < 0 || d.y > height) d.vy = -d.vy;
-        if (d.x < 0 || d.x > width) d.vx = -d.vx;
+        if (d.x < 0 || d.x > width)  d.vx = -d.vx;
         d.x += d.vx;
         d.y += d.vy;
       }
@@ -170,41 +172,38 @@ const VideoCarousel = () => {
     animRef.current = requestAnimationFrame(tick);
 
     const onMouseMove = (e) => {
+      // Track mouse relative to canvas
       const r = canvas.getBoundingClientRect();
       mouse.x = e.clientX - r.left;
       mouse.y = e.clientY - r.top;
     };
     document.addEventListener("mousemove", onMouseMove, { passive: true });
 
-    let resizeRaf = 0;
-    const ro = new ResizeObserver(() => {
-      if (resizeRaf) return;
-      resizeRaf = requestAnimationFrame(() => {
-        resizeRaf = 0;
-        resizeToHost();
-        dots.array = Array.from({ length: dots.nb }, () => new Dot());
-        mouse.x = width / 2; mouse.y = height / 2;
-      });
-    });
+    // Recompute on window resize and host height changes
+    const onResize = () => resizeToViewportWidth();
+    window.addEventListener("resize", onResize);
+
+    const ro = new ResizeObserver(onResize);
     ro.observe(host);
 
     return () => {
       cancelAnimationFrame(animRef.current);
       document.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("resize", onResize);
       ro.disconnect();
     };
   }, []);
 
   return (
     <>
-      {/* Root wrapper with particles */}
+      {/* Root wrapper with full-bleed particles */}
       <div
         ref={rootRef}
         className="vcx-row vcx-wrap"
         onMouseEnter={handleMouseEnterRow}
         onMouseLeave={handleMouseLeaveRow}
       >
-        {/* Particle canvas behind the carousel */}
+        {/* Particle canvas spans full viewport width, clipped to the row height */}
         <canvas className="vcx-particles" ref={canvasRef} aria-hidden="true" />
 
         <Swiper
@@ -276,6 +275,7 @@ const VideoCarousel = () => {
 };
 
 export default VideoCarousel;
+
 
 
 
