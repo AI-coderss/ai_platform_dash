@@ -22,6 +22,9 @@ import LaptopSection3D from "./components/LaptopSection3D";
 import gsap from "gsap";
 import SplitType from "split-type";
 
+// [ADDED] Zustand for hover→webhook bridge
+import { create } from "zustand";
+
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -31,6 +34,75 @@ const audioMap = {
   5: "/assets/audio/ivf_assistant.mp3",
   6: "/assets/audio/patient_assistant.mp3",
 };
+
+/* =====================  HOVER → WEBHOOK PIPELINE  ===================== */
+/* [ADDED] Lightweight store that acts like a “webhook”: whenever
+   hoveredApp changes, we POST it to /api/voice-context in real-time.
+   VoiceAssistant backend can then include this in session instructions. */
+
+const VOICE_API_BASE = ""; // keep relative (same origin proxy) — change if needed
+
+const slugify = (s) =>
+  (s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
+const postHoverContext = async (payload) => {
+  try {
+    await fetch(`${VOICE_API_BASE}/api/voice-context`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    // swallow network errors silently to avoid UI disruption
+    // console.error("hover webhook failed", e);
+  }
+};
+
+const useVoiceContextStore = create((set, get) => ({
+  visitorId: null,
+  setVisitorId: (id) => set({ visitorId: id }),
+  hoveredApp: null, // { id, name, description, link, icon, tag }
+  setHoveredApp: (app) => set({ hoveredApp: app }),
+}));
+
+// [ADDED] Debounced subscription so rapid hover doesn't spam the backend
+{
+  let debounceTimer = null;
+  let lastSentKey = "";
+  useVoiceContextStore.subscribe((state, prev) => {
+    if (state.hoveredApp !== prev.hoveredApp && state.hoveredApp) {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const { hoveredApp, visitorId } = useVoiceContextStore.getState();
+        if (!hoveredApp || !visitorId) return;
+
+        // Avoid re-sending identical payloads consecutively
+        const key = `${visitorId}:${hoveredApp.id}`;
+        if (key === lastSentKey) return;
+        lastSentKey = key;
+
+        postHoverContext({
+          visitorId,
+          app: {
+            id: hoveredApp.id,
+            name: hoveredApp.name,
+            description: hoveredApp.description,
+            link: hoveredApp.link,
+            icon: hoveredApp.icon,
+            tag: hoveredApp.tag || slugify(hoveredApp.name),
+          },
+          ts: Date.now(),
+        });
+      }, 140); // low-latency but gentle on network
+    }
+  });
+}
+/* ===================  END HOVER → WEBHOOK PIPELINE  =================== */
+
 
 /* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
@@ -820,6 +892,9 @@ const AppCard = ({ app, onPlay }) => {
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
 
+  // [ADDED] grab setter to push hover context to the webhook store
+  const setHoveredApp = useVoiceContextStore((s) => s.setHoveredApp);
+
   useEffect(() => {
     if (isActive && cardRef.current) {
       cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -841,12 +916,26 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive, app.id]);
 
+  // [ADDED] on hover/focus, notify webhook store with rich context
+  const pushHoverContext = () => {
+    setHoveredApp({
+      id: app.id,
+      name: app.name,
+      description: app.description,
+      link: app.link,
+      icon: app.icon,
+      tag: slugify(app.name),
+    });
+  };
+
   return (
     <div
       ref={cardRef}
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
       aria-live="polite"
+      onMouseEnter={pushHoverContext}   // [ADDED]
+      onFocus={pushHoverContext}        // [ADDED] keyboard users
     >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
@@ -908,6 +997,17 @@ const App = () => {
     const saved = localStorage.getItem("theme");
     return saved === "dark" ? "dark" : "light";
   });
+
+  // [ADDED] stable per-browser visitor id used to correlate hover context → voice session
+  useEffect(() => {
+    let id = localStorage.getItem("dsah_visitor_id");
+    if (!id) {
+      if (window.crypto?.randomUUID) id = crypto.randomUUID();
+      else id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      localStorage.setItem("dsah_visitor_id", id);
+    }
+    useVoiceContextStore.getState().setVisitorId(id);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -1026,3 +1126,4 @@ const App = () => {
 };
 
 export default App;
+
