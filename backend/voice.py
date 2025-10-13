@@ -9,7 +9,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import Qdrant
 import qdrant_client
 from prompts.system_prompt import SYSTEM_PROMPT
-from datetime import datetime  # [ADDED]
+from datetime import datetime
 
 # Load environment variables from .env
 load_dotenv()
@@ -39,8 +39,8 @@ MODEL_ID = "gpt-4o-realtime-preview-2024-12-17"
 VOICE = "ballad"
 DEFAULT_INSTRUCTIONS = SYSTEM_PROMPT
 
-# [ADDED] In-memory visitor→context map (simple/volatile)
-VISITOR_CONTEXT = {}  # { visitorId: {"app": {...}, "ts": "..." } }
+# In-memory UI state keyed by visitor (volatile; use Redis for prod)
+VISITOR_UI_STATE = {}  # { visitorId: { "prompt": "...", "app": {...}, "ts": "..." } }
 
 def get_vector_store():
     client = qdrant_client.QdrantClient(
@@ -61,17 +61,19 @@ vector_store = get_vector_store()
 def home():
     return "Flask API is running!"
 
-# [ADDED] Hover-context webhook endpoint (called from frontend on card hover)
-@app.route('/api/voice-context', methods=['POST'])
-def set_voice_context():
+# ----------- NEW: receive a direct prompt from UI hover -----------
+@app.route('/api/voice-prompt', methods=['POST'])
+def voice_prompt():
     try:
         data = request.get_json(silent=True) or {}
         visitor_id = data.get("visitorId")
-        app_info = data.get("app")
-        if not visitor_id or not app_info:
-            return jsonify({"ok": False, "error": "visitorId and app are required"}), 400
+        prompt = data.get("prompt")
+        app_info = data.get("app", {})
+        if not visitor_id or not prompt:
+            return jsonify({"ok": False, "error": "visitorId and prompt are required"}), 400
 
-        VISITOR_CONTEXT[visitor_id] = {
+        VISITOR_UI_STATE[visitor_id] = {
+            "prompt": str(prompt),
             "app": {
                 "id": app_info.get("id"),
                 "name": app_info.get("name"),
@@ -82,21 +84,20 @@ def set_voice_context():
             },
             "ts": datetime.utcnow().isoformat() + "Z",
         }
-        logger.info(f"[voice-context] set for visitor={visitor_id}: {VISITOR_CONTEXT[visitor_id]['app'].get('name')}")
+        logger.info(f"[voice-prompt] stored for visitor={visitor_id}: {app_info.get('name')} | {prompt[:80]}...")
         return jsonify({"ok": True})
     except Exception as e:
-        logger.exception("set_voice_context error")
+        logger.exception("voice_prompt error")
         return jsonify({"ok": False, "error": str(e)}), 500
 
-# [ADDED] Optional: fetch latest context (helpful for client polling or diagnostics)
-@app.route('/api/voice-context', methods=['GET'])
-def get_voice_context():
+@app.route('/api/voice-prompt', methods=['GET'])
+def get_voice_prompt():
     visitor_id = request.args.get("visitorId")
     if not visitor_id:
         return jsonify({"ok": False, "error": "visitorId is required"}), 400
-    ctx = VISITOR_CONTEXT.get(visitor_id)
-    return jsonify({"ok": True, "context": ctx})
+    return jsonify({"ok": True, "state": VISITOR_UI_STATE.get(visitor_id)})
 
+# ------------------------- Realtime connect -------------------------
 @app.route('/api/rtc-connect', methods=['POST'])
 def connect_rtc():
     try:
@@ -104,24 +105,25 @@ def connect_rtc():
         if not client_sdp:
             return Response("No SDP provided", status=400)
 
-        # [ADDED] Allow correlating hover context with this session
-        # Frontend may pass ?visitorId=... or header X-Visitor-Id
+        # Correlate hover-prompt with this session (query or header)
         visitor_id = request.args.get("visitorId") or request.headers.get("X-Visitor-Id")
         merged_instructions = DEFAULT_INSTRUCTIONS
 
-        if visitor_id and visitor_id in VISITOR_CONTEXT:
-            app_ctx = VISITOR_CONTEXT[visitor_id]["app"]
+        # If a prompt exists for this visitor, merge it explicitly
+        if visitor_id and visitor_id in VISITOR_UI_STATE:
+            state = VISITOR_UI_STATE[visitor_id]
+            app_ctx = state.get("app") or {}
+            ui_prompt = state.get("prompt") or ""
             ctx_txt = (
-                f"\n\n---\nUSER UI CONTEXT\n"
-                f"User is currently focusing on app: {app_ctx.get('name')} "
-                f"(tag: {app_ctx.get('tag')}, id: {app_ctx.get('id')}).\n"
+                f"\n\n---\nUI HOVER PROMPT (treat as recent user intent)\n"
+                f"{ui_prompt}\n\n"
+                f"App Context: {app_ctx.get('name')} (tag: {app_ctx.get('tag')}, id: {app_ctx.get('id')})\n"
                 f"Description: {app_ctx.get('description')}\n"
-                f"Relevant link (if needed): {app_ctx.get('link')}\n"
-                f"Prefer answers scoped to this app unless the user clearly changes topic.\n---\n"
+                f"Link: {app_ctx.get('link')}\n---\n"
             )
             merged_instructions = f"{DEFAULT_INSTRUCTIONS}{ctx_txt}"
 
-        # Step 1: Create Realtime session + instructions
+        # Step 1: Create Realtime session with merged instructions
         session_payload = {
             "model": MODEL_ID,
             "voice": VOICE,
@@ -167,6 +169,7 @@ def connect_rtc():
         logger.exception("RTC connection error")
         return Response(f"Error: {e}", status=500)
 
+# ----------------------------- RAG search -----------------------------
 @app.route('/api/search', methods=['POST'])
 def search():
     try:

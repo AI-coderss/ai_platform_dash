@@ -22,9 +22,6 @@ import LaptopSection3D from "./components/LaptopSection3D";
 import gsap from "gsap";
 import SplitType from "split-type";
 
-// [ADDED] Zustand for hover→webhook bridge
-import { create } from "zustand";
-
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -35,12 +32,8 @@ const audioMap = {
   6: "/assets/audio/patient_assistant.mp3",
 };
 
-/* =====================  HOVER → WEBHOOK PIPELINE  ===================== */
-/* [ADDED] Lightweight store that acts like a “webhook”: whenever
-   hoveredApp changes, we POST it to /api/voice-context in real-time.
-   VoiceAssistant backend can then include this in session instructions. */
-
-const VOICE_API_BASE = ""; // keep relative (same origin proxy) — change if needed
+/* ---------------------- HOVER → PROMPT (ADDED) ---------------------- */
+const VOICE_API_BASE = ""; // keep relative to same-origin; adjust if needed
 
 const slugify = (s) =>
   (s || "")
@@ -48,61 +41,38 @@ const slugify = (s) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 
-const postHoverContext = async (payload) => {
+const sendHoverPrompt = async ({ visitorId, app }) => {
+  if (!visitorId || !app) return;
+  const tag = slugify(app.name);
+  const prompt =
+    `Focus on the application "${app.name}" (tag: ${tag}). ` +
+    `If the user asks "please explain how this application works", ` +
+    `respond with a concise walkthrough including key features, advantages, and how to use it. ` +
+    `Link (if needed): ${app.link || "N/A"}.`;
+
   try {
-    await fetch(`${VOICE_API_BASE}/api/voice-context`, {
+    await fetch(`${VOICE_API_BASE}/api/voice-prompt`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       keepalive: true,
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        visitorId,
+        prompt,
+        app: {
+          id: app.id,
+          name: app.name,
+          description: app.description,
+          link: app.link,
+          icon: app.icon,
+          tag,
+        },
+      }),
     });
   } catch (e) {
-    // swallow network errors silently to avoid UI disruption
-    // console.error("hover webhook failed", e);
+    // avoid UI disruption on network errors
   }
 };
-
-const useVoiceContextStore = create((set, get) => ({
-  visitorId: null,
-  setVisitorId: (id) => set({ visitorId: id }),
-  hoveredApp: null, // { id, name, description, link, icon, tag }
-  setHoveredApp: (app) => set({ hoveredApp: app }),
-}));
-
-// [ADDED] Debounced subscription so rapid hover doesn't spam the backend
-{
-  let debounceTimer = null;
-  let lastSentKey = "";
-  useVoiceContextStore.subscribe((state, prev) => {
-    if (state.hoveredApp !== prev.hoveredApp && state.hoveredApp) {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        const { hoveredApp, visitorId } = useVoiceContextStore.getState();
-        if (!hoveredApp || !visitorId) return;
-
-        // Avoid re-sending identical payloads consecutively
-        const key = `${visitorId}:${hoveredApp.id}`;
-        if (key === lastSentKey) return;
-        lastSentKey = key;
-
-        postHoverContext({
-          visitorId,
-          app: {
-            id: hoveredApp.id,
-            name: hoveredApp.name,
-            description: hoveredApp.description,
-            link: hoveredApp.link,
-            icon: hoveredApp.icon,
-            tag: hoveredApp.tag || slugify(hoveredApp.name),
-          },
-          ts: Date.now(),
-        });
-      }, 140); // low-latency but gentle on network
-    }
-  });
-}
-/* ===================  END HOVER → WEBHOOK PIPELINE  =================== */
-
+/* -------------------- END HOVER → PROMPT (ADDED) -------------------- */
 
 /* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
@@ -887,13 +857,10 @@ useEffect(() => {
 };
 
 /* ------------------------ Product Card (audio ok) ------------------------ */
-const AppCard = ({ app, onPlay }) => {
+const AppCard = ({ app, onPlay, visitorId }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
   const cardRef = useRef(null);
-
-  // [ADDED] grab setter to push hover context to the webhook store
-  const setHoveredApp = useVoiceContextStore((s) => s.setHoveredApp);
 
   useEffect(() => {
     if (isActive && cardRef.current) {
@@ -916,16 +883,9 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive, app.id]);
 
-  // [ADDED] on hover/focus, notify webhook store with rich context
-  const pushHoverContext = () => {
-    setHoveredApp({
-      id: app.id,
-      name: app.name,
-      description: app.description,
-      link: app.link,
-      icon: app.icon,
-      tag: slugify(app.name),
-    });
+  // (ADDED) send prompt to backend on hover/focus
+  const handleHoverPrompt = () => {
+    sendHoverPrompt({ visitorId, app });
   };
 
   return (
@@ -934,8 +894,8 @@ const AppCard = ({ app, onPlay }) => {
       className={`card animated-card ${isActive ? "highlight" : ""}`}
       tabIndex="0"
       aria-live="polite"
-      onMouseEnter={pushHoverContext}   // [ADDED]
-      onFocus={pushHoverContext}        // [ADDED] keyboard users
+      onMouseEnter={handleHoverPrompt}   // ADDED
+      onFocus={handleHoverPrompt}        // ADDED (keyboard users)
     >
       {isActive && <><span></span><span></span><span></span><span></span></>}
       <div className="glow-border"></div>
@@ -997,8 +957,9 @@ const App = () => {
     const saved = localStorage.getItem("theme");
     return saved === "dark" ? "dark" : "light";
   });
+  const [visitorId, setVisitorId] = useState(null); // ADDED
 
-  // [ADDED] stable per-browser visitor id used to correlate hover context → voice session
+  // ADDED: stable per-browser visitor id to correlate hover prompts with voice session
   useEffect(() => {
     let id = localStorage.getItem("dsah_visitor_id");
     if (!id) {
@@ -1006,7 +967,7 @@ const App = () => {
       else id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       localStorage.setItem("dsah_visitor_id", id);
     }
-    useVoiceContextStore.getState().setVisitorId(id);
+    setVisitorId(id);
   }, []);
 
   useEffect(() => {
@@ -1102,7 +1063,7 @@ const App = () => {
       <section id="products" className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
+          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} visitorId={visitorId} />))}
         </div>
       </section>
       <CardCarousel />
