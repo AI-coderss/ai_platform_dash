@@ -1,30 +1,17 @@
 /* eslint-disable no-loop-func */
 import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { motion, useMotionValue } from "framer-motion";
 import ChatInputWidget from "./ChatInputWidget";
 import "../styles/ChatBot.css";
 import useCardStore from "./store/useCardStore";
 
 /**
- * Draggable D-ID widget notes:
- * - We lazy-inject the D-ID script when the user presses the in-chat "Avatar" button.
- * - Once the script builds its default FAB, we detect it via MutationObserver and
- *   move/re-parent that DOM into our own fixed-position, draggable container.
- * - We neutralize any fixed positioning/styles the script sets so the widget stays inside our container.
- * - The container is position:fixed so users can drag it outside the chat box freely.
- *
- * If D-ID changes DOM structure, update CANDIDATE_SELECTORS below.
+ * D-ID agent is injected on demand when the user presses "Open Avatar".
+ * We no longer re-parent or wrap it in a draggable container.
  */
 
 const DID_AGENT_SRC = "https://agent.d-id.com/v2/index.js";
 const DID_SCRIPT_ID = "did-agent-loader-v2";
-const CANDIDATE_SELECTORS = [
-  '[data-name="did-agent"]',
-  "#did-agent",
-  ".did-voice-agent",
-  "[data-did-agent]",
-];
 
 // 👉 use your real key/id or env vars.
 const DID_CLIENT_KEY = "Z29vZ2xlLW9hdXRoMnwxMTI1MzgwMDI5NzAxNDIxMTMxNDI6TG5FLWVDS1IyaE9VMEcyS2FUVnh0";
@@ -60,17 +47,7 @@ const ChatBot = () => {
     return id;
   });
 
-  // ---- D-ID draggable widget state ------------------------------------------
-  const [showDid, setShowDid] = useState(false);
-  const [didAttached, setDidAttached] = useState(false);
-  const didContainerRef = useRef(null); // Where we re-parent the D-ID DOM
-  const observerRef = useRef(null);
-
-  // Draggable initial position (fixed coords). Start near bottom-right, above your chat FAB.
-  const x = useMotionValue(typeof window !== "undefined" ? window.innerWidth - 360 : 0);
-  const y = useMotionValue(typeof window !== "undefined" ? window.innerHeight - 420 : 0);
-
-  // Inject D-ID script on demand
+  // Inject D-ID script on demand (no draggable wrapper)
   const injectDidScript = () => {
     if (typeof document === "undefined") return;
     if (document.getElementById(DID_SCRIPT_ID)) return; // already injected
@@ -88,101 +65,13 @@ const ChatBot = () => {
     s.dataset.name = "did-agent";
     s.dataset.monitor = "true";
     s.dataset.orientation = "horizontal";
-    // Let us control position; script may try to stick it to an edge.
-    // We'll reparent & strip its fixed positioning afterward.
     s.dataset.position = "right";
 
     document.body.appendChild(s);
   };
 
-  // Observe DOM for the D-ID FAB and re-parent it into our container
-  const startObservingForDid = () => {
-    if (observerRef.current) return;
-
-    const obs = new MutationObserver(() => {
-      const didNode = findDidNode();
-      if (didNode && didContainerRef.current) {
-        try {
-          neutralizeDidStyles(didNode);
-          didContainerRef.current.appendChild(didNode);
-          setDidAttached(true);
-          // Once attached, no need to keep observing:
-          if (observerRef.current) {
-            observerRef.current.disconnect();
-            observerRef.current = null;
-          }
-        } catch (e) {
-          console.warn("Failed to attach D-ID node:", e);
-        }
-      }
-    });
-
-    obs.observe(document.body, { childList: true, subtree: true });
-    observerRef.current = obs;
-  };
-
-  const stopObserving = () => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
-    }
-  };
-
-  const findDidNode = () => {
-    for (const sel of CANDIDATE_SELECTORS) {
-      const el = document.querySelector(sel);
-      if (el) return el;
-    }
-    return null;
-  };
-
-  const neutralizeDidStyles = (el) => {
-    // The D-ID FAB/bubble often uses fixed positioning. Remove those so our container controls layout.
-    el.style.position = "static";
-    el.style.inset = "auto";
-    el.style.right = "auto";
-    el.style.left = "auto";
-    el.style.bottom = "auto";
-    el.style.top = "auto";
-    el.style.margin = "0";
-
-    // Make sure it doesn't overflow our container horizontally.
-    el.style.maxWidth = "100%";
-
-    // If they inject inner wrappers with fixed positions, try to reset them too:
-    el.querySelectorAll("*").forEach((n) => {
-      const cs = window.getComputedStyle(n);
-      if (cs.position === "fixed") {
-        n.style.position = "static";
-        n.style.right = "auto";
-        n.style.left = "auto";
-        n.style.bottom = "auto";
-        n.style.top = "auto";
-      }
-    });
-  };
-
-  const removeDidScriptAndNode = () => {
-    stopObserving();
-    const script = document.getElementById(DID_SCRIPT_ID);
-    if (script) script.remove();
-
-    // best-effort cleanup of any created nodes
-    CANDIDATE_SELECTORS.forEach((sel) => {
-      document.querySelectorAll(sel).forEach((n) => n.remove());
-    });
-    setDidAttached(false);
-  };
-
   const openDid = () => {
-    setShowDid(true);
     injectDidScript();
-    startObservingForDid();
-  };
-
-  const closeDid = () => {
-    setShowDid(false);
-    removeDidScriptAndNode();
   };
 
   // Keep scroll pinned to bottom while streaming
@@ -265,13 +154,7 @@ const ChatBot = () => {
     setAccordionOpen(false);
   };
 
-  // Cleanup observer on unmount just in case
-  useEffect(() => {
-    return () => {
-      stopObserving();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => {}, []);
 
   return (
     <>
@@ -303,24 +186,18 @@ const ChatBot = () => {
                 gap: 8,
                 flexWrap: "wrap",
                 margin: "6px 8px 10px",
+                alignItems: "center",
               }}
             >
+              {/* >>> Smaller 3D pulsing rectangular button (external CSS) <<< */}
               <button
                 onClick={openDid}
-                className="predefined-q"
-                title="Open D-ID Avatar (draggable)"
-                style={{
-                  background: "#0ea5e9",
-                  color: "white",
-                  borderRadius: 999,
-                  padding: "6px 10px",
-                  fontSize: 13,
-                  border: "none",
-                  boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
-                  cursor: "pointer",
-                }}
+                aria-label="Open D-ID Avatar"
+                className="open-avatar-3d"
+                title="Open D-ID Avatar"
               >
-                🎭 Open Avatar
+                <span className="open-avatar-icon">🎭</span>
+                <span>Open Avatar</span>
               </button>
             </div>
 
@@ -406,115 +283,13 @@ const ChatBot = () => {
           <ChatInputWidget onSendMessage={handleSendMessage} />
         </div>
       )}
-
-      {/* ---------- Draggable D-ID container (position: fixed; outside chat DOM flow) ---------- */}
-      {showDid && (
-        <motion.div
-          role="dialog"
-          aria-label="D-ID Avatar"
-          initial={false}
-          drag
-          dragMomentum={false}
-          style={{
-            position: "fixed",
-            left: 0,
-            top: 0,
-            x,
-            y,
-            width: 340, // adjust as you like
-            zIndex: 9999,
-            pointerEvents: "auto",
-          }}
-        >
-          {/* Card chrome + drag handle */}
-          <div
-            style={{
-              background: "rgba(255,255,255,0.95)",
-              backdropFilter: "blur(8px)",
-              borderRadius: 16,
-              boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
-              border: "1px solid rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              // Drag handle area (bigger target)
-              style={{
-                cursor: "grab",
-                padding: "8px 12px",
-                fontSize: 13,
-                fontWeight: 600,
-                background: "#111827",
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <span>Avatar (drag me)</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => {
-                    // Snap to bottom-right quickly
-                    x.set(window.innerWidth - 360);
-                    y.set(window.innerHeight - 420);
-                  }}
-                  title="Snap to corner"
-                  style={iconBtnStyle}
-                >
-                  ⤓
-                </button>
-                <button onClick={closeDid} title="Close" style={iconBtnStyle}>
-                  ✖
-                </button>
-              </div>
-            </div>
-
-            {/* Where we mount the D-ID DOM */}
-            <div
-              ref={didContainerRef}
-              style={{
-                // Size of the live agent bubble/player; adjust if needed
-                width: "100%",
-                minHeight: 72,
-                padding: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#0b1220",
-              }}
-            >
-              {!didAttached && (
-                <span
-                  style={{
-                    color: "#cbd5e1",
-                    fontSize: 12,
-                    padding: "10px 6px",
-                  }}
-                >
-                  Loading avatar…
-                </span>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
     </>
   );
 };
 
-const iconBtnStyle = {
-  appearance: "none",
-  border: "none",
-  borderRadius: 10,
-  background: "rgba(255,255,255,0.15)",
-  color: "#fff",
-  padding: "4px 8px",
-  cursor: "pointer",
-  boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-};
-
 export default ChatBot;
+
+
 
 
 

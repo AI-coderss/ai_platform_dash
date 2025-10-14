@@ -562,3 +562,120 @@
     padding-bottom: 80px;
   }
 }
+/* --- Open Avatar 3D Button --- */
+.open-avatar-3d {
+  --primary-1: #60a5fa;
+  --primary-2: #2563eb;
+  --primary-3: #1e40af;
+  --ring: rgba(37, 99, 235, 0.55);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  /* Size: small-to-medium; not full width */
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  width: auto;
+  max-width: 260px;           /* keep it compact */
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+
+  background: linear-gradient(180deg, var(--primary-1) 0%, var(--primary-2) 60%, var(--primary-3) 100%);
+
+  /* 3D depth via layered shadows */
+  box-shadow:
+    0 10px 18px rgba(0, 0, 0, 0.18),
+    inset 0 8px 12px rgba(255, 255, 255, 0.07),
+    inset 0 -10px 16px rgba(0, 0, 0, 0.28);
+
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  outline: none;
+
+  /* gentle pulse ring (external CSS animation) */
+  animation: avatarPulse 2.2s ease-in-out infinite;
+}
+
+.open-avatar-3d .open-avatar-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* top highlight strip to enhance 3D */
+.open-avatar-3d::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 3px;
+  height: 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+/* animated outer ring (pulsing) */
+.open-avatar-3d::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  box-shadow: 0 0 0 0 var(--ring);
+  animation: avatarRing 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Hover/active states for tactile feel */
+.open-avatar-3d:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 16px 26px rgba(0, 0, 0, 0.22),
+    inset 0 10px 14px rgba(255, 255, 255, 0.08),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.32);
+}
+
+.open-avatar-3d:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 6px 12px rgba(0, 0, 0, 0.22),
+    inset 0 6px 10px rgba(0, 0, 0, 0.32);
+}
+
+/* Keyboard focus ring */
+.open-avatar-3d:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.7);
+  outline-offset: 3px;
+  filter: brightness(1.06);
+}
+
+/* Pulse of the button body */
+@keyframes avatarPulse {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.04); }
+  100% { filter: brightness(1); }
+}
+
+/* Expanding glow ring */
+@keyframes avatarRing {
+  0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .open-avatar-3d,
+  .open-avatar-3d::after {
+    animation: none !important;
+  }
+}
