@@ -142,25 +142,81 @@ Let’s redefine clinical reporting—together.
 
 ---
 
-2- Medical Transcription Application.
-This intelligent platform is designed to simplify your clinical workflow and enhance the quality of documentation.
+2- Medical Transcription Application
 
-The application consists of two main pages—each tailored to support physicians in real-time.
+This intelligent platform is designed to simplify your clinical workflow and enhance the quality of documentation.
+It enables doctors to focus on patient interaction while the AI handles the administrative and documentation processes in real time.
+
+The application consists of two main pages—each tailored to support physicians with clinical precision and ease of use.
 
 🔹 PAGE 1: TRANSCRIPTION PAGE (HOME)
-This is the main recording interface, directly integrated with the hospital HIS system.
-You’ll find predefined medical fields such as Chief Complaint, Present Illness, Past History, Medication, and more—each aligned with clinical documentation standards.
-To begin, simply click the Start Recording button.
-The session begins immediately, and your voice is securely captured.
-Once the consultation is complete, click Stop Recording.
-The entire session is transcribed automatically, and each predefined field is filled with the corresponding clinical text.
-This page allows you to focus on the patient—not the keyboard.
+
+This is the main recording interface, directly integrated with the hospital’s HIS system.
+You’ll find predefined medical fields such as Chief Complaint, Present Illness, Past History, Medication, Family History, Physical Examination, Assessment, and Plan—each aligned with standard clinical documentation practices.
+
+To begin:
+
+Click the Start Recording button to start capturing your consultation securely.
+
+Speak naturally during the session.
+
+Once finished, press Stop Recording.
+
+Immediately after stopping the recording:
+
+The AI transcription engine processes the full audio and automatically fills each predefined medical field with the corresponding transcribed clinical text.
+
+Each section—such as Chief Complaint, Present Illness, and Medication—is populated intelligently with relevant, structured information.
+
+This eliminates manual typing and ensures consistent, accurate documentation.
+
+🟩 NEW FEATURE: CLAIM REVIEW CARD
+
+After transcription completion, a Claim Review Card automatically appears beside the main form.
+This draggable AI-powered card assists doctors in preparing accurate and complete insurance claims.
+
+It includes:
+
+Probable Diagnoses with associated probabilities
+
+ICD-10 Codes corresponding to each diagnosis
+
+Recommended Laboratory Tests
+
+Recommended Radiology & Other Services
+
+AI-Generated Notes for clinical justification
+
+This feature is designed to help physicians provide strong, medically sound justifications that align with insurance requirements—reducing claim denials and rejection rates while improving compliance and billing accuracy.
+
+In summary, this page allows you to:
+
+Capture your consultation hands-free
+
+Automatically fill structured clinical fields
+
+Instantly review AI-suggested claims and diagnoses
+
+Enhance both documentation accuracy and reimbursement efficiency
 
 🔹 PAGE 2: AI SECOND OPINION PAGE
+
 This powerful feature analyzes the full transcription context to provide an AI-generated second opinion.
-Using advanced language models and clinical reasoning frameworks, the AI synthesizes the conversation into a comprehensive medical opinion.
-This insight is meant to supplement your own clinical judgment, providing you with reassurance and suggestions for further evaluation.
-The second opinion can be reviewed, saved, and even integrated into the patient’s record.
+Using advanced medical language models and clinical reasoning frameworks, the system synthesizes the doctor-patient dialogue into a coherent clinical perspective.
+
+The AI provides:
+
+Differential diagnoses
+
+Suggested investigations
+
+Management recommendations
+
+Alerts for possible red flags
+
+The output is meant to supplement the physician’s own judgment, serving as a digital clinical assistant that enhances decision-making quality and patient safety.
+
+All AI-generated insights can be reviewed, saved, or integrated directly into the patient’s electronic record.
 
 ---
 3- AI Doctor Assistant.
