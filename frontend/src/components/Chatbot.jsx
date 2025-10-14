@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "./ChatInputWidget";
 import "../styles/ChatBot.css";
 import useCardStore from "./store/useCardStore";
+import useUiStore from "./store/useUiStore"; // ⬅️ NEW
 
 /**
  * D-ID agent is injected on demand when the user presses "Open Avatar".
@@ -41,6 +42,9 @@ const ChatBot = () => {
   const chatBodyRef = useRef(null);
   const { setActiveCardId } = useCardStore();
 
+  // ⬇️ NEW: read + use the shared UI store
+  const { hideAvatarBtn, chooseAvatar } = useUiStore();
+
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
     localStorage.setItem("chatbot-session", id);
@@ -71,6 +75,8 @@ const ChatBot = () => {
   };
 
   const openDid = () => {
+    // ⬇️ Hide the *other* control as requested
+    chooseAvatar();
     injectDidScript();
   };
 
@@ -189,16 +195,18 @@ const ChatBot = () => {
                 alignItems: "center",
               }}
             >
-              {/* >>> Smaller 3D pulsing rectangular button (external CSS) <<< */}
-              <button
-                onClick={openDid}
-                aria-label="Open D-ID Avatar"
-                className="open-avatar-3d"
-                title="Open D-ID Avatar"
-              >
-                <span className="open-avatar-icon">🎭</span>
-                <span>Open Avatar</span>
-              </button>
+              {/* Show only if NOT hidden by the other control */}
+              {!hideAvatarBtn && (
+                <button
+                  onClick={openDid}
+                  aria-label="Open D-ID Avatar"
+                  className="open-avatar-3d"
+                  title="Open D-ID Avatar"
+                >
+                  <span className="open-avatar-icon">🎭</span>
+                  <span>Open Avatar</span>
+                </button>
+              )}
             </div>
 
             {messages.map((msg, idx) => (
@@ -288,6 +296,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 

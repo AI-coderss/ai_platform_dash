@@ -4,6 +4,7 @@ import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave"; // Import your new component
 import "../styles/VoiceAssistant.css";
+import useUiStore from "./store/useUiStore"; // ⬅️ NEW
 
 const peerConnectionRef = React.createRef();
 const dataChannelRef = React.createRef();
@@ -18,6 +19,9 @@ const VoiceAssistant = () => {
   const [remoteStream, setRemoteStream] = useState(null);
   const audioPlayerRef = useRef(null);
   const dragConstraintsRef = useRef(null); // for dragging
+
+  // ⬇️ NEW: shared UI store flags/actions
+  const { hideVoiceBtn, chooseVoice, resetToggles } = useUiStore();
 
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
@@ -42,14 +46,19 @@ const VoiceAssistant = () => {
     setIsMicActive(false);
     setTranscript("");
     setResponseText("");
+
+    // ⬇️ When voice session ends, show both controls again
+    resetToggles();
   };
 
   const toggleAssistant = () => {
     setIsOpen(prev => {
-      if (!prev) {
+      const opening = !prev;
+      if (opening) {
+        chooseVoice();      // ⬅️ Hide the *avatar* button
         startWebRTC();
       } else {
-        cleanupWebRTC();
+        cleanupWebRTC();    // resets UI toggles to visible
       }
       return !prev;
     });
@@ -177,7 +186,8 @@ const VoiceAssistant = () => {
 
   return (
     <>
-      {!isOpen && (
+      {/* Show the floating voice button only if NOT hidden by avatar choice and not already open */}
+      {!isOpen && !hideVoiceBtn && (
         <motion.button
           className="voice-toggle-btn left"
           onClick={toggleAssistant}
@@ -231,5 +241,6 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
 
 
