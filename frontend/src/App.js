@@ -17,7 +17,8 @@ import LaptopSection3D from "./components/LaptopSection3D";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 /* import TestimonialSection from "./components/TestimonialSection"; */
 import VideoCarousel from "./components/VideoCarousel";
-
+import RadialNav from "./components/RadialNav";
+import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck,FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd} from "react-icons/fa";
 
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
@@ -32,7 +33,33 @@ const audioMap = {
   5: "/assets/audio/ivf_assistant.mp3",
   6: "/assets/audio/patient_assistant.mp3",
 };
+// convenient scroller
+  const jump = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
+  // product links from your app list
+  const urls = {
+    doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
+    transcript: "https://medicaltranscription-version2-tests.onrender.com",
+    analyst: "/videos/unddev.mp4",
+    report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
+    ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
+    patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
+    survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
+  };
+const navItems = [
+    { id: "home",     label: "Home",               icon: <FaHome />,         onSelect: () => jump("hero") },
+    { id: "doctor",   label: "Doctor Assistant",   icon: <FaUserMd />,       href: urls.doctor },
+    { id: "scribe",   label: "Transcription",      icon: <FaMicrophoneAlt />,href: urls.transcript },
+    { id: "analyst",  label: "Data Analyst",       icon: <FaChartBar />,     href: urls.analyst },
+    { id: "report",   label: "Report Enhancer",    icon: <FaFileMedical />,  href: urls.report },
+    { id: "ivf",      label: "IVF Assistant",      icon: <FaBaby />,         href: urls.ivf },
+    { id: "patient",  label: "Patient Assistant",  icon: <FaHeadset />,      href: urls.patient },
+    { id: "survey",   label: "Survey",             icon: <FaClipboardCheck />,href: urls.survey },
+    // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
+  ];
 /* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
   const [open, setOpen] = useState(false);
@@ -923,7 +950,7 @@ const App = () => {
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
-
+  
   const apps = [
     {
       id: 1, name: "🧠 AI Doctor Assistant",
@@ -1026,6 +1053,18 @@ const App = () => {
       </div>
       
       <VoiceAssistant />
+     <RadialNav
+  lift={140}
+  items={[
+    { id: "about",    label: "About",    icon: <FaHome />,            targetId: "hero" },
+    { id: "products", label: "Products", icon: <FaThLarge />,         targetId: "products" },
+    { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />,      targetId: "watch_tutorial" },
+    { id: "policy",   label: "Policy",   icon: <FaShieldAlt />,       targetId: "policy" },
+    { id: "contact",  label: "Contact",  icon: <FaEnvelopeOpenText />,targetId: "contact" },
+    { id: "survey",   label: "Survey",   icon: <FaClipboardCheck />,  href: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah" },
+  ]}
+/>
+
       <ChatBot />
       <Footer />
     </div>
