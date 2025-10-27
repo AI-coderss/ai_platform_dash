@@ -724,7 +724,7 @@ const VoiceAssistant = () => {
         u_audioHigh: { value: 0.0 },
         u_audioOverall: { value: 0.0 },
         u_audioReactivity: { value: 1.3 }, // stronger color dance
-        u_circleScale: { value: 0.58 },    // keeps the circle comfortably inside the cube
+        u_circleScale: { value: 0.45 },    // keeps the circle comfortably inside the cube
       },
       transparent: true,
     });
