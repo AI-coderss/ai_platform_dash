@@ -4,13 +4,11 @@
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-concat */
-/* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import AudioWave from "./AudioWave";
 import "../styles/VoiceAssistant.css";
 import useUiStore from "./store/useUiStore";
 import * as THREE from "three";
@@ -165,23 +163,22 @@ void main(){
 }
 `;
 
-/* ---------- SUBSTANCE CIRCLE (hover ripples; transparent) ---------- */
+/* ---------- SUBSTANCE CIRCLE (hover ripples; transparent; color-reactive) ---------- */
 const subVertex = `
   varying vec2 vUv;
   void main(){ vUv=uv; gl_Position=vec4(position,1.0); }
 `;
-
 const subFragment = `
   uniform float u_time;
   uniform vec2  u_res;
-  uniform vec3  u_c1, u_c2, u_c3;
+  uniform vec3  u_c1, u_c2, u_c3;   // palette (animated by AI audio)
   uniform float u_speed;
-  uniform sampler2D u_tex;      // ripple field
+  uniform sampler2D u_tex;          // ripple field
   uniform float u_strength;
-  uniform float u_rt;           // last ripple time
-  uniform vec2  u_rpos;         // ripple position (0..1)
-  uniform float u_rstr;         // ripple strength
-  uniform float u_baseR;        // << circle radius (kept small & centered)
+  uniform float u_rt;               // last ripple time
+  uniform vec2  u_rpos;             // ripple position (0..1)
+  uniform float u_rstr;             // ripple strength
+  uniform float u_baseR;            // circle radius (kept small & centered)
 
   // audio-reactive uniforms (from remote AI voice)
   uniform float u_aLow;
@@ -209,7 +206,8 @@ const subFragment = `
     if (inCircle <= 0.0) { gl_FragColor = vec4(0.0); return; }
 
     vec2 p = sc * 1.05;
-    float t = u_time * u_speed + waterPulse * 2.0 + (u_aLow*0.3 + u_aMid*0.4 + u_aHigh*0.3) * u_aReact * 1.2;
+    float spectral = (u_aLow*0.34 + u_aMid*0.33 + u_aHigh*0.33) * u_aReact;
+    float t = u_time * (u_speed + spectral*1.6) + waterPulse * 2.0;
 
     float l = length(p) - 0.62 + waterPulse * 0.42;
     float py = p.y + waterPulse * 0.22;
@@ -218,12 +216,17 @@ const subFragment = `
     float pat2 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t + 1.0));
     float pat3 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t + 2.0));
 
-    float intensity = 1.0 + waterPulse * 0.45 + (u_aLow*0.3 + u_aMid*0.4 + u_aHigh*0.3) * u_aReact * 0.35;
+    float intensity = 0.85 + spectral * 0.45;
 
     vec3 col = vec3(0.0);
-    col.r = pat1 * u_c1.r * intensity;
-    col.g = pat2 * u_c2.g * intensity;
-    col.b = pat3 * u_c3.b * intensity;
+    // Use full RGB of each palette color (more "dazzle" than single-channel)
+    col += pat1 * u_c1 * intensity;
+    col += pat2 * u_c2 * intensity;
+    col += pat3 * u_c3 * intensity;
+
+    // slight glow rim for sparkle
+    float rim = smoothstep(circleR, circleR - 0.04, dist);
+    col += rim * (0.10 + spectral*0.12);
 
     gl_FragColor = vec4(col, inCircle);
   }
@@ -347,7 +350,7 @@ const VoiceAssistant = () => {
             audioPlayerRef.current.play().catch(()=>{});
           }
           setRemoteStream(s);
-          setupRemoteAnalyser(s);   // 🔊 colors & waveform scale react to AI voice
+          setupRemoteAnalyser(s);   // 🔊 AI voice → colors
         }
       };
       stream.getTracks().forEach((t)=>pc.addTrack(t, stream));
@@ -487,7 +490,7 @@ const VoiceAssistant = () => {
     }
   };
 
-  /* ---------- Remote analyser (AI audio) ---------- */
+  /* ---------- Remote analyser (AI audio → color) ---------- */
   const setupRemoteAnalyser = (stream) => {
     try {
       if (remoteACtxRef.current) return; // already set
@@ -521,8 +524,8 @@ const VoiceAssistant = () => {
     for (let i=midEnd;i<data.length;i++) t+=data[i];
     b = (b/bassEnd)/255; m=(m/(midEnd-bassEnd))/255; t=(t/(data.length-midEnd))/255;
     let overall = (b+m+t)/3;
-    // smooth
-    levelSmoothRef.current = levelSmoothRef.current*0.85 + overall*0.15;
+    // smooth a bit for nice palette motion
+    levelSmoothRef.current = levelSmoothRef.current*0.82 + overall*0.18;
     overall = levelSmoothRef.current;
     return { bass:b, mid:m, treble:t, overall };
   };
@@ -632,20 +635,20 @@ const VoiceAssistant = () => {
       u_c1:   { value: new THREE.Vector3(1.0, 1.0, 1.0) },
       u_c2:   { value: new THREE.Vector3(0.9, 0.95, 1.0) },
       u_c3:   { value: new THREE.Vector3(0.8, 0.9, 1.0) },
-      u_speed:{ value: 1.3 },
+      u_speed:{ value: 1.4 },
       u_tex:  { value: tex },
-      u_strength: { value: 0.45 },
+      u_strength: { value: 0.55 },
       u_rt:   { value: -10.0 },
       u_rpos: { value: new THREE.Vector2(0.5, 0.5) },
       u_rstr: { value: 0.5 },
-      u_baseR:{ value: 0.45},  // << small circle to sit inside cube
+      u_baseR:{ value: 0.45},  // small circle to sit well inside cube
 
       // audio-reactive (driven by remote AI voice)
       u_aLow: { value: 0.0 },
       u_aMid: { value: 0.0 },
       u_aHigh:{ value: 0.0 },
       u_aOverall: { value: 0.0 },
-      u_aReact:   { value: 1.0 },
+      u_aReact:   { value: 1.2 },
     };
 
     const mat = new THREE.ShaderMaterial({
@@ -759,30 +762,34 @@ const VoiceAssistant = () => {
 
       // audio-reactive colors & uniforms from remote AI voice
       const { bass, mid, treble, overall } = readRemoteLevels();
-      // push uniforms
-      mat.uniforms.u_aLow.value = mat.uniforms.u_aLow.value*0.8 + bass*0.2;
-      mat.uniforms.u_aMid.value = mat.uniforms.u_aMid.value*0.8 + mid*0.2;
-      mat.uniforms.u_aHigh.value= mat.uniforms.u_aHigh.value*0.8 + treble*0.2;
-      mat.uniforms.u_aOverall.value = mat.uniforms.u_aOverall.value*0.8 + overall*0.2;
 
-      // drive palette hue by overall level (icy base 190°..215°)
-      const hue = 190 + Math.min(25, overall*120);
-      const s = 0.70, l1=0.70, l2=0.85, l3=0.92;
-      const [r1,g1,b1] = hslToRgb(hue,   s, l1);
-      const [r2,g2,b2] = hslToRgb(hue+8, s, l2);
-      const [r3,g3,b3] = hslToRgb(hue+16,s, l3);
-      mat.uniforms.u_c1.value.set(r1,g1,b1);
-      mat.uniforms.u_c2.value.set(r2,g2,b2);
-      mat.uniforms.u_c3.value.set(r3,g3,b3);
+      // Dazzling palette: hue driven by overall, offsets by spectrum
+      const baseHue = 190 + Math.min(40, overall*180); // 190..230+
+      const sat = Math.min(1.0, 0.72 + overall*0.22);
+      const l1 = 0.64 + bass*0.22, l2 = 0.72 + mid*0.20, l3 = 0.80 + treble*0.18;
 
-      // also boost the visual audio wave amplitude via CSS var
-      if (wrapRef.current) {
-        const scale = 1.8 + overall * 3.2; // big, obvious fluctuations
-        wrapRef.current.style.setProperty("--va2-wave-scale", String(scale));
-      }
+      const [r1,g1,b1] = hslToRgb(baseHue, sat, Math.min(0.95, l1));
+      const [r2,g2,b2] = hslToRgb(baseHue + 20.0*(0.6+mid), sat, Math.min(0.97, l2));
+      const [r3,g3,b3] = hslToRgb(baseHue + 40.0*(0.6+treble), sat, Math.min(0.99, l3));
+
+      // Smoothly lerp toward targets for a glossy neon change
+      subMatRef.current.uniforms.u_c1.value.lerp(new THREE.Vector3(r1,g1,b1), 0.35);
+      subMatRef.current.uniforms.u_c2.value.lerp(new THREE.Vector3(r2,g2,b2), 0.35);
+      subMatRef.current.uniforms.u_c3.value.lerp(new THREE.Vector3(r3,g3,b3), 0.35);
+
+      // push spectral energy to shader
+      subMatRef.current.uniforms.u_aLow.value   = subMatRef.current.uniforms.u_aLow.value*0.82 + bass*0.18;
+      subMatRef.current.uniforms.u_aMid.value   = subMatRef.current.uniforms.u_aMid.value*0.82 + mid*0.18;
+      subMatRef.current.uniforms.u_aHigh.value  = subMatRef.current.uniforms.u_aHigh.value*0.82 + treble*0.18;
+      subMatRef.current.uniforms.u_aOverall.value = subMatRef.current.uniforms.u_aOverall.value*0.82 + overall*0.18;
+
+      // Slightly ramp strength with energy for extra sparkle
+      const baseStrength = 0.55;
+      subMatRef.current.uniforms.u_strength.value = baseStrength + overall * 0.20;
 
       const t = subClockRef.current.getElapsedTime();
-      mat.uniforms.u_time.value = t;
+      subMatRef.current.uniforms.u_time.value = t;
+
       stepRipples();
 
       // render if still alive
@@ -853,7 +860,7 @@ const VoiceAssistant = () => {
   useEffect(() => {
     if (!subMatRef.current) return;
     subMatRef.current.uniforms.u_aReact.value =
-      connectionStatus === "connected" && isMicActive ? 1.4 : 0.8;
+      connectionStatus === "connected" && isMicActive ? 1.4 : 0.9;
   }, [isMicActive, connectionStatus]);
 
   useEffect(() => {
@@ -877,24 +884,16 @@ const VoiceAssistant = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div className="va2-wrap" drag dragElastic={0.2}>
+            {/* Hidden audio element (plays remote AI voice) */}
             <audio ref={audioPlayerRef} className="va2-hidden-audio" />
 
             <div ref={wrapRef} className="va2-body">
               <div className="va2-stack">
-                {/* Substance circle (hover-enabled) */}
+                {/* Substance circle (hover-enabled; color-reactive) */}
                 <div ref={subMountRef} className="va2-substance" />
 
                 {/* Glass cube on top; pointer-through */}
                 <canvas ref={cubeCanvasRef} className="va2-cube" />
-
-                {/* Waveform INSIDE top (responsive amplitude via CSS var) */}
-                <div className="va2-wave va2-wave--big">
-                  {remoteStream ? (
-                    <AudioWave stream={remoteStream} height={56} boost={1.1} smoothness={0.9} />
-                  ) : (
-                    <div className="va2-wave-placeholder">Connecting…</div>
-                  )}
-                </div>
 
                 {/* Mic fixed bottom-center (idle red / active green+pulse) */}
                 <div className="va2-mic">
@@ -908,7 +907,7 @@ const VoiceAssistant = () => {
                   </button>
                 </div>
 
-                {/* Close aligned INSIDE top-right corner */}
+                {/* Close aligned inside the cube */}
                 <button className="va2-close" onClick={toggleAssistant} title="Close">✖</button>
               </div>
             </div>
@@ -923,3 +922,4 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
