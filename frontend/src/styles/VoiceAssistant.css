@@ -318,3 +318,24 @@
   height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px);
   white-space: nowrap; border: 0; padding: 0; margin: -1px;
 }
+/* Waveform INSIDE the cube, centered */
+.va2-wave{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 72%;          /* fits well inside faces */
+  height: 56px;        /* slim band */
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;    /* never bleed outside */
+}
+
+/* Remove the big vertical exaggeration if you had it */
+.va2-wave.va2-wave--big,
+.va2-wave.va2-wave--big canvas,
+.va2-wave.va2-wave--big svg{
+  transform: none !important;
+}

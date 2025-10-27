@@ -890,7 +890,7 @@ const VoiceAssistant = () => {
                 {/* Waveform INSIDE top (responsive amplitude via CSS var) */}
                 <div className="va2-wave va2-wave--big">
                   {remoteStream ? (
-                    <AudioWave stream={remoteStream} boost={3.5} height={80} />
+                    <AudioWave stream={remoteStream} height={56} boost={1.1} smoothness={0.9} />
                   ) : (
                     <div className="va2-wave-placeholder">Connecting…</div>
                   )}
