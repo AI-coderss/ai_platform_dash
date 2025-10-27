@@ -1,9 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-concat */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
@@ -135,7 +138,6 @@ void main(){
 
   vec3 rd=dir(uv,ro,vec3(0),1.);
   vec3 col=vec3(0.0); float alpha=0.0; float side=1.0;
-
   vec3 glassTint = vec3(0.78, 0.88, 1.0);
 
   vec3 p=ro;
@@ -156,79 +158,130 @@ void main(){
     if(d>20.) break;
     p += rd * d;
   }
-
   col = mix(col, vec3(1.0), 0.06);
   alpha = clamp(alpha, 0.0, 0.88);
   fragColor = vec4(col, alpha);
 }
 `;
 
-/* ---------- SUBSTANCE CIRCLE (hover ripples; transparent; color-reactive) ---------- */
+/* ---------- SUBSTANCE (your original code, adapted for alpha & cube fit) ---------- */
 const subVertex = `
   varying vec2 vUv;
   void main(){ vUv=uv; gl_Position=vec4(position,1.0); }
 `;
+
+// NOTE: identical structure to your snippet, but alpha is set to the circle mask (no background).
 const subFragment = `
   uniform float u_time;
-  uniform vec2  u_res;
-  uniform vec3  u_c1, u_c2, u_c3;   // palette (animated by AI audio)
+  uniform vec2 u_resolution;
+  uniform vec3 u_color1;
+  uniform vec3 u_color2;
+  uniform vec3 u_color3;
+  uniform vec3 u_background;
   uniform float u_speed;
-  uniform sampler2D u_tex;          // ripple field
-  uniform float u_strength;
-  uniform float u_rt;               // last ripple time
-  uniform vec2  u_rpos;             // ripple position (0..1)
-  uniform float u_rstr;             // ripple strength
-  uniform float u_baseR;            // circle radius (kept small & centered)
+  uniform sampler2D u_waterTexture;
+  uniform float u_waterStrength;
+  uniform float u_ripple_time;
+  uniform vec2 u_ripple_position;
+  uniform float u_ripple_strength;
+  uniform sampler2D u_textTexture;
+  uniform bool u_showText;
+  uniform bool u_isMonochrome;
+  uniform float u_audioLow;
+  uniform float u_audioMid;
+  uniform float u_audioHigh;
+  uniform float u_audioOverall;
+  uniform float u_audioReactivity;
 
-  // audio-reactive uniforms (from remote AI voice)
-  uniform float u_aLow;
-  uniform float u_aMid;
-  uniform float u_aHigh;
-  uniform float u_aOverall;
-  uniform float u_aReact;
+  // small tweak to keep the circle inside the cube nicely
+  uniform float u_circleScale;
 
   varying vec2 vUv;
 
-  void main(){
-    vec2 R = u_res;
+  void main() {
+    vec2 r = u_resolution;
     vec2 FC = gl_FragCoord.xy;
-    vec2 sc = (FC*2.0 - R) / R.y;
+    vec2 uv = vec2(FC.x / r.x, 1.0 - FC.y / r.y);
+    vec2 screenP = (FC.xy * 2.0 - r) / r.y;
 
-    // Compact circle well inside the cube bounds
-    float baseRadius = u_baseR;               
-    float audioPulse = u_aOverall * u_aReact * 0.06;
-    float texH = texture2D(u_tex, FC / R).r;
-    float waterPulse = clamp(texH * u_strength, -0.5, 0.5) * 0.22;
-    float circleR = baseRadius + audioPulse + waterPulse;
+    vec2 wCoord = vec2(FC.x / r.x, FC.y / r.y);
+    float waterHeight = texture2D(u_waterTexture, wCoord).r;
+    float waterInfluence = clamp(waterHeight * u_waterStrength, -0.5, 0.5);
 
-    float dist = length(sc);
-    float inCircle = smoothstep(circleR + 0.06, circleR - 0.06, dist);
-    if (inCircle <= 0.0) { gl_FragColor = vec4(0.0); return; }
+    float baseRadius = 0.9 * u_circleScale;   // <— scaled smaller to lie within the cube
+    float audioPulse = u_audioOverall * u_audioReactivity * 0.1;
+    float waterPulse = waterInfluence * 0.3;
+    float circleRadius = baseRadius + audioPulse + waterPulse;
 
-    vec2 p = sc * 1.05;
-    float spectral = (u_aLow*0.34 + u_aMid*0.33 + u_aHigh*0.33) * u_aReact;
-    float t = u_time * (u_speed + spectral*1.6) + waterPulse * 2.0;
+    float distFromCenter = length(screenP);
+    float inCircle = smoothstep(circleRadius + 0.10, circleRadius - 0.10, distFromCenter);
 
-    float l = length(p) - 0.62 + waterPulse * 0.42;
-    float py = p.y + waterPulse * 0.22;
+    vec4 o = vec4(0.0);
 
-    float pat1 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t));
-    float pat2 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t + 1.0));
-    float pat3 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t + 2.0));
+    if (inCircle > 0.0) {
+      vec2 p = screenP * 1.1;
 
-    float intensity = 0.85 + spectral * 0.45;
+      float rippleTime = u_time - u_ripple_time;
+      vec2 ripplePos = u_ripple_position * r;
+      float rippleDist = distance(FC.xy, ripplePos);
 
-    vec3 col = vec3(0.0);
-    // Use full RGB of each palette color (more "dazzle" than single-channel)
-    col += pat1 * u_c1 * intensity;
-    col += pat2 * u_c2 * intensity;
-    col += pat3 * u_c3 * intensity;
+      float clickRipple = 0.0;
+      if (rippleTime < 3.0 && rippleTime > 0.0) {
+        float rippleRadius = rippleTime * 150.0;
+        float rippleWidth = 30.0;
+        float rippleDecay = 1.0 - rippleTime / 3.0;
+        clickRipple = exp(-abs(rippleDist - rippleRadius) / rippleWidth) * rippleDecay * u_ripple_strength;
+      }
 
-    // slight glow rim for sparkle
-    float rim = smoothstep(circleR, circleR - 0.04, dist);
-    col += rim * (0.10 + spectral*0.12);
+      float totalWaterInfluence = clamp((waterInfluence + clickRipple * 0.1) * u_waterStrength, -0.8, 0.8);
+      float audioInfluence = (u_audioLow * 0.3 + u_audioMid * 0.4 + u_audioHigh * 0.3) * u_audioReactivity;
 
-    gl_FragColor = vec4(col, inCircle);
+      float angle = length(p) * 4.0 + audioInfluence * 2.0;
+      mat2 R = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+      p *= R;
+
+      float l = length(p) - 0.7 + totalWaterInfluence * 0.5 + audioInfluence * 0.2;
+      float t = u_time * u_speed + totalWaterInfluence * 2.0 + audioInfluence * 1.5;
+      float enhancedY = p.y + totalWaterInfluence * 0.3 + audioInfluence * 0.2;
+
+      float pattern1 = 0.5 + 0.5 * tanh(0.1 / max(l / 0.1, -l) - sin(l + enhancedY * max(1.0, -l / 0.1) + t));
+      float pattern2 = 0.5 + 0.5 * tanh(0.1 / max(l / 0.1, -l) - sin(l + enhancedY * max(1.0, -l / 0.1) + t + 1.0));
+      float pattern3 = 0.5 + 0.5 * tanh(0.1 / max(l / 0.1, -l) - sin(l + enhancedY * max(1.0, -l / 0.1) + t + 2.0));
+
+      float intensity = 1.0 + totalWaterInfluence * 0.5 + audioInfluence * 0.3;
+
+      if (u_isMonochrome) {
+        float mono = (pattern1 + pattern2 + pattern3) / 3.0 * intensity;
+        o = vec4(mono, mono, mono, inCircle);
+      } else {
+        o.r = pattern1 * u_color1.r * intensity;
+        o.g = pattern2 * u_color2.g * intensity;
+        o.b = pattern3 * u_color3.b * intensity;
+        o.a = inCircle;
+      }
+    }
+
+    // No background — keep alpha = inCircle so outside stays transparent
+    vec3 finalColor = o.rgb;
+    if (u_showText) {
+      vec2 waterCoords = vec2(FC.x / r.x, FC.y / r.y);
+      float step = 1.0 / r.x;
+      vec2 waterGrad = clamp(vec2(
+        texture2D(u_waterTexture, vec2(waterCoords.x + step, waterCoords.y)).r - 
+        texture2D(u_waterTexture, vec2(waterCoords.x - step, waterCoords.y)).r,
+        texture2D(u_waterTexture, vec2(waterCoords.x, waterCoords.y + step)).r - 
+        texture2D(u_waterTexture, vec2(waterCoords.x, waterCoords.y - step)).r
+      ) * u_waterStrength, -0.1, 0.1);
+
+      vec2 textDistortedUV = (FC/r) + waterGrad * 0.15;
+      vec4 textColor = texture2D(u_textTexture, textDistortedUV);
+      if (u_isMonochrome) {
+        float textLum = dot(textColor.rgb, vec3(0.299, 0.587, 0.114));
+        textColor = vec4(textLum, textLum, textLum, textColor.a);
+      }
+      finalColor = mix(finalColor, textColor.rgb, textColor.a * o.a);
+    }
+    gl_FragColor = vec4(finalColor, o.a);
   }
 `;
 
@@ -273,12 +326,18 @@ const VoiceAssistant = () => {
   const subClockRef = useRef(null);
   const subRAF = useRef(0);
   const subTexRef = useRef(null);
-  const subDataRef = useRef({
-    res: 192,
-    current: null,
-    previous: null,
-  });
   const subAliveRef = useRef(false);
+
+  // Ripple buffers (exactly like your snippet)
+  const waterSettingsRef = useRef({
+    resolution: 256, damping: 0.913, tension: 0.02,
+    mouseIntensity: 1.2, clickIntensity: 3.0,
+    rippleRadius: 8, spiralIntensity: 0.2,
+    motionDecay: 0.08, rippleDecay: 1.0, waveHeight: 0.01
+  });
+  const waterDataRef = useRef({
+    current: null, previous: null, velocity: null, vorticity: null, pressure: null
+  });
 
   // Remote audio analyser (AI talkback)
   const remoteACtxRef = useRef(null);
@@ -350,7 +409,7 @@ const VoiceAssistant = () => {
             audioPlayerRef.current.play().catch(()=>{});
           }
           setRemoteStream(s);
-          setupRemoteAnalyser(s);   // 🔊 AI voice → colors
+          setupRemoteAnalyser(s);   // 🔊 colors react to AI voice
         }
       };
       stream.getTracks().forEach((t)=>pc.addTrack(t, stream));
@@ -490,7 +549,7 @@ const VoiceAssistant = () => {
     }
   };
 
-  /* ---------- Remote analyser (AI audio → color) ---------- */
+  /* ---------- Remote analyser (AI audio) ---------- */
   const setupRemoteAnalyser = (stream) => {
     try {
       if (remoteACtxRef.current) return; // already set
@@ -506,7 +565,6 @@ const VoiceAssistant = () => {
       remoteAnalyserRef.current = analyser;
       remoteSourceRef.current = src;
     } catch (e) {
-      // if it fails, colors will just idle
       console.warn("Remote analyser init failed:", e);
     }
   };
@@ -524,8 +582,7 @@ const VoiceAssistant = () => {
     for (let i=midEnd;i<data.length;i++) t+=data[i];
     b = (b/bassEnd)/255; m=(m/(midEnd-bassEnd))/255; t=(t/(data.length-midEnd))/255;
     let overall = (b+m+t)/3;
-    // smooth a bit for nice palette motion
-    levelSmoothRef.current = levelSmoothRef.current*0.82 + overall*0.18;
+    levelSmoothRef.current = levelSmoothRef.current*0.80 + overall*0.20;
     overall = levelSmoothRef.current;
     return { bass:b, mid:m, treble:t, overall };
   };
@@ -598,7 +655,7 @@ const VoiceAssistant = () => {
     if (canvas && typeof canvas.__cleanup === "function") { try { canvas.__cleanup(); } catch {} delete canvas.__cleanup; }
   };
 
-  /* ---------- Substance setup (Three.js) ---------- */
+  /* ---------- Substance setup (Three.js) — your texture & sim ---------- */
   const initSubstance = () => {
     const mount = subMountRef.current;
     if (!mount) return;
@@ -618,48 +675,62 @@ const VoiceAssistant = () => {
     subCameraRef.current = camera;
     subAliveRef.current = true;
 
-    // Ripple field
-    const res = subDataRef.current.res;
+    // ====== Your water buffers & texture ======
+    const settings = waterSettingsRef.current;
+    const res = settings.resolution;
+
     const current = new Float32Array(res * res);
     const previous = new Float32Array(res * res);
-    subDataRef.current.current = current;
-    subDataRef.current.previous = previous;
+    const velocity = new Float32Array(res * res * 2);
+    const vorticity = new Float32Array(res * res);
+    const pressure  = new Float32Array(res * res);
 
-    const tex = new THREE.DataTexture(current, res, res, THREE.RedFormat, THREE.FloatType);
-    tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.needsUpdate = true;
-    subTexRef.current = tex;
+    for (let i = 0; i < res * res; i++) {
+      current[i] = 0.0; previous[i] = 0.0; vorticity[i] = 0.0; pressure[i] = 0.0;
+      velocity[i*2] = 0.0; velocity[i*2+1] = 0.0;
+    }
+    waterDataRef.current = { current, previous, velocity, vorticity, pressure };
 
-    const uniforms = {
-      u_time: { value: 0.0 },
-      u_res:  { value: new THREE.Vector2(1,1) },
-      u_c1:   { value: new THREE.Vector3(1.0, 1.0, 1.0) },
-      u_c2:   { value: new THREE.Vector3(0.9, 0.95, 1.0) },
-      u_c3:   { value: new THREE.Vector3(0.8, 0.9, 1.0) },
-      u_speed:{ value: 1.4 },
-      u_tex:  { value: tex },
-      u_strength: { value: 0.55 },
-      u_rt:   { value: -10.0 },
-      u_rpos: { value: new THREE.Vector2(0.5, 0.5) },
-      u_rstr: { value: 0.5 },
-      u_baseR:{ value: 0.45},  // small circle to sit well inside cube
+    const waterTexture = new THREE.DataTexture(
+      current, res, res, THREE.RedFormat, THREE.FloatType
+    );
+    waterTexture.minFilter = THREE.LinearFilter;
+    waterTexture.magFilter = THREE.LinearFilter;
+    waterTexture.needsUpdate = true;
+    subTexRef.current = waterTexture;
 
-      // audio-reactive (driven by remote AI voice)
-      u_aLow: { value: 0.0 },
-      u_aMid: { value: 0.0 },
-      u_aHigh:{ value: 0.0 },
-      u_aOverall: { value: 0.0 },
-      u_aReact:   { value: 1.2 },
-    };
-
-    const mat = new THREE.ShaderMaterial({
+    // ====== Shader material (your uniforms + a circle scale + alpha handling) ======
+    const material = new THREE.ShaderMaterial({
       vertexShader: subVertex,
       fragmentShader: subFragment,
-      uniforms,
+      uniforms: {
+        u_time: { value: 0.0 },
+        u_resolution: { value: new THREE.Vector2(1,1) },
+        u_speed: { value: 1.3 },
+        u_color1: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+        u_color2: { value: new THREE.Vector3(0.9, 0.95, 1.0) },
+        u_color3: { value: new THREE.Vector3(0.8, 0.9, 1.0) },
+        u_background: { value: new THREE.Vector3(0.0, 0.0, 0.0) }, // ignored; alpha handled via circle
+        u_waterTexture: { value: waterTexture },
+        u_waterStrength: { value: 0.55 },
+        u_ripple_time: { value: -10.0 },
+        u_ripple_position: { value: new THREE.Vector2(0.5, 0.5) },
+        u_ripple_strength: { value: 0.5 },
+        u_textTexture: { value: null },
+        u_showText: { value: false },
+        u_isMonochrome: { value: false },
+        u_audioLow: { value: 0.0 },
+        u_audioMid: { value: 0.0 },
+        u_audioHigh: { value: 0.0 },
+        u_audioOverall: { value: 0.0 },
+        u_audioReactivity: { value: 1.3 }, // stronger color dance
+        u_circleScale: { value: 0.58 },    // keeps the circle comfortably inside the cube
+      },
       transparent: true,
     });
-    subMatRef.current = mat;
+    subMatRef.current = material;
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), mat);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), material);
     scene.add(mesh);
 
     // Sizing to container
@@ -669,25 +740,28 @@ const VoiceAssistant = () => {
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
       renderer.setSize(w, h, false);
-      mat.uniforms.u_res.value.set(w, h);
+      material.uniforms.u_resolution.value.set(w, h);
     };
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(mount);
     mount.__ro = ro;
 
-    // Mouse → ripples (hover enabled)
+    // Mouse → ripples (hover enabled inside cube only)
     const addRipple = (clientX, clientY, strength = 1.0) => {
       if (!subAliveRef.current) return;
       const rect = mount.getBoundingClientRect();
-      const nx = clamp01((clientX - rect.left) / rect.width);
-      const ny = clamp01((clientY - rect.top) / rect.height);
-      const R = subDataRef.current.res;
-      const tx = Math.floor(nx * R);
-      const ty = Math.floor((1 - ny) * R);
-      const radius = Math.floor(0.08 * R);
+      const x = clamp01((clientX - rect.left) / rect.width);
+      const y = clamp01((clientY - rect.top) / rect.height);
+      const R = res;
+      const tx = Math.floor(x * R);
+      const ty = Math.floor((1 - y) * R);
+      const radius = Math.max(settings.rippleRadius, Math.floor(0.10 * R));
       const r2 = radius * radius;
-      const prev = subDataRef.current.previous;
+
+      const prev = waterDataRef.current.previous;
+      const vel  = waterDataRef.current.velocity;
+
       for (let i = -radius; i <= radius; i++) {
         for (let j = -radius; j <= radius; j++) {
           const d2 = i*i + j*j;
@@ -697,13 +771,20 @@ const VoiceAssistant = () => {
               const idx = py*R + px;
               const dist = Math.sqrt(d2);
               const fall = 1.0 - dist / radius;
-              prev[idx] += Math.cos((dist / radius) * Math.PI * 0.5) * strength * fall * 0.6;
+              const rippleValue = Math.cos((dist / radius) * Math.PI * 0.5) * strength * fall;
+              prev[idx] += rippleValue;
+
+              const angle = Math.atan2(j, i);
+              const velIdx = idx*2;
+              const vstr = rippleValue * settings.spiralIntensity;
+              vel[velIdx]   += Math.cos(angle) * vstr;
+              vel[velIdx+1] += Math.sin(angle) * vstr;
             }
           }
         }
       }
-      mat.uniforms.u_rpos.value.set(nx, 1 - ny);
-      mat.uniforms.u_rt.value = subClockRef.current.getElapsedTime();
+      material.uniforms.u_ripple_position.value.set(x, y);
+      material.uniforms.u_ripple_time.value = subClockRef.current.getElapsedTime();
     };
 
     let lastMove = 0;
@@ -719,37 +800,54 @@ const VoiceAssistant = () => {
     const onClick = (e) => addRipple(e.clientX, e.clientY, 2.0);
     mount.addEventListener("click", onClick);
 
-    // Ripple simulation step (with guards to avoid 'image' null error)
+    // Water simulation (same math, with edges clamped + image guard)
     const stepRipples = () => {
       if (!subAliveRef.current) return;
       const tex = subTexRef.current;
       if (!tex || !tex.image || !tex.image.data) return;
 
-      const R = subDataRef.current.res;
-      const cur = subDataRef.current.current;
-      const prev = subDataRef.current.previous;
-      if (!cur || !prev) return;
+      const R = res;
+      const data = waterDataRef.current;
+      const cur = data.current, prev = data.previous, vel = data.velocity;
+      if (!cur || !prev || !vel) return;
 
-      const damp = 0.913;
-      const tension = 0.02;
+      const damping = settings.damping;
+      const tension = Math.min(settings.tension, 0.05);
+      const motionDecay = settings.motionDecay;
+      const rippleDecay = settings.rippleDecay;
+      const waveHeight = settings.waveHeight;
 
+      // velocity decay
+      for (let i=0;i<R*R*2;i++) vel[i] *= (1.0 - motionDecay);
+
+      // update waves
       for (let y=1; y<R-1; y++){
         for (let x=1; x<R-1; x++){
           const i = y*R + x;
           const top = prev[i - R], bottom = prev[i + R], left = prev[i - 1], right = prev[i + 1];
           let v = (top + bottom + left + right) * 0.5 - cur[i];
-          v = v * damp + prev[i] * (1.0 - damp);
-          v += (0 - prev[i]) * Math.min(tension, 0.05);
+          v  = v * damping + prev[i] * (1.0 - damping);
+          v += (0 - prev[i]) * tension;
+
+          const velIdx = i*2;
+          const velMag = Math.sqrt(vel[velIdx]*vel[velIdx] + vel[velIdx+1]*vel[velIdx+1]);
+          v += Math.min(velMag * waveHeight, 0.1);
+
+          v *= 1.0 - rippleDecay * 0.01;
           cur[i] = Math.max(-2.0, Math.min(2.0, v));
         }
       }
-      for (let i=0;i<R;i++){ cur[i]=0; cur[(R-1)*R+i]=0; cur[i*R]=0; cur[i*R+(R-1)]=0; }
-      subDataRef.current.current = prev;
-      subDataRef.current.previous = cur;
+      // zero edges
+      for (let i=0;i<R;i++){
+        cur[i]=0; cur[(R-1)*R+i]=0; cur[i*R]=0; cur[i*R+(R-1)]=0;
+      }
+      // ping-pong
+      waterDataRef.current.current = prev;
+      waterDataRef.current.previous = cur;
 
-      // update texture safely
+      // push to texture
       if (subTexRef.current && subTexRef.current.image) {
-        subTexRef.current.image.data = subDataRef.current.current;
+        subTexRef.current.image.data = waterDataRef.current.current;
         subTexRef.current.needsUpdate = true;
       }
     };
@@ -757,42 +855,30 @@ const VoiceAssistant = () => {
     subClockRef.current = new THREE.Clock();
 
     const animate = () => {
-      if (!subAliveRef.current) return; // stop loop if torn down
+      if (!subAliveRef.current) return;
       subRAF.current = requestAnimationFrame(animate);
 
-      // audio-reactive colors & uniforms from remote AI voice
+      // audio-reactive uniforms from AI voice
       const { bass, mid, treble, overall } = readRemoteLevels();
+      material.uniforms.u_audioLow.value  = material.uniforms.u_audioLow.value*0.8  + bass*0.2;
+      material.uniforms.u_audioMid.value  = material.uniforms.u_audioMid.value*0.8  + mid*0.2;
+      material.uniforms.u_audioHigh.value = material.uniforms.u_audioHigh.value*0.8 + treble*0.2;
+      material.uniforms.u_audioOverall.value = material.uniforms.u_audioOverall.value*0.8 + overall*0.2;
 
-      // Dazzling palette: hue driven by overall, offsets by spectrum
-      const baseHue = 190 + Math.min(40, overall*180); // 190..230+
-      const sat = Math.min(1.0, 0.72 + overall*0.22);
-      const l1 = 0.64 + bass*0.22, l2 = 0.72 + mid*0.20, l3 = 0.80 + treble*0.18;
-
-      const [r1,g1,b1] = hslToRgb(baseHue, sat, Math.min(0.95, l1));
-      const [r2,g2,b2] = hslToRgb(baseHue + 20.0*(0.6+mid), sat, Math.min(0.97, l2));
-      const [r3,g3,b3] = hslToRgb(baseHue + 40.0*(0.6+treble), sat, Math.min(0.99, l3));
-
-      // Smoothly lerp toward targets for a glossy neon change
-      subMatRef.current.uniforms.u_c1.value.lerp(new THREE.Vector3(r1,g1,b1), 0.35);
-      subMatRef.current.uniforms.u_c2.value.lerp(new THREE.Vector3(r2,g2,b2), 0.35);
-      subMatRef.current.uniforms.u_c3.value.lerp(new THREE.Vector3(r3,g3,b3), 0.35);
-
-      // push spectral energy to shader
-      subMatRef.current.uniforms.u_aLow.value   = subMatRef.current.uniforms.u_aLow.value*0.82 + bass*0.18;
-      subMatRef.current.uniforms.u_aMid.value   = subMatRef.current.uniforms.u_aMid.value*0.82 + mid*0.18;
-      subMatRef.current.uniforms.u_aHigh.value  = subMatRef.current.uniforms.u_aHigh.value*0.82 + treble*0.18;
-      subMatRef.current.uniforms.u_aOverall.value = subMatRef.current.uniforms.u_aOverall.value*0.82 + overall*0.18;
-
-      // Slightly ramp strength with energy for extra sparkle
-      const baseStrength = 0.55;
-      subMatRef.current.uniforms.u_strength.value = baseStrength + overall * 0.20;
+      // vivid palette shift based on audio (don’t keep static preset colors)
+      const hue = 180 + Math.min(160, overall * 360); // 180°..~340°
+      const s = 0.85, l1=0.60, l2=0.78, l3=0.92;
+      const [r1,g1,b1] = hslToRgb(hue,   s, l1);
+      const [r2,g2,b2] = hslToRgb(hue+8, s, l2);
+      const [r3,g3,b3] = hslToRgb(hue+16,s, l3);
+      material.uniforms.u_color1.value.set(r1,g1,b1);
+      material.uniforms.u_color2.value.set(r2,g2,b2);
+      material.uniforms.u_color3.value.set(r3,g3,b3);
 
       const t = subClockRef.current.getElapsedTime();
-      subMatRef.current.uniforms.u_time.value = t;
+      material.uniforms.u_time.value = t;
 
       stepRipples();
-
-      // render if still alive
       if (subRendererRef.current && subSceneRef.current && subCameraRef.current) {
         subRendererRef.current.render(subSceneRef.current, subCameraRef.current);
       }
@@ -813,8 +899,7 @@ const VoiceAssistant = () => {
       subCameraRef.current = null;
       subMatRef.current = null;
       subTexRef.current = null;
-      subDataRef.current.current = null;
-      subDataRef.current.previous = null;
+      waterDataRef.current = { current:null, previous:null, velocity:null, vorticity:null, pressure:null };
     };
   };
 
@@ -856,21 +941,18 @@ const VoiceAssistant = () => {
     }
   };
 
-  // visual boost when active (sub shader sensitivity)
+  // visual sensitivity when mic toggles
   useEffect(() => {
     if (!subMatRef.current) return;
-    subMatRef.current.uniforms.u_aReact.value =
-      connectionStatus === "connected" && isMicActive ? 1.4 : 0.9;
+    subMatRef.current.uniforms.u_audioReactivity.value =
+      connectionStatus === "connected" && isMicActive ? 1.6 : 1.1;
   }, [isMicActive, connectionStatus]);
 
-  useEffect(() => {
-    return () => { closeAssistant(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => () => { closeAssistant(); }, []); // full teardown on unmount
 
   return (
     <>
-      {/* FAB (unchanged styles) */}
+      {/* FAB (leave your styling intact) */}
       {!isOpen && !hideVoiceBtn && (
         <motion.button
           className="voice-toggle-btn left"
@@ -884,18 +966,17 @@ const VoiceAssistant = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div className="va2-wrap" drag dragElastic={0.2}>
-            {/* Hidden audio element (plays remote AI voice) */}
             <audio ref={audioPlayerRef} className="va2-hidden-audio" />
 
             <div ref={wrapRef} className="va2-body">
               <div className="va2-stack">
-                {/* Substance circle (hover-enabled; color-reactive) */}
+                {/* Substance (hover-enabled) — uses your code & texture */}
                 <div ref={subMountRef} className="va2-substance" />
 
-                {/* Glass cube on top; pointer-through */}
+                {/* Glass cube on top; pointer-through so hover reaches substance */}
                 <canvas ref={cubeCanvasRef} className="va2-cube" />
 
-                {/* Mic fixed bottom-center (idle red / active green+pulse) */}
+                {/* Mic fixed bottom-center (idle red / active green + pulse) */}
                 <div className="va2-mic">
                   <button
                     className={`va2-micbtn ${isMicActive ? "active" : ""}`}
@@ -907,11 +988,12 @@ const VoiceAssistant = () => {
                   </button>
                 </div>
 
-                {/* Close aligned inside the cube */}
+                {/* Close aligned INSIDE top-right corner */}
                 <button className="va2-close" onClick={toggleAssistant} title="Close">✖</button>
               </div>
             </div>
 
+            {/* screen-reader only */}
             <div className="va2-visually-hidden" aria-live="polite">{transcript}</div>
             <div className="va2-visually-hidden" aria-live="polite">{responseText}</div>
           </motion.div>
