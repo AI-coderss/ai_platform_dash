@@ -15,14 +15,9 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# CORS — allow your frontend
 CORS(app, resources={
     r"/api/*": {
-        "origins": [
-            "https://ai-platform-dash.onrender.com",
-            "http://localhost:5173",
-            "http://localhost:3000"
-        ],
+        "origins": "https://ai-platform-dash.onrender.com",
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
@@ -43,7 +38,6 @@ MODEL_ID = "gpt-4o-realtime-preview-2024-12-17"
 VOICE = "ballad"
 DEFAULT_INSTRUCTIONS = SYSTEM_PROMPT
 
-# ---------- Vector Store (unchanged) ----------
 def get_vector_store():
     client = qdrant_client.QdrantClient(
         url=os.getenv("QDRANT_HOST"),
@@ -59,127 +53,135 @@ def get_vector_store():
 
 vector_store = get_vector_store()
 
-# ---------- Realtime function/tool schema ----------
-def get_realtime_tools():
-    """
-    Tools made available to the Realtime model. The model can call these;
-    your browser client (VoiceAssistant.jsx) listens for function calls and performs them.
-    """
-    return [
-        {
-            "type": "function",
-            "name": "navigate",
-            "description": "Navigate the single-page app to a section (hero/home, products, tutorial, policy, contact, footer).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "target": {
-                        "type": "string",
-                        "enum": ["hero", "home", "products", "watch_tutorial", "policy", "contact", "footer"],
-                        "description": "Section id (hero/home, products, watch_tutorial, policy, contact, footer)."
-                    }
-                },
-                "required": ["target"]
-            }
-        },
-        {
-            "type": "function",
-            "name": "chat_open",
-            "description": "Open the on-page chatbot widget and focus the input.",
-            "parameters": { "type": "object", "properties": {} }
-        },
-        {
-            "type": "function",
-            "name": "chat_set_text",
-            "description": "Type text into the chatbot input without sending.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "text": { "type": "string" }
-                },
-                "required": ["text"]
-            }
-        },
-        {
-            "type": "function",
-            "name": "chat_send",
-            "description": "Send a message to the chatbot. If text is omitted, sends the current input field content.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "text": { "type": "string", "description": "Optional text to send immediately." }
-                }
-            }
-        },
-        {
-            "type": "function",
-            "name": "highlight_card",
-            "description": "Highlight a product card by name (e.g., doctor assistant, transcription, analyst, report, ivf, patient).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "name": { "type": "string" }
-                },
-                "required": ["name"]
-            }
-        },
-        {
-            "type": "function",
-            "name": "app_launch",
-            "description": "Open/launch one of the apps in a new browser tab.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "app": {
-                        "type": "string",
-                        "enum": ["doctor", "transcript", "analyst", "report", "ivf", "patient", "survey"]
-                    }
-                },
-                "required": ["app"]
-            }
-        }
-    ]
-
 @app.route('/')
 def home():
     return "Flask API is running!"
 
+# ---- Optional: simple context endpoint (noop/passthrough for now) ----
+@app.route('/api/session-context', methods=['POST', 'OPTIONS'])
+def api_session_context():
+    """
+    Optional endpoint to receive transcript/context and keep parity with clients
+    that may want to push context. We simply log and return ok.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = (data.get("session_id") or "").strip()
+        transcript = (data.get("transcript") or "").strip()
+        logger.info(f"[session-context] session_id={session_id} chars={len(transcript)}")
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        logger.exception("session-context error")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+# ------------------------ Function-calling tools ------------------------
+# Keep these in sync with the frontend's allowed lists.
+NAV_ALLOWED = [
+    "home", "products", "policy", "watch_tutorial", "contact", "footer",
+    "chat",        # open/show chatbot
+    "doctor",      # open Doctor Assistant app
+    "transcription",
+    "analyst",
+    "report",
+    "ivf",
+    "patient",
+    "survey"
+]
+
+# We keep click_control tool schema generic (the frontend maintains a strict whitelist
+# and uses data-agent-id). You can choose to hard-enforce an enum here later if desired.
+TOOLS = [
+    {
+        "type": "function",
+        "name": "navigate_to",
+        "description": "Navigate the platform to an allowed section or open a specific product/app.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "section": {
+                    "type": "string",
+                    "description": "One of the allowed section names.",
+                    "enum": NAV_ALLOWED
+                }
+            },
+            "required": ["section"]
+        }
+    },
+    {
+        "type": "function",
+        "name": "click_control",
+        "description": "Click a whitelisted UI control by its data-agent-id. Use ONLY ids you have been told are available.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "control_id": {
+                    "type": "string",
+                    "description": "A safe, whitelisted control id like 'products.launch:doctor' or 'nav.products'."
+                }
+            },
+            "required": ["control_id"]
+        }
+    },
+    {
+        "type": "function",
+        "name": "chat_ask",
+        "description": "Type a message into the platform's chatbot and submit.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "The exact message to send into the on-platform chatbot."
+                }
+            },
+            "required": ["text"]
+        }
+    }
+]
+
 @app.route('/api/rtc-connect', methods=['POST'])
 def connect_rtc():
-    """
-    Exchanges SDP with OpenAI Realtime and injects tool functions so the model can call them.
-    The client (VoiceAssistant.jsx) will receive function call events over the DataChannel.
-    """
     try:
         client_sdp = request.get_data(as_text=True)
         if not client_sdp:
-            return Response("No SDP provided", status=400)
+            return Response("No SDP provided", status=400, mimetype='text/plain')
 
-        # Step 1: Create Realtime session with instructions + tools
+        # Optional client-provided session identifier (not strictly needed for OpenAI)
+        session_id = request.args.get("session_id") or request.headers.get("X-Session-Id") or ""
+
+        # 1) Create the Realtime session with instructions + tools.
         session_payload = {
             "model": MODEL_ID,
             "voice": VOICE,
-            "modalities": ["text", "audio"],
-            "turn_detection": {"type": "server_vad"},
-            "instructions": DEFAULT_INSTRUCTIONS,
-            "tools": get_realtime_tools()
+            "instructions": DEFAULT_INSTRUCTIONS + "\n\n" +
+                            "When the user asks you to open pages, click buttons, or type into the chatbot, "
+                            "use the provided tools strictly with the allowed values.",
+            "tools": TOOLS,
+            "tool_choice": "auto",
+            "turn_detection": { "type": "server_vad" },
+            # You can also declare modalities here; audio/text are inferred by WebRTC use.
         }
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
-        session_resp = requests.post(OPENAI_SESSION_URL, headers=headers, json=session_payload)
+        session_resp = requests.post(OPENAI_SESSION_URL, headers=headers, json=session_payload, timeout=30)
         if not session_resp.ok:
             logger.error(f"Session create failed: {session_resp.status_code} {session_resp.text}")
-            return Response("Failed to create realtime session", status=500)
+            return Response("Failed to create realtime session", status=500, mimetype='text/plain')
 
         token_data = session_resp.json()
         ephemeral_token = token_data.get("client_secret", {}).get("value")
         if not ephemeral_token:
-            logger.error("Ephemeral token missing in session response")
-            return Response("Missing ephemeral token", status=500)
+            logger.error("Ephemeral token missing")
+            return Response("Missing ephemeral token", status=500, mimetype='text/plain')
 
-        # Step 2: SDP exchange
+        # 2) SDP exchange
         sdp_headers = {
             "Authorization": f"Bearer {ephemeral_token}",
             "Content-Type": "application/sdp"
@@ -190,19 +192,19 @@ def connect_rtc():
             params={
                 "model": MODEL_ID,
                 "voice": VOICE
-                # tools + instructions already set at session creation
             },
-            data=client_sdp
+            data=client_sdp,
+            timeout=60
         )
         if not sdp_resp.ok:
             logger.error(f"SDP exchange failed: {sdp_resp.status_code} {sdp_resp.text}")
-            return Response("SDP exchange error", status=500)
+            return Response("SDP exchange error", status=500, mimetype='text/plain')
 
         return Response(sdp_resp.content, status=200, mimetype='application/sdp')
 
     except Exception as e:
         logger.exception("RTC connection error")
-        return Response(f"Error: {e}", status=500)
+        return Response(f"Error: {e}", status=500, mimetype='text/plain')
 
 @app.route('/api/search', methods=['POST'])
 def search():
@@ -226,11 +228,6 @@ def search():
         logger.error(f"Search error: {e}")
         return jsonify({"error": str(e)}), 500
 
-# Optional: expose tool schema for debugging
-@app.route('/api/tools', methods=['GET'])
-def tools():
-    return jsonify(get_realtime_tools())
 
 if __name__ == '__main__':
     app.run(debug=True, port=8813)
-
