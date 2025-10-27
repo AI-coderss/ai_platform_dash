@@ -5,12 +5,15 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave";
 import "../styles/VoiceAssistant.css";
 import useUiStore from "./store/useUiStore";
+import * as THREE from "three";
 
 /* ---------- WebRTC refs ---------- */
 const peerConnectionRef = React.createRef();
@@ -62,17 +65,12 @@ const TOOL_SCHEMAS = [
   },
 ];
 
-/* ---------- WebGL shaders: transparent glass cube + internal water ---------- */
-const vertexSource = `#version 300 es
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
+/* ---------- GLASS CUBE SHADERS (transparent; no background) ---------- */
+const cubeVS = `#version 300 es
 in vec2 position;
-void main(){ gl_Position = vec4(position, 0., 1.); }`;
+void main(){ gl_Position = vec4(position,0.,1.); }`;
 
-const fragmentSource = `#version 300 es
+const cubeFS = `#version 300 es
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
 #else
@@ -83,7 +81,6 @@ uniform vec2 resolution;
 uniform float time;
 
 #define PI 3.14159265359
-#define T time
 #define S smoothstep
 
 mat3 rotX(float a){ float s=sin(a), c=cos(a); return mat3(vec3(1,0,0), vec3(0,c,-s), vec3(0,s,c)); }
@@ -128,69 +125,35 @@ vec3 dir(vec2 uv, vec3 ro, vec3 t, float z){
   return normalize(f*z + uv.x*r + uv.y*u);
 }
 
-// Water surface (inside cube)
-float waterHeight(vec2 xz){
-  return -0.15
-    + 0.06*sin(xz.x*4.0 + T*1.3)
-    + 0.05*sin(xz.y*3.2 - T*1.1);
-}
-vec3 waterNormal(vec2 xz){
-  float dx = 0.06*4.0*cos(xz.x*4.0 + T*1.3);
-  float dz = 0.05*3.2*cos(xz.y*3.2 - T*1.1);
-  vec3 n = normalize(vec3(-dx, 1.0, -dz));
-  return n;
-}
-
 void main(){
   vec2 uv=(gl_FragCoord.xy - 0.5*resolution.xy)/min(resolution.x,resolution.y);
 
-  // Camera rotate => cube looks like it rotates
   vec3 ro=vec3(0.,0.,-3.8);
-  float total=24.0, ph = mod(T,total), a;
+  float total=24.0, ph = mod(time,total), a;
   if(ph<6.){ a=-ph*(PI/3.); ro*=rotY(a); }
   else if(ph<12.){ a=-(6.*(PI/3.))+(ph-6.)*(PI/3.); ro*=rotY(a); }
   else if(ph<18.){ a=(ph-12.)*(PI/3.); ro*=rotZ(a); }
   else{ float t4=ph-18.; float pitch=sin(t4*PI/6.)*1.2; ro*=rotX(pitch); }
 
   vec3 rd=dir(uv,ro,vec3(0),1.);
-
-  vec3 col=vec3(0.0);
-  float alpha=0.0;
-  float side=1.0;
-  bool hitGlass=false;
+  vec3 col=vec3(0.0); float alpha=0.0; float side=1.0;
 
   vec3 glassTint = vec3(0.78, 0.88, 1.0);
-  vec3 waterTint = vec3(0.25, 0.45, 0.75);
 
   vec3 p=ro;
   for(float i=0.; i<90.; i++){
     float d = glassSDF(p)*side;
     if(d<1e-3){
-      hitGlass = true;
       vec3 n = normal(p)*side;
       float fres = pow(1.0 - max(0.0, dot(-rd,n)), 5.0);
-      float gloss = pow(max(0.0, dot(reflect(-rd,n), n)), 16.0);
-      col += 0.10*glassTint + 0.35*fres*glassTint + 0.20*gloss;
-      alpha += mix(0.18, 0.78, fres);
+      float gloss = pow(max(0.0, dot(reflect(-rd,n), n)), 14.0);
+      col += 0.08*glassTint + 0.34*fres*glassTint + 0.18*gloss;
+      alpha += mix(0.16, 0.72, fres);
       side = -side;
       vec3 rdo = refract(rd, n, 1.0 + 0.42*side);
       if(dot(rdo,rdo)==0.0) rdo = reflect(rd, n);
       rd = rdo;
       d = 0.08;
-    }
-    if(hitGlass && side < 0.0){
-      float wh = waterHeight(p.xz);
-      float sdw = p.y - wh;
-      float below = clamp(-sdw*3.0, 0.0, 1.0);
-      col += below * waterTint * 0.05;
-      float nearSurf = exp(-abs(sdw)*120.0);
-      if(nearSurf > 0.001){
-        vec3 wn = waterNormal(p.xz);
-        vec3 l = normalize(vec3(0.35, 0.9, -0.25));
-        vec3 h = normalize(l - rd);
-        float spec = pow(max(0.0, dot(wn,h)), 28.0);
-        col += nearSurf * (0.05 + 0.35*spec) * vec3(0.6,0.85,1.0);
-      }
     }
     if(d>20.) break;
     p += rd * d;
@@ -202,22 +165,79 @@ void main(){
 }
 `;
 
-/* ---------- small math helpers ---------- */
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const rotXJS = (a, v) => {
-  const s=Math.sin(a), c=Math.cos(a);
-  return [v[0], c*v[1]-s*v[2], s*v[1]+c*v[2]];
-};
-const rotYJS = (a, v) => {
-  const s=Math.sin(a), c=Math.cos(a);
-  return [c*v[0]+s*v[2], v[1], -s*v[0]+c*v[2]];
-};
-const rotZJS = (a, v) => {
-  const s=Math.sin(a), c=Math.cos(a);
-  return [c*v[0]-s*v[1], s*v[0]+c*v[1], v[2]];
+/* ---------- SUBSTANCE CIRCLE (hover ripples; transparent) ---------- */
+const subVertex = `
+  varying vec2 vUv;
+  void main(){ vUv=uv; gl_Position=vec4(position,1.0); }
+`;
+
+const subFragment = `
+  uniform float u_time;
+  uniform vec2  u_res;
+  uniform vec3  u_c1, u_c2, u_c3;
+  uniform float u_speed;
+  uniform sampler2D u_tex;      // ripple field
+  uniform float u_strength;
+  uniform float u_rt;           // last ripple time
+  uniform vec2  u_rpos;         // ripple position (0..1)
+  uniform float u_rstr;         // ripple strength
+  uniform float u_baseR;        // << circle radius (kept small & centered)
+
+  // audio-reactive uniforms (from remote AI voice)
+  uniform float u_aLow;
+  uniform float u_aMid;
+  uniform float u_aHigh;
+  uniform float u_aOverall;
+  uniform float u_aReact;
+
+  varying vec2 vUv;
+
+  void main(){
+    vec2 R = u_res;
+    vec2 FC = gl_FragCoord.xy;
+    vec2 sc = (FC*2.0 - R) / R.y;
+
+    // Compact circle well inside the cube bounds
+    float baseRadius = u_baseR;               
+    float audioPulse = u_aOverall * u_aReact * 0.06;
+    float texH = texture2D(u_tex, FC / R).r;
+    float waterPulse = clamp(texH * u_strength, -0.5, 0.5) * 0.22;
+    float circleR = baseRadius + audioPulse + waterPulse;
+
+    float dist = length(sc);
+    float inCircle = smoothstep(circleR + 0.06, circleR - 0.06, dist);
+    if (inCircle <= 0.0) { gl_FragColor = vec4(0.0); return; }
+
+    vec2 p = sc * 1.05;
+    float t = u_time * u_speed + waterPulse * 2.0 + (u_aLow*0.3 + u_aMid*0.4 + u_aHigh*0.3) * u_aReact * 1.2;
+
+    float l = length(p) - 0.62 + waterPulse * 0.42;
+    float py = p.y + waterPulse * 0.22;
+
+    float pat1 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t));
+    float pat2 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t + 1.0));
+    float pat3 = 0.5 + 0.5 * tanh(0.1 / max(l/0.1, -l) - sin(l + py + t + 2.0));
+
+    float intensity = 1.0 + waterPulse * 0.45 + (u_aLow*0.3 + u_aMid*0.4 + u_aHigh*0.3) * u_aReact * 0.35;
+
+    vec3 col = vec3(0.0);
+    col.r = pat1 * u_c1.r * intensity;
+    col.g = pat2 * u_c2.g * intensity;
+    col.b = pat3 * u_c3.b * intensity;
+
+    gl_FragColor = vec4(col, inCircle);
+  }
+`;
+
+/* ---------- helpers ---------- */
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const hslToRgb = (h, s, l) => {
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0), f(8), f(4)];
 };
 
-/* ---------- Component ---------- */
 const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMicActive, setIsMicActive] = useState(false);
@@ -228,30 +248,60 @@ const VoiceAssistant = () => {
 
   const audioPlayerRef = useRef(null);
 
-  // WebGL
-  const containerRef = useRef(null);
-  const canvasRef = useRef(null);
-  const glRef = useRef(null);
-  const rafRef = useRef(0);
-  const programRef = useRef(null);
-  const bufferRef = useRef(null);
-  const posLocRef = useRef(null);
-  const timeLocRef = useRef(null);
-  const resLocRef = useRef(null);
+  // DOM / layout
+  const wrapRef = useRef(null);
+  const cubeCanvasRef = useRef(null);
+  const subMountRef = useRef(null);
 
-  // Mic that tracks a cube face point (but does NOT rotate itself)
-  const micWrapRef = useRef(null);
-  const micRAFRef = useRef(0);
+  // Cube GL
+  const cubeGlRef = useRef(null);
+  const cubeProgRef = useRef(null);
+  const cubeBufRef = useRef(null);
+  const cubePosLocRef = useRef(null);
+  const cubeTimeLocRef = useRef(null);
+  const cubeResLocRef = useRef(null);
+  const cubeRAF = useRef(0);
+
+  // Substance (Three.js)
+  const subRendererRef = useRef(null);
+  const subSceneRef = useRef(null);
+  const subCameraRef = useRef(null);
+  const subMatRef = useRef(null);
+  const subClockRef = useRef(null);
+  const subRAF = useRef(0);
+  const subTexRef = useRef(null);
+  const subDataRef = useRef({
+    res: 192,
+    current: null,
+    previous: null,
+  });
+  const subAliveRef = useRef(false);
+
+  // Remote audio analyser (AI talkback)
+  const remoteACtxRef = useRef(null);
+  const remoteAnalyserRef = useRef(null);
+  const remoteSourceRef = useRef(null);
+  const levelSmoothRef = useRef(0);
 
   const { hideVoiceBtn, chooseVoice, resetToggles } = useUiStore();
   const toolBuffersRef = useRef(new Map());
   const recentClicksRef = useRef(new Map());
 
-  /* ---------- WebRTC core (kept intact) ---------- */
+  /* ---------- WebRTC core ---------- */
   const cleanupWebRTC = () => {
     if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch {} peerConnectionRef.current = null; }
     if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch {} dataChannelRef.current = null; }
     if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach(t=>t.stop()); } catch {} localStreamRef.current=null; }
+
+    // teardown remote analyser
+    try {
+      if (remoteSourceRef.current) { remoteSourceRef.current.disconnect(); remoteSourceRef.current = null; }
+      if (remoteAnalyserRef.current) { remoteAnalyserRef.current.disconnect(); remoteAnalyserRef.current = null; }
+      if (remoteACtxRef.current) { remoteACtxRef.current.close(); remoteACtxRef.current = null; }
+    } catch {}
+    setRemoteStream(null);
+    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch {}
+
     setConnectionStatus("idle");
     setIsMicActive(false);
     setTranscript(""); setResponseText("");
@@ -297,6 +347,7 @@ const VoiceAssistant = () => {
             audioPlayerRef.current.play().catch(()=>{});
           }
           setRemoteStream(s);
+          setupRemoteAnalyser(s);   // 🔊 colors & waveform scale react to AI voice
         }
       };
       stream.getTracks().forEach((t)=>pc.addTrack(t, stream));
@@ -380,7 +431,6 @@ const VoiceAssistant = () => {
 
   const handleToolCall = (name, args) => {
     if (!name) return;
-
     if (name === "navigate_to") {
       const section = String(args?.section || "").trim();
       if (!ALLOWED_SECTIONS.has(section)) return;
@@ -437,34 +487,75 @@ const VoiceAssistant = () => {
     }
   };
 
-  /* ---------- WebGL init/render (transparent) ---------- */
-  const initWebGL = () => {
-    const holder = containerRef.current, canvas = canvasRef.current;
+  /* ---------- Remote analyser (AI audio) ---------- */
+  const setupRemoteAnalyser = (stream) => {
+    try {
+      if (remoteACtxRef.current) return; // already set
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = ac.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.85;
+
+      const src = ac.createMediaStreamSource(stream);
+      src.connect(analyser);
+
+      remoteACtxRef.current = ac;
+      remoteAnalyserRef.current = analyser;
+      remoteSourceRef.current = src;
+    } catch (e) {
+      // if it fails, colors will just idle
+      console.warn("Remote analyser init failed:", e);
+    }
+  };
+
+  const readRemoteLevels = () => {
+    const analyser = remoteAnalyserRef.current;
+    if (!analyser) return { bass:0, mid:0, treble:0, overall:0 };
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    const bassEnd = Math.floor(data.length * 0.12);
+    const midEnd  = Math.floor(data.length * 0.5);
+    let b=0,m=0,t=0;
+    for (let i=0;i<bassEnd;i++) b+=data[i];
+    for (let i=bassEnd;i<midEnd;i++) m+=data[i];
+    for (let i=midEnd;i<data.length;i++) t+=data[i];
+    b = (b/bassEnd)/255; m=(m/(midEnd-bassEnd))/255; t=(t/(data.length-midEnd))/255;
+    let overall = (b+m+t)/3;
+    // smooth
+    levelSmoothRef.current = levelSmoothRef.current*0.85 + overall*0.15;
+    overall = levelSmoothRef.current;
+    return { bass:b, mid:m, treble:t, overall };
+  };
+
+  /* ---------- Cube GL init/render ---------- */
+  const initCube = () => {
+    const holder = wrapRef.current;
+    const canvas = cubeCanvasRef.current;
     if (!holder || !canvas) return;
-    const gl = canvas.getContext("webgl2", { antialias:true, alpha:true, premultipliedAlpha:true });
-    if (!gl) { glRef.current = null; return; }
-    glRef.current = gl;
+
+    const gl = canvas.getContext("webgl2", { alpha: true, antialias: true, premultipliedAlpha: true });
+    if (!gl) return;
+    cubeGlRef.current = gl;
 
     const compile = (type, src) => {
       const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
       return s;
     };
-    const vs = compile(gl.VERTEX_SHADER, vertexSource);
-    const fs = compile(gl.FRAGMENT_SHADER, fragmentSource);
-    const program = gl.createProgram();
-    gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(program));
-    programRef.current = program;
+    const vs = compile(gl.VERTEX_SHADER, cubeVS);
+    const fs = compile(gl.FRAGMENT_SHADER, cubeFS);
+    const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(prog));
+    cubeProgRef.current = prog;
 
     const verts = new Float32Array([-1,-1, 1,-1, -1,1,  -1,1, 1,-1, 1,1]);
-    const buf = gl.createBuffer(); bufferRef.current = buf;
+    const buf = gl.createBuffer(); cubeBufRef.current = buf;
     gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
-    const posLoc = gl.getAttribLocation(program, "position"); posLocRef.current = posLoc;
+    const posLoc = gl.getAttribLocation(prog, "position"); cubePosLocRef.current = posLoc;
     gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    timeLocRef.current = gl.getUniformLocation(program, "time");
-    resLocRef.current = gl.getUniformLocation(program, "resolution");
+    cubeTimeLocRef.current = gl.getUniformLocation(prog, "time");
+    cubeResLocRef.current = gl.getUniformLocation(prog, "resolution");
 
     gl.clearColor(0,0,0,0);
     gl.enable(gl.BLEND);
@@ -472,7 +563,7 @@ const VoiceAssistant = () => {
 
     const resize = () => {
       const rect = holder.getBoundingClientRect();
-      const dpr = Math.max(1, 0.5*window.devicePixelRatio);
+      const dpr = Math.max(1, 0.5 * window.devicePixelRatio);
       canvas.width = Math.max(1, Math.floor(rect.width * dpr));
       canvas.height = Math.max(1, Math.floor(rect.height * dpr));
       gl.viewport(0,0,canvas.width, canvas.height);
@@ -480,110 +571,272 @@ const VoiceAssistant = () => {
 
     const draw = (now) => {
       gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.useProgram(programRef.current);
-      gl.bindBuffer(gl.ARRAY_BUFFER, bufferRef.current);
-      gl.uniform1f(timeLocRef.current, now * 0.001);
-      gl.uniform2f(resLocRef.current, canvas.width, canvas.height);
+      gl.useProgram(cubeProgRef.current);
+      gl.bindBuffer(gl.ARRAY_BUFFER, cubeBufRef.current);
+      gl.uniform1f(cubeTimeLocRef.current, now * 0.001);
+      gl.uniform2f(cubeResLocRef.current, canvas.width, canvas.height);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 
-    const loop = (now) => { draw(now); rafRef.current = requestAnimationFrame(loop); };
+    const loop = (now) => { draw(now); cubeRAF.current = requestAnimationFrame(loop); };
     resize();
     window.addEventListener("resize", resize);
-    rafRef.current = requestAnimationFrame(loop);
+    cubeRAF.current = requestAnimationFrame(loop);
 
     canvas.__cleanup = () => {
-      cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(cubeRAF.current);
       window.removeEventListener("resize", resize);
       try { const ext = gl.getExtension("WEBGL_lose_context"); if (ext) ext.loseContext(); } catch {}
-      glRef.current = null; programRef.current=null; bufferRef.current=null;
+      cubeGlRef.current = null; cubeProgRef.current=null; cubeBufRef.current=null;
     };
   };
-  const teardownWebGL = () => {
-    const canvas = canvasRef.current;
+  const teardownCube = () => {
+    const canvas = cubeCanvasRef.current;
     if (canvas && typeof canvas.__cleanup === "function") { try { canvas.__cleanup(); } catch {} delete canvas.__cleanup; }
   };
 
-  /* ---------- Attach mic to one cube face (position-only; no self-rotation) ---------- */
-  const startMicAttachLoop = () => {
-    const wrap = micWrapRef.current;
-    const holder = containerRef.current;
-    const canvas = canvasRef.current;
-    if (!wrap || !holder || !canvas) return;
+  /* ---------- Substance setup (Three.js) ---------- */
+  const initSubstance = () => {
+    const mount = subMountRef.current;
+    if (!mount) return;
 
-    const fovDeg = 60; // matches three.js-ish default + our shader vibe
-    const f = 1 / Math.tan((fovDeg * Math.PI/180) / 2);
-    const cz = 3.8;   // camera distance used in shader
-    const anchorLocal = [0.0, -0.72, 1.02]; // bottom-center on the “front” face, slightly inward
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+    camera.position.z = 1;
 
-    const tick = (tms) => {
-      const t = tms * 0.001;
-      const total = 24.0;
-      let ph = t % total;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0); // fully transparent
+    mount.innerHTML = "";
+    mount.appendChild(renderer.domElement);
 
-      // Camera “phase” angles from the shader:
-      let angY = 0, angZ = 0, angX = 0; // camera rotations
-      if (ph < 6.0) {
-        angY = -ph * (Math.PI/3.0);
-      } else if (ph < 12.0) {
-        angY = -(6.0*(Math.PI/3.0)) + (ph - 6.0) * (Math.PI/3.0);
-      } else if (ph < 18.0) {
-        angZ = (ph - 12.0) * (Math.PI/3.0);
-      } else {
-        const t4 = ph - 18.0;
-        angX = Math.sin(t4 * Math.PI / 6.0) * 1.2;
-      }
+    subRendererRef.current = renderer;
+    subSceneRef.current = scene;
+    subCameraRef.current = camera;
+    subAliveRef.current = true;
 
-      // Inverse rotation for the world point (so it looks attached to a face as cube “turns”)
-      // Apply inverse rotations per-axis
-      let p = anchorLocal.slice(0);
-      if (angY !== 0) p = rotYJS(-angY, p);
-      if (angZ !== 0) p = rotZJS(-angZ, p);
-      if (angX !== 0) p = rotXJS(-angX, p);
+    // Ripple field
+    const res = subDataRef.current.res;
+    const current = new Float32Array(res * res);
+    const previous = new Float32Array(res * res);
+    subDataRef.current.current = current;
+    subDataRef.current.previous = previous;
 
-      // Project to 2D (simple pinhole)
-      const rect = holder.getBoundingClientRect();
-      const aspect = rect.width / rect.height;
+    const tex = new THREE.DataTexture(current, res, res, THREE.RedFormat, THREE.FloatType);
+    tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.needsUpdate = true;
+    subTexRef.current = tex;
 
-      // Camera at (0,0,-cz), looking to origin
-      const pc = [p[0], p[1], p[2] + cz]; // p - camPos
+    const uniforms = {
+      u_time: { value: 0.0 },
+      u_res:  { value: new THREE.Vector2(1,1) },
+      u_c1:   { value: new THREE.Vector3(1.0, 1.0, 1.0) },
+      u_c2:   { value: new THREE.Vector3(0.9, 0.95, 1.0) },
+      u_c3:   { value: new THREE.Vector3(0.8, 0.9, 1.0) },
+      u_speed:{ value: 1.3 },
+      u_tex:  { value: tex },
+      u_strength: { value: 0.45 },
+      u_rt:   { value: -10.0 },
+      u_rpos: { value: new THREE.Vector2(0.5, 0.5) },
+      u_rstr: { value: 0.5 },
+      u_baseR:{ value: 0.45},  // << small circle to sit inside cube
 
-      // If behind camera, skip drawing (optional: hide)
-      if (pc[2] <= 0.1) {
-        wrap.style.opacity = "0";
-      } else {
-        wrap.style.opacity = "1";
-        const ndcX = (pc[0] / pc[2]) * (f / aspect);
-        const ndcY = (pc[1] / pc[2]) * f;
-
-        const px = (ndcX * 0.5 + 0.5) * rect.width;
-        const py = (1 - (ndcY * 0.5 + 0.5)) * rect.height;
-
-        wrap.style.left = `${clamp(px, 0, rect.width)}px`;
-        wrap.style.top  = `${clamp(py, 0, rect.height)}px`;
-      }
-
-      micRAFRef.current = requestAnimationFrame(tick);
+      // audio-reactive (driven by remote AI voice)
+      u_aLow: { value: 0.0 },
+      u_aMid: { value: 0.0 },
+      u_aHigh:{ value: 0.0 },
+      u_aOverall: { value: 0.0 },
+      u_aReact:   { value: 1.0 },
     };
-    micRAFRef.current = requestAnimationFrame(tick);
+
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: subVertex,
+      fragmentShader: subFragment,
+      uniforms,
+      transparent: true,
+    });
+    subMatRef.current = mat;
+
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), mat);
+    scene.add(mesh);
+
+    // Sizing to container
+    const resize = () => {
+      if (!subAliveRef.current) return;
+      const rect = mount.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(rect.width));
+      const h = Math.max(1, Math.floor(rect.height));
+      renderer.setSize(w, h, false);
+      mat.uniforms.u_res.value.set(w, h);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(mount);
+    mount.__ro = ro;
+
+    // Mouse → ripples (hover enabled)
+    const addRipple = (clientX, clientY, strength = 1.0) => {
+      if (!subAliveRef.current) return;
+      const rect = mount.getBoundingClientRect();
+      const nx = clamp01((clientX - rect.left) / rect.width);
+      const ny = clamp01((clientY - rect.top) / rect.height);
+      const R = subDataRef.current.res;
+      const tx = Math.floor(nx * R);
+      const ty = Math.floor((1 - ny) * R);
+      const radius = Math.floor(0.08 * R);
+      const r2 = radius * radius;
+      const prev = subDataRef.current.previous;
+      for (let i = -radius; i <= radius; i++) {
+        for (let j = -radius; j <= radius; j++) {
+          const d2 = i*i + j*j;
+          if (d2 <= r2) {
+            const px = tx + i, py = ty + j;
+            if (px>=0 && px<R && py>=0 && py<R) {
+              const idx = py*R + px;
+              const dist = Math.sqrt(d2);
+              const fall = 1.0 - dist / radius;
+              prev[idx] += Math.cos((dist / radius) * Math.PI * 0.5) * strength * fall * 0.6;
+            }
+          }
+        }
+      }
+      mat.uniforms.u_rpos.value.set(nx, 1 - ny);
+      mat.uniforms.u_rt.value = subClockRef.current.getElapsedTime();
+    };
+
+    let lastMove = 0;
+    const onMove = (e) => {
+      const now = performance.now();
+      if (now - lastMove < 10) return;
+      lastMove = now;
+      if (e.touches && e.touches[0]) addRipple(e.touches[0].clientX, e.touches[0].clientY, 0.9);
+      else addRipple(e.clientX, e.clientY, 0.9);
+    };
+    mount.addEventListener("mousemove", onMove, { passive: true });
+    mount.addEventListener("touchmove", onMove, { passive: true });
+    const onClick = (e) => addRipple(e.clientX, e.clientY, 2.0);
+    mount.addEventListener("click", onClick);
+
+    // Ripple simulation step (with guards to avoid 'image' null error)
+    const stepRipples = () => {
+      if (!subAliveRef.current) return;
+      const tex = subTexRef.current;
+      if (!tex || !tex.image || !tex.image.data) return;
+
+      const R = subDataRef.current.res;
+      const cur = subDataRef.current.current;
+      const prev = subDataRef.current.previous;
+      if (!cur || !prev) return;
+
+      const damp = 0.913;
+      const tension = 0.02;
+
+      for (let y=1; y<R-1; y++){
+        for (let x=1; x<R-1; x++){
+          const i = y*R + x;
+          const top = prev[i - R], bottom = prev[i + R], left = prev[i - 1], right = prev[i + 1];
+          let v = (top + bottom + left + right) * 0.5 - cur[i];
+          v = v * damp + prev[i] * (1.0 - damp);
+          v += (0 - prev[i]) * Math.min(tension, 0.05);
+          cur[i] = Math.max(-2.0, Math.min(2.0, v));
+        }
+      }
+      for (let i=0;i<R;i++){ cur[i]=0; cur[(R-1)*R+i]=0; cur[i*R]=0; cur[i*R+(R-1)]=0; }
+      subDataRef.current.current = prev;
+      subDataRef.current.previous = cur;
+
+      // update texture safely
+      if (subTexRef.current && subTexRef.current.image) {
+        subTexRef.current.image.data = subDataRef.current.current;
+        subTexRef.current.needsUpdate = true;
+      }
+    };
+
+    subClockRef.current = new THREE.Clock();
+
+    const animate = () => {
+      if (!subAliveRef.current) return; // stop loop if torn down
+      subRAF.current = requestAnimationFrame(animate);
+
+      // audio-reactive colors & uniforms from remote AI voice
+      const { bass, mid, treble, overall } = readRemoteLevels();
+      // push uniforms
+      mat.uniforms.u_aLow.value = mat.uniforms.u_aLow.value*0.8 + bass*0.2;
+      mat.uniforms.u_aMid.value = mat.uniforms.u_aMid.value*0.8 + mid*0.2;
+      mat.uniforms.u_aHigh.value= mat.uniforms.u_aHigh.value*0.8 + treble*0.2;
+      mat.uniforms.u_aOverall.value = mat.uniforms.u_aOverall.value*0.8 + overall*0.2;
+
+      // drive palette hue by overall level (icy base 190°..215°)
+      const hue = 190 + Math.min(25, overall*120);
+      const s = 0.70, l1=0.70, l2=0.85, l3=0.92;
+      const [r1,g1,b1] = hslToRgb(hue,   s, l1);
+      const [r2,g2,b2] = hslToRgb(hue+8, s, l2);
+      const [r3,g3,b3] = hslToRgb(hue+16,s, l3);
+      mat.uniforms.u_c1.value.set(r1,g1,b1);
+      mat.uniforms.u_c2.value.set(r2,g2,b2);
+      mat.uniforms.u_c3.value.set(r3,g3,b3);
+
+      // also boost the visual audio wave amplitude via CSS var
+      if (wrapRef.current) {
+        const scale = 1.8 + overall * 3.2; // big, obvious fluctuations
+        wrapRef.current.style.setProperty("--va2-wave-scale", String(scale));
+      }
+
+      const t = subClockRef.current.getElapsedTime();
+      mat.uniforms.u_time.value = t;
+      stepRipples();
+
+      // render if still alive
+      if (subRendererRef.current && subSceneRef.current && subCameraRef.current) {
+        subRendererRef.current.render(subSceneRef.current, subCameraRef.current);
+      }
+    };
+
+    animate();
+
+    mount.__cleanup = () => {
+      subAliveRef.current = false;
+      cancelAnimationFrame(subRAF.current);
+      try { mount.removeEventListener("mousemove", onMove); } catch {}
+      try { mount.removeEventListener("touchmove", onMove); } catch {}
+      try { mount.removeEventListener("click", onClick); } catch {}
+      try { mount.__ro?.disconnect(); } catch {}
+      try { renderer.dispose(); } catch {}
+      subRendererRef.current = null;
+      subSceneRef.current = null;
+      subCameraRef.current = null;
+      subMatRef.current = null;
+      subTexRef.current = null;
+      subDataRef.current.current = null;
+      subDataRef.current.previous = null;
+    };
   };
-  const stopMicAttachLoop = () => {
-    cancelAnimationFrame(micRAFRef.current || 0);
+
+  const teardownSubstance = () => {
+    const m = subMountRef.current;
+    if (m && typeof m.__cleanup === "function") { try { m.__cleanup(); } catch {} m.innerHTML = ""; delete m.__cleanup; }
   };
 
   /* ---------- Open/close ---------- */
+  const openAssistant = () => {
+    chooseVoice();
+    startWebRTC();
+    setTimeout(() => {
+      initSubstance();
+      initCube();
+    }, 0);
+  };
+  const closeAssistant = () => {
+    // stop renderers first so RAF loops don't touch disposed textures
+    teardownCube();
+    teardownSubstance();
+    cleanupWebRTC();
+  };
+
   const toggleAssistant = () => {
     setIsOpen(prev => {
       const opening = !prev;
-      if (opening) {
-        chooseVoice();
-        startWebRTC();
-        setTimeout(() => { initWebGL(); startMicAttachLoop(); }, 0);
-      } else {
-        cleanupWebRTC();
-        teardownWebGL();
-        stopMicAttachLoop();
-      }
+      if (opening) openAssistant();
+      else closeAssistant();
       return !prev;
     });
   };
@@ -596,14 +849,21 @@ const VoiceAssistant = () => {
     }
   };
 
+  // visual boost when active (sub shader sensitivity)
   useEffect(() => {
-    return () => { teardownWebGL(); cleanupWebRTC(); stopMicAttachLoop(); };
+    if (!subMatRef.current) return;
+    subMatRef.current.uniforms.u_aReact.value =
+      connectionStatus === "connected" && isMicActive ? 1.4 : 0.8;
+  }, [isMicActive, connectionStatus]);
+
+  useEffect(() => {
+    return () => { closeAssistant(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <>
-      {/* Do NOT style the FAB; you already have styling elsewhere */}
+      {/* FAB (unchanged styles) */}
       {!isOpen && !hideVoiceBtn && (
         <motion.button
           className="voice-toggle-btn left"
@@ -616,30 +876,30 @@ const VoiceAssistant = () => {
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div className="va-cube-wrap" drag dragElastic={0.2}>
-            <audio ref={audioPlayerRef} className="va-hidden-audio" />
+          <motion.div className="va2-wrap" drag dragElastic={0.2}>
+            <audio ref={audioPlayerRef} className="va2-hidden-audio" />
 
-            <div ref={containerRef} className="va-cube-body">
-              <div className="va-canvas-stack">
-                <canvas ref={canvasRef} className="va-canvas" />
+            <div ref={wrapRef} className="va2-body">
+              <div className="va2-stack">
+                {/* Substance circle (hover-enabled) */}
+                <div ref={subMountRef} className="va2-substance" />
 
-                {/* Top waveform inside the cube */}
-                <div className="va-audiowave">
+                {/* Glass cube on top; pointer-through */}
+                <canvas ref={cubeCanvasRef} className="va2-cube" />
+
+                {/* Waveform INSIDE top (responsive amplitude via CSS var) */}
+                <div className="va2-wave va2-wave--big">
                   {remoteStream ? (
                     <AudioWave stream={remoteStream} />
                   ) : (
-                    <div className="va-audiowave-placeholder">Connecting…</div>
+                    <div className="va2-wave-placeholder">Connecting…</div>
                   )}
                 </div>
 
-                {/* Mic: attached to one face, position follows cube; orientation stays fixed */}
-                <div
-                  ref={micWrapRef}
-                  className="va-mic-wrap"
-                  style={{ left: "50%", top: "50%" }}
-                >
+                {/* Mic fixed bottom-center (idle red / active green+pulse) */}
+                <div className="va2-mic">
                   <button
-                    className={`va-mic-core ${isMicActive ? "active" : ""}`}
+                    className={`va2-micbtn ${isMicActive ? "active" : ""}`}
                     onClick={toggleMic}
                     disabled={connectionStatus !== "connected"}
                     title={isMicActive ? "Mute microphone" : "Unmute microphone"}
@@ -648,12 +908,13 @@ const VoiceAssistant = () => {
                   </button>
                 </div>
 
-                <button className="va-close-ghost" onClick={toggleAssistant} title="Close">✖</button>
+                {/* Close aligned INSIDE top-right corner */}
+                <button className="va2-close" onClick={toggleAssistant} title="Close">✖</button>
               </div>
             </div>
 
-            <div className="va-visually-hidden" aria-live="polite">{transcript}</div>
-            <div className="va-visually-hidden" aria-live="polite">{responseText}</div>
+            <div className="va2-visually-hidden" aria-live="polite">{transcript}</div>
+            <div className="va2-visually-hidden" aria-live="polite">{responseText}</div>
           </motion.div>
         )}
       </AnimatePresence>
