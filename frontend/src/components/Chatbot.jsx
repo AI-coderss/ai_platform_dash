@@ -16,7 +16,6 @@ import useUiStore from "./store/useUiStore";
  * D-ID agent is injected on demand when the user presses "Open Avatar".
  * We no longer re-parent or wrap it in a draggable container.
  */
-
 const DID_AGENT_SRC = "https://agent.d-id.com/v2/index.js";
 const DID_SCRIPT_ID = "did-agent-loader-v2";
 
@@ -203,7 +202,6 @@ const ChatBot = () => {
         const appName = appMatch[2];
         const id = highlightCardByName(appName);
 
-        // If the user said “launch”, also open
         const appKeyMap = {
           doctor: "doctor",
           "doctor assistant": "doctor",
@@ -309,7 +307,6 @@ const ChatBot = () => {
       // Local intent (navigate/launch) first
       const handledLocally = tryLocalIntent(text);
       if (handledLocally) {
-        // Add a little “okay!” for UX if there was no reply yet
         setMessages((prev) => [
           ...prev,
           { type: "bot", text: "Happy to help. What else can I do?" },
@@ -353,6 +350,7 @@ const ChatBot = () => {
         setTimeout(() => inputRef.current?.focusInput?.(), 60);
       },
       close: () => setOpen(false),
+      toggle: () => setOpen((v) => !v),
       isOpen: () => open,
       setText: (text) => {
         setOpen(true);
@@ -374,21 +372,21 @@ const ChatBot = () => {
           inputRef.current?.clear?.();
         }
       },
-      // simple navigation helpers
-      navigate: (targetId) => scrollTo(targetId),
-      highlight: (name) => highlightCardByName(name),
-      launch: (appKey) => launchApp(appKey),
     };
 
     // DOM event fallbacks
     const onOpen = () => window.ChatBot.open();
+    const onClose = () => window.ChatBot.close();
+    const onToggle = () => window.ChatBot.toggle();
     const onSetText = (e) => window.ChatBot.setText(e?.detail?.text || "");
     const onSend = (e) => window.ChatBot.sendMessage(e?.detail?.text || "");
     const onNav = (e) =>
-      e?.detail?.targetId && window.ChatBot.navigate(e.detail.targetId);
-    const onLaunch = (e) => e?.detail?.app && window.ChatBot.launch(e.detail.app);
+      e?.detail?.targetId && window.ChatBot.navigate?.(e.detail.targetId);
+    const onLaunch = (e) => e?.detail?.app && window.ChatBot.launch?.(e.detail.app);
 
     window.addEventListener("chatbot:open", onOpen);
+    window.addEventListener("chatbot:close", onClose);
+    window.addEventListener("chatbot:toggle", onToggle);
     window.addEventListener("chatbot:setText", onSetText);
     window.addEventListener("chatbot:send", onSend);
     window.addEventListener("chatbot:navigate", onNav);
@@ -396,6 +394,8 @@ const ChatBot = () => {
 
     return () => {
       window.removeEventListener("chatbot:open", onOpen);
+      window.removeEventListener("chatbot:close", onClose);
+      window.removeEventListener("chatbot:toggle", onToggle);
       window.removeEventListener("chatbot:setText", onSetText);
       window.removeEventListener("chatbot:send", onSend);
       window.removeEventListener("chatbot:navigate", onNav);
@@ -404,7 +404,7 @@ const ChatBot = () => {
         delete window.ChatBot;
       } catch {}
     };
-  }, [open, inputText, handleSendMessage, scrollTo, highlightCardByName, launchApp]);
+  }, [open, inputText, handleSendMessage]);
 
   return (
     <>
@@ -545,6 +545,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 

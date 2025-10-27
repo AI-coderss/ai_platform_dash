@@ -79,7 +79,28 @@ const TOOL_SCHEMAS = [
       },
       required: ["theme"]
     }
-  }
+  },
+  {
+    type: "function", name: "chat_toggle",
+    parameters: { type: "object", additionalProperties: false, properties: {} }
+  },
+  {
+    type: "function", name: "chat_close",
+    parameters: { type: "object", additionalProperties: false, properties: {} }
+  },
+  {
+    type: "function",
+    name: "set_chat_visible",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        visible: { type: "boolean" }
+      },
+      required: ["visible"]
+    }
+  },
+
 
 ];
 
@@ -588,6 +609,27 @@ const VoiceAssistant = () => {
 
       localStorage.setItem(STORAGE_KEY, next);
       applyThemeAttr(next);
+      return;
+    }
+    if (name === "set_chat_visible") {
+      const on = !!args?.visible;
+      if (on) {
+        if (window.ChatBot?.open) { try { window.ChatBot.open(); } catch { } }
+        else { window.dispatchEvent(new CustomEvent("chatbot:open")); }
+      } else {
+        if (window.ChatBot?.close) { try { window.ChatBot.close(); } catch { } }
+        else { window.dispatchEvent(new CustomEvent("chatbot:close")); }
+      }
+      return;
+    }
+    if (name === "chat_toggle") {
+      if (window.ChatBot?.toggle) window.ChatBot.toggle();
+      else window.dispatchEvent(new Event("chatbot:toggle"));
+      return;
+    }
+    if (name === "chat_close") {
+      if (window.ChatBot?.close) window.ChatBot.close();
+      else window.dispatchEvent(new Event("chatbot:close"));
       return;
     }
 

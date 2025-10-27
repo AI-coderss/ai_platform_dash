@@ -180,6 +180,33 @@ TOOLS = [
         "required": ["theme"]
     }
 },
+{
+    "type": "function",
+    "name": "set_chat_visible",
+    "description": "Open or close the on-page chatbot window.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "visible": { "type": "boolean", "description": "true to open, false to close" }
+        },
+        "required": ["visible"]
+    }
+},
+# In TOOLS list:
+{
+  "type": "function",
+  "name": "chat_toggle",
+  "description": "Toggle the on-page chatbot open/closed.",
+  "parameters": { "type": "object", "additionalProperties": False, "properties": {} }
+},
+{
+  "type": "function",
+  "name": "chat_close",
+  "description": "Close (hide) the on-page chatbot if it is open.",
+  "parameters": { "type": "object", "additionalProperties": False, "properties": {} }
+}
+
 
 ]
 
@@ -203,6 +230,7 @@ def connect_rtc():
                 "(name, email, recipient if needed, and message). After confirming, call contact_fill with the collected "
                 "values, then call contact_submit to send. When the user asks you to open pages, click buttons, "
                 "or type into the chatbot, use the provided tools strictly with the allowed values."
+                "If the user asks to open or close the chatbot, call set_chat_visible with visible=true or visible=false respectively."
             ),
             "tools": TOOLS,
             "tool_choice": "auto",
