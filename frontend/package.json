@@ -17,6 +17,7 @@
     "canvas-confetti": "^1.9.3",
     "framer-motion": "^12.23.11",
     "gsap": "^3.13.0",
+    "howler": "^2.2.4",
     "html2canvas": "^1.4.1",
     "lil-gui": "^0.20.0",
     "pnltri": "^2.1.1",

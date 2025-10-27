@@ -4,23 +4,55 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
 import confetti from "canvas-confetti";
+import { Howl, Howler } from "howler";               // 🔊 NEW
 import "../styles/ContactSection.css";
-import SendButton from "./SendButton"; // ✅ Import custom button
+import SendButton from "./SendButton";
 
 const ContactSection = () => {
   const canvasRef = useRef(null);
   const formCardRef = useRef(null);
   const formRef = useRef(null);
+  const sendSoundRef = useRef(null);                 // 🔊 NEW
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    recipient: "", // 🔥 optional recipient the user mentions (new)
+    recipient: "",
     message: "",
   });
 
   // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
+
+  // 🔊 init Howler sound once
+  useEffect(() => {
+    // Support either filename (mp3 or the provided "mb3") to be safe
+    sendSoundRef.current = new Howl({
+      src: ["/send.mp3"],
+      preload: true,
+      volume: 0.6,
+    });
+    return () => {
+      try { sendSoundRef.current?.unload(); } catch {}
+    };
+  }, []);
+
+  const playSendSound = () => {
+    const snd = sendSoundRef.current;
+    if (!snd) return;
+    try {
+      // Handle browsers that require a prior user gesture
+      if (Howler.state !== "running") {
+        const playOnUnlock = () => {
+          try { snd.play(); } catch {}
+          Howler.off("unlock", playOnUnlock);
+        };
+        Howler.once("unlock", playOnUnlock);
+      } else {
+        snd.play();
+      }
+    } catch {}
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,6 +69,10 @@ const ContactSection = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🔊 play the send sound for both manual and AI-triggered submissions
+    playSendSound();
+
     setLoading(true);
     try {
       await axios.post(
@@ -53,7 +89,7 @@ const ContactSection = () => {
     }
   };
 
-  // 🔥 Expose a safe bridge so the voice agent can fill/submit the form
+  // 🔥 Voice agent bridge (unchanged except it still routes through requestSubmit → handleSubmit)
   useEffect(() => {
     const fill = (payload = {}) => {
       setFormData((prev) => ({
@@ -62,11 +98,9 @@ const ContactSection = () => {
         recipient: payload.recipient ?? prev.recipient,
         message: payload.message ?? prev.message,
       }));
-      // Scroll into view and focus the next missing required field
       try {
         document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "center" });
       } catch {}
-      // focus order: name -> email -> message
       setTimeout(() => {
         if (!formData.name) { document.querySelector('[data-agent-id="contact.name"]')?.focus(); return; }
         if (!formData.email) { document.querySelector('[data-agent-id="contact.email"]')?.focus(); return; }
@@ -78,14 +112,12 @@ const ContactSection = () => {
       try {
         document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "center" });
       } catch {}
-      // Use HTML5 validation via requestSubmit
+      // This will trigger handleSubmit → sound plays there
       formRef.current?.requestSubmit?.();
     };
 
-    // Attach bridge
     window.ContactBridge = { fill, submit };
 
-    // Fallback event listeners (if ever needed)
     const onFill = (e) => fill(e.detail || {});
     const onSubmit = () => submit();
 
@@ -103,19 +135,11 @@ const ContactSection = () => {
   useEffect(() => {
     const scene = new THREE.Scene();
     const sizes = { width: window.innerWidth, height: window.innerHeight };
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      sizes.width / sizes.height,
-      0.1,
-      100
-    );
+    const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100);
     camera.position.set(3, 3, 3);
     scene.add(camera);
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      alpha: true,
-    });
+    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true });
     renderer.setSize(sizes.width, sizes.height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -144,25 +168,16 @@ const ContactSection = () => {
       const i3 = i * 3;
       const radius = Math.random() * parameters.radius;
       const spinAngle = radius * parameters.spin;
-      const branchAngle =
-        ((i % parameters.branches) / parameters.branches) * Math.PI * 2;
-      const randomX =
-        Math.pow(Math.random(), parameters.randomnessPower) *
-        (Math.random() < 0.5 ? 1 : -1);
-      const randomY =
-        Math.pow(Math.random(), parameters.randomnessPower) *
-        (Math.random() < 0.5 ? 1 : -1);
-      const randomZ =
-        Math.pow(Math.random(), parameters.randomnessPower) *
-        (Math.random() < 0.5 ? 1 : -1);
+      const branchAngle = ((i % parameters.branches) / parameters.branches) * Math.PI * 2;
+      const randomX = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
+      const randomY = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
+      const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
 
       positions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
       positions[i3 + 1] = randomY;
       positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
 
-      const mixedColor = colorInside
-        .clone()
-        .lerp(colorOutside, radius / parameters.radius);
+      const mixedColor = colorInside.clone().lerp(colorOutside, radius / parameters.radius);
       colors[i3] = mixedColor.r;
       colors[i3 + 1] = mixedColor.g;
       colors[i3 + 2] = mixedColor.b;
@@ -266,7 +281,6 @@ const ContactSection = () => {
                 onChange={handleChange}
                 data-agent-id="contact.email"
               />
-              {/* Optional recipient/department/person */}
               <input
                 type="text"
                 name="recipient"
@@ -284,7 +298,7 @@ const ContactSection = () => {
                 onChange={handleChange}
                 data-agent-id="contact.message"
               />
-              {/* ✅ Wrap SendButton with a submit button if it isn't already; also mark for the agent */}
+              {/* The SendButton may already submit; the sound plays on submit either way */}
               <div data-agent-id="contact.submit">
                 <SendButton />
               </div>
@@ -297,6 +311,7 @@ const ContactSection = () => {
 };
 
 export default ContactSection;
+
 
 
 
