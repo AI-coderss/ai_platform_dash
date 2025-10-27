@@ -88,8 +88,7 @@ NAV_ALLOWED = [
     "survey"
 ]
 
-# We keep click_control tool schema generic (the frontend maintains a strict whitelist
-# and uses data-agent-id). You can choose to hard-enforce an enum here later if desired.
+# Tools used by the Realtime session (mirrored by the front-end session.update)
 TOOLS = [
     {
         "type": "function",
@@ -141,6 +140,28 @@ TOOLS = [
             },
             "required": ["text"]
         }
+    },
+    # 🔥 New tools for Contact Section email flow
+    {
+        "type": "function",
+        "name": "contact_fill",
+        "description": "Fill the contact form fields (name, email, recipient, message). Any field may be omitted to partially fill.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "name": { "type": "string", "description": "Sender's name" },
+                "email": { "type": "string", "description": "Sender's email address" },
+                "recipient": { "type": "string", "description": "Person/department to reach (optional)" },
+                "message": { "type": "string", "description": "Message body" }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "name": "contact_submit",
+        "description": "Submit the contact form after required fields are present.",
+        "parameters": { "type": "object", "additionalProperties": False, "properties": {} }
     }
 ]
 
@@ -158,13 +179,16 @@ def connect_rtc():
         session_payload = {
             "model": MODEL_ID,
             "voice": VOICE,
-            "instructions": DEFAULT_INSTRUCTIONS + "\n\n" +
-                            "When the user asks you to open pages, click buttons, or type into the chatbot, "
-                            "use the provided tools strictly with the allowed values.",
+            "instructions": (
+                DEFAULT_INSTRUCTIONS + "\n\n"
+                "If the user wants to send an email via the Contact section, ask for any missing fields "
+                "(name, email, recipient if needed, and message). After confirming, call contact_fill with the collected "
+                "values, then call contact_submit to send. When the user asks you to open pages, click buttons, "
+                "or type into the chatbot, use the provided tools strictly with the allowed values."
+            ),
             "tools": TOOLS,
             "tool_choice": "auto",
             "turn_detection": { "type": "server_vad" },
-            # You can also declare modalities here; audio/text are inferred by WebRTC use.
         }
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -231,3 +255,4 @@ def search():
 
 if __name__ == '__main__':
     app.run(debug=True, port=8813)
+

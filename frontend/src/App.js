@@ -3,6 +3,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 
 // App.js
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
+
+// App.js
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 // import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -1035,8 +1040,7 @@ const App = () => {
       helpVideo: "/videos/unddev.mp4",
       agentKey: "patient",
     },
-    // Survey card for completeness (tool can open via navigate_to "survey")
-  
+    // Survey card shown via floating button
   ];
 
   // ===== Agent navigation + chatbot bridge =====
@@ -1064,29 +1068,21 @@ const App = () => {
 
       if (s === "chat") {
         try {
-          // Best-effort hooks many widgets use:
           window.ChatBot?.open?.();
-          // If your ChatBot exposes a focus method or DOM query, use it here as well.
         } catch {}
-        // Also scroll near the bottom where ChatBot lives if needed
         try { document.querySelector(".chatbot-root")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
         return;
       }
     };
 
-    // Event variant (used by VoiceAssistant if agentNavigate isn't present yet)
     const onAgentNavigate = (e) => window.agentNavigate?.(e.detail?.section);
     window.addEventListener("agent:navigate", onAgentNavigate);
 
-    // Chat ask bridge: The agent can send a message to the on-site chatbot
-    // Provide a default implementation using a DOM event the ChatBot can listen for.
+    // Chat ask bridge: agent can send a message to the on-site chatbot
     window.ChatBotBridge = {
       sendMessage: (text) => {
-        // Preferred: direct API if your ChatBot exposes one
         try { window.ChatBot?.open?.(); } catch {}
         try { window.ChatBot?.sendMessage?.(text); return; } catch {}
-
-        // Fallback: dispatch a DOM event the ChatBot component can subscribe to
         window.dispatchEvent(new CustomEvent("chatbot:send", { detail: { text } }));
       }
     };

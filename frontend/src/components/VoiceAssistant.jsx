@@ -1,12 +1,14 @@
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-unused-vars */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import AudioWave from "./AudioWave"; // Import your new component
+import AudioWave from "./AudioWave";
 import "../styles/VoiceAssistant.css";
-import useUiStore from "./store/useUiStore"; // ⬅️ NEW
+import useUiStore from "./store/useUiStore";
 
 const peerConnectionRef = React.createRef();
 const dataChannelRef = React.createRef();
@@ -52,6 +54,9 @@ const ALLOWED_CONTROL_IDS = new Set([
   "products.help:ivf",
   "products.help:patient",
   "products.help:survey",
+
+  // Contact submit (optional, if ever used via click_control)
+  "contact.submit",
 ]);
 
 /** Tool schemas sent to the Realtime session via session.update (mirrors backend). */
@@ -108,6 +113,29 @@ const TOOL_SCHEMAS = [
       },
       required: ["text"],
     },
+  },
+  // 🔥 New: Contact form tools
+  {
+    type: "function",
+    name: "contact_fill",
+    description:
+      "Fill the contact form fields (name, email, recipient, message). Any field may be omitted to partially fill.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        name: { type: "string" },
+        email: { type: "string" },
+        recipient: { type: "string" },
+        message: { type: "string" },
+      },
+    },
+  },
+  {
+    type: "function",
+    name: "contact_submit",
+    description: "Submit the contact form after required fields are present.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
   },
 ];
 
@@ -176,9 +204,11 @@ const VoiceAssistant = () => {
 
     const instruction =
       "You are the Instructional Chatbot voice assistant for the DSAH AI platform. " +
-      "Speak briefly. When the user asks to open sections, click specific buttons, or ask the on-site chatbot a question, " +
-      "use the appropriate tool (navigate_to, click_control, chat_ask). " +
-      "Only use allowed sections and whitelisted control ids. If unsure, ask a short clarification.";
+      "Speak briefly. When the user asks to open sections, click specific buttons, ask the on-site chatbot a question, " +
+      "or send an email via the Contact section, use the appropriate tool (navigate_to, click_control, chat_ask, contact_fill, contact_submit). " +
+      "Only use allowed sections and whitelisted control ids. " +
+      "For email: collect name, email, recipient (optional), and the message. Ask for missing items; " +
+      "when ready call contact_fill with what you have, then contact_submit.";
 
     const msg = {
       type: "session.update",
@@ -235,7 +265,6 @@ const VoiceAssistant = () => {
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
 
-        // Send a minimal kick message (optional) + register tools/instructions
         try {
           channel.send(JSON.stringify({
             type: "response.create",
@@ -272,7 +301,6 @@ const VoiceAssistant = () => {
         }
 
         // ---- Tool call lifecycle (delta buffering → done → dispatch) ----
-        // Realtime variants to be robust:
         if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
           const id = msg.item.call_id || msg.item.id || "default";
           const name = msg.item.name || "";
@@ -364,7 +392,6 @@ const VoiceAssistant = () => {
     if (name === "navigate_to") {
       const section = String(args?.section || "").trim();
       if (!ALLOWED_SECTIONS.has(section)) return;
-      // Prefer direct function if provided, otherwise event
       if (window.agentNavigate && typeof window.agentNavigate === "function") {
         try { window.agentNavigate(section); } catch {}
       } else {
@@ -376,7 +403,6 @@ const VoiceAssistant = () => {
     if (name === "click_control") {
       const id = String(args?.control_id || "").trim();
       if (!ALLOWED_CONTROL_IDS.has(id)) return;
-      // dedupe: avoid accidental double-click sprees
       const now = Date.now();
       const last = recentClicksRef.current.get(id) || 0;
       if (now - last < 400) return;
@@ -384,10 +410,7 @@ const VoiceAssistant = () => {
 
       const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
       if (el) {
-        try {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch {}
-        // Focus then click for accessibility
+        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
         try { el.focus({ preventScroll: true }); } catch {}
         try { el.click(); } catch {}
       }
@@ -397,11 +420,70 @@ const VoiceAssistant = () => {
     if (name === "chat_ask") {
       const text = String(args?.text || "").trim();
       if (!text) return;
-      // Try a direct bridge API if available, else fire an event
       if (window.ChatBotBridge && typeof window.ChatBotBridge.sendMessage === "function") {
         try { window.ChatBotBridge.sendMessage(text); } catch {}
       } else {
         window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } }));
+      }
+      return;
+    }
+
+    // 🔥 Contact form tools
+    if (name === "contact_fill") {
+      const payload = {
+        name: typeof args?.name === "string" ? args.name : undefined,
+        email: typeof args?.email === "string" ? args.email : undefined,
+        recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
+        message: typeof args?.message === "string" ? args.message : undefined,
+      };
+      try {
+        // Scroll to contact section so user sees the form being filled
+        if (window.agentNavigate) window.agentNavigate("contact");
+      } catch {}
+      if (window.ContactBridge && typeof window.ContactBridge.fill === "function") {
+        try { window.ContactBridge.fill(payload); } catch {}
+      } else {
+        // Fallback via DOM if bridge isn't mounted yet
+        if (payload.name != null) {
+          const el = document.querySelector('[data-agent-id="contact.name"]');
+          if (el) el.value = payload.name;
+          el?.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (payload.email != null) {
+          const el = document.querySelector('[data-agent-id="contact.email"]');
+          if (el) el.value = payload.email;
+          el?.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (payload.recipient != null) {
+          const el = document.querySelector('[data-agent-id="contact.recipient"]');
+          if (el) el.value = payload.recipient;
+          el?.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (payload.message != null) {
+          const el = document.querySelector('[data-agent-id="contact.message"]');
+          if (el) el.value = payload.message;
+          el?.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+      return;
+    }
+
+    if (name === "contact_submit") {
+      try {
+        if (window.agentNavigate) window.agentNavigate("contact");
+      } catch {}
+      if (window.ContactBridge && typeof window.ContactBridge.submit === "function") {
+        try { window.ContactBridge.submit(); } catch {}
+      } else {
+        // Fallback: click the submit button if present
+        const btn = document.querySelector('[data-agent-id="contact.submit"]');
+        if (btn) {
+          try { btn.click(); } catch {}
+        } else {
+          // As a last resort, try to submit the form directly
+          const form = document.querySelector('[data-agent-id="contact.form"]');
+          form?.requestSubmit?.();
+        }
       }
       return;
     }
@@ -419,7 +501,6 @@ const VoiceAssistant = () => {
 
   return (
     <>
-      {/* Show the floating voice button only if NOT hidden by avatar choice and not already open */}
       {!isOpen && !hideVoiceBtn && (
         <motion.button
           className="voice-toggle-btn left"
@@ -466,6 +547,13 @@ const VoiceAssistant = () => {
               </button>
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
+
+            {/* Optional debug text/ASR */}
+            {responseText && (
+              <div className="voice-transcript">
+                {responseText}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

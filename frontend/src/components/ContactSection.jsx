@@ -10,10 +10,12 @@ import SendButton from "./SendButton"; // ✅ Import custom button
 const ContactSection = () => {
   const canvasRef = useRef(null);
   const formCardRef = useRef(null);
+  const formRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    recipient: "", // 🔥 optional recipient the user mentions (new)
     message: "",
   });
 
@@ -42,7 +44,7 @@ const ContactSection = () => {
         formData
       );
       triggerConfetti();
-      setFormData({ name: "", email: "", message: "" });
+      setFormData({ name: "", email: "", recipient: "", message: "" });
     } catch (err) {
       console.error("❌ Error:", err);
       alert("❌ Failed to send message. Please try again.");
@@ -50,6 +52,53 @@ const ContactSection = () => {
       setLoading(false);
     }
   };
+
+  // 🔥 Expose a safe bridge so the voice agent can fill/submit the form
+  useEffect(() => {
+    const fill = (payload = {}) => {
+      setFormData((prev) => ({
+        name: payload.name ?? prev.name,
+        email: payload.email ?? prev.email,
+        recipient: payload.recipient ?? prev.recipient,
+        message: payload.message ?? prev.message,
+      }));
+      // Scroll into view and focus the next missing required field
+      try {
+        document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch {}
+      // focus order: name -> email -> message
+      setTimeout(() => {
+        if (!formData.name) { document.querySelector('[data-agent-id="contact.name"]')?.focus(); return; }
+        if (!formData.email) { document.querySelector('[data-agent-id="contact.email"]')?.focus(); return; }
+        if (!formData.message) { document.querySelector('[data-agent-id="contact.message"]')?.focus(); return; }
+      }, 50);
+    };
+
+    const submit = () => {
+      try {
+        document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch {}
+      // Use HTML5 validation via requestSubmit
+      formRef.current?.requestSubmit?.();
+    };
+
+    // Attach bridge
+    window.ContactBridge = { fill, submit };
+
+    // Fallback event listeners (if ever needed)
+    const onFill = (e) => fill(e.detail || {});
+    const onSubmit = () => submit();
+
+    window.addEventListener("agent:contact.fill", onFill);
+    window.addEventListener("agent:contact.submit", onSubmit);
+
+    return () => {
+      window.removeEventListener("agent:contact.fill", onFill);
+      window.removeEventListener("agent:contact.submit", onSubmit);
+      try { delete window.ContactBridge; } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.name, formData.email, formData.message]);
 
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -193,7 +242,12 @@ const ContactSection = () => {
         >
           <div ref={formCardRef} className="contact-form-wrapper">
             <h2 className="contact-title">Contact Us</h2>
-            <form className="contact-form" onSubmit={handleSubmit}>
+            <form
+              className="contact-form"
+              onSubmit={handleSubmit}
+              ref={formRef}
+              data-agent-id="contact.form"
+            >
               <input
                 type="text"
                 name="name"
@@ -201,6 +255,7 @@ const ContactSection = () => {
                 required
                 value={formData.name}
                 onChange={handleChange}
+                data-agent-id="contact.name"
               />
               <input
                 type="email"
@@ -209,6 +264,16 @@ const ContactSection = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
+                data-agent-id="contact.email"
+              />
+              {/* Optional recipient/department/person */}
+              <input
+                type="text"
+                name="recipient"
+                placeholder="Recipient (optional)"
+                value={formData.recipient}
+                onChange={handleChange}
+                data-agent-id="contact.recipient"
               />
               <textarea
                 name="message"
@@ -217,9 +282,12 @@ const ContactSection = () => {
                 required
                 value={formData.message}
                 onChange={handleChange}
+                data-agent-id="contact.message"
               />
-              {/* ✅ Use animated button */}
-              <SendButton />
+              {/* ✅ Wrap SendButton with a submit button if it isn't already; also mark for the agent */}
+              <div data-agent-id="contact.submit">
+                <SendButton />
+              </div>
             </form>
           </div>
         </motion.div>
@@ -229,6 +297,7 @@ const ContactSection = () => {
 };
 
 export default ContactSection;
+
 
 
 
