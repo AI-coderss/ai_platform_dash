@@ -1,10 +1,16 @@
 /* eslint-disable no-loop-func */
-import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useCallback,
+} from "react";
 import ReactMarkdown from "react-markdown";
 import ChatInputWidget from "./ChatInputWidget";
 import "../styles/ChatBot.css";
 import useCardStore from "./store/useCardStore";
-import useUiStore from "./store/useUiStore"; // ⬅️ NEW
+import useUiStore from "./store/useUiStore";
 
 /**
  * D-ID agent is injected on demand when the user presses "Open Avatar".
@@ -15,11 +21,42 @@ const DID_AGENT_SRC = "https://agent.d-id.com/v2/index.js";
 const DID_SCRIPT_ID = "did-agent-loader-v2";
 
 // 👉 use your real key/id or env vars.
-const DID_CLIENT_KEY = "Z29vZ2xlLW9hdXRoMnwxMTI1MzgwMDI5NzAxNDIxMTMxNDI6TG5FLWVDS1IyaE9VMEcyS2FUVnh0";
+const DID_CLIENT_KEY =
+  "Z29vZ2xlLW9hdXRoMnwxMTI1MzgwMDI5NzAxNDIxMTMxNDI6TG5FLWVDS1IyaE9VMEcyS2FUVnh0";
 const DID_AGENT_ID = "v2_agt_uxCkm0YX";
 
-// ---- Chat content ----------------------------------------------------------------
+// ---- Product URLs for launching -------------------------------------------------
+const urls = {
+  doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
+  transcript: "https://medicaltranscription-version2-tests.onrender.com",
+  analyst: "/videos/unddev.mp4",
+  report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
+  ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
+  patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
+  survey:
+    "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
+};
 
+// Quick map from friendly names → card ids used in your <AppCard> list
+const cardNameToId = {
+  "doctor assistant": 1,
+  doctor: 1,
+  "ai doctor assistant": 1,
+  transcription: 2,
+  scribe: 2,
+  "medical transcription": 2,
+  analyst: 3,
+  "data analyst": 3,
+  "report enhancer": 4,
+  "medical report enhancement": 4,
+  report: 4,
+  ivf: 5,
+  "ivf assistant": 5,
+  patient: 6,
+  "patient assistant": 6,
+};
+
+// ---- Chat content ---------------------------------------------------------------
 const initialQuestions = [
   "What can the AI Doctor Assistant do?",
   "How does the Medical Transcription App work?",
@@ -39,22 +76,25 @@ const ChatBot = () => {
   ]);
   const [visibleQuestions, setVisibleQuestions] = useState(initialQuestions);
   const [loading, setLoading] = useState(false);
+  const [inputText, setInputText] = useState("");
   const chatBodyRef = useRef(null);
+  const inputRef = useRef(null); // ref for ChatInputWidget (forwardRef)
   const { setActiveCardId } = useCardStore();
 
-  // ⬇️ NEW: read + use the shared UI store
+  // UI Store (for Avatar toggle)
   const { hideAvatarBtn, chooseAvatar } = useUiStore();
 
+  // Session id for your backend chat
   const [sessionId] = useState(() => {
     const id = localStorage.getItem("chatbot-session") || crypto.randomUUID();
     localStorage.setItem("chatbot-session", id);
     return id;
   });
 
-  // Inject D-ID script on demand (no draggable wrapper)
+  // Inject D-ID script on demand
   const injectDidScript = () => {
     if (typeof document === "undefined") return;
-    if (document.getElementById(DID_SCRIPT_ID)) return; // already injected
+    if (document.getElementById(DID_SCRIPT_ID)) return;
 
     const s = document.createElement("script");
     s.type = "module";
@@ -75,8 +115,7 @@ const ChatBot = () => {
   };
 
   const openDid = () => {
-    // ⬇️ Hide the *other* control as requested
-    chooseAvatar();
+    chooseAvatar(); // Hide the other control
     injectDidScript();
   };
 
@@ -89,16 +128,125 @@ const ChatBot = () => {
     }
   }, [messages, loading]);
 
-  const handleSendMessage = async ({ text }) => {
-    if (!text?.trim()) return;
+  // --- Helpers: navigation + launch + selection ---------------------------------
+  const scrollTo = useCallback((id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
-    const userMsg = { type: "user", text };
-    setMessages((prev) => [...prev, userMsg]);
-    setAccordionOpen(false);
-    setLoading(true);
+  const highlightCardByName = useCallback(
+    (name) => {
+      if (!name) return;
+      const key = name.toLowerCase().trim();
+      const cardId = cardNameToId[key];
+      if (cardId) {
+        setActiveCardId(cardId);
+        scrollTo("products");
+      }
+      return cardId;
+    },
+    [setActiveCardId, scrollTo]
+  );
 
-    let botText = "";
-    try {
+  const launchApp = useCallback((appKey) => {
+    const url = urls[appKey];
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
+
+  // --- Intent parser: simple local “function calling” from user text -------------
+  const tryLocalIntent = useCallback(
+    (text) => {
+      if (!text || typeof text !== "string") return false;
+      const t = text.toLowerCase();
+
+      // Open survey
+      if (/\b(open|launch)\b.*\bsurvey\b/.test(t)) {
+        launchApp("survey");
+        setMessages((prev) => [
+          ...prev,
+          { type: "bot", text: "Opening the survey in a new tab…" },
+        ]);
+        return true;
+      }
+
+      // Go to a section
+      const sectionMatch = t.match(
+        /\b(go to|show|navigate to|open)\b.*\b(home|products|tutorial|policy|contact|footer)\b/
+      );
+      if (sectionMatch) {
+        const section = sectionMatch[2];
+        const idMap = {
+          home: "hero",
+          products: "products",
+          tutorial: "watch_tutorial",
+          policy: "policy",
+          contact: "contact",
+          footer: "footer",
+        };
+        const targetId = idMap[section];
+        if (targetId) {
+          scrollTo(targetId);
+          setMessages((prev) => [
+            ...prev,
+            { type: "bot", text: `Navigated to ${section}.` },
+          ]);
+          return true;
+        }
+      }
+
+      // Launch or open app by name
+      const appMatch = t.match(
+        /\b(launch|open|start)\b.*\b(doctor assistant|ai doctor assistant|doctor|transcription|scribe|medical transcription|analyst|data analyst|report|report enhancer|medical report enhancement|ivf|ivf assistant|patient|patient assistant)\b/
+      );
+      if (appMatch) {
+        const verb = appMatch[1];
+        const appName = appMatch[2];
+        const id = highlightCardByName(appName);
+
+        // If the user said “launch”, also open
+        const appKeyMap = {
+          doctor: "doctor",
+          "doctor assistant": "doctor",
+          "ai doctor assistant": "doctor",
+          transcription: "transcript",
+          scribe: "transcript",
+          "medical transcription": "transcript",
+          analyst: "analyst",
+          "data analyst": "analyst",
+          report: "report",
+          "report enhancer": "report",
+          "medical report enhancement": "report",
+          ivf: "ivf",
+          "ivf assistant": "ivf",
+          patient: "patient",
+          "patient assistant": "patient",
+        };
+        const appKey = appKeyMap[appName];
+
+        if (verb === "launch" && appKey) {
+          launchApp(appKey);
+          setMessages((prev) => [
+            ...prev,
+            { type: "bot", text: `Launching ${appName}…` },
+          ]);
+        } else if (id) {
+          setMessages((prev) => [
+            ...prev,
+            { type: "bot", text: `Highlighted ${appName}.` },
+          ]);
+        }
+        return true;
+      }
+
+      return false;
+    },
+    [highlightCardByName, launchApp, scrollTo]
+  );
+
+  // --- Core: send message to your backend (stream) --------------------------------
+  const sendToBackend = useCallback(
+    async (text) => {
+      let botText = "";
       const response = await fetch(
         "https://ai-platform-dsah-backend-chatbot.onrender.com/stream",
         {
@@ -125,34 +273,70 @@ const ChatBot = () => {
         });
       }
 
-      // 🔁 classify -> setActiveCardId
-      const classifyRes = await fetch(
-        "https://ai-platform-dsah-backend-chatbot.onrender.com/classify",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, ai_response: botText }),
-        }
-      );
+      // Optional post-classification to auto-highlight card
+      try {
+        const classifyRes = await fetch(
+          "https://ai-platform-dsah-backend-chatbot.onrender.com/classify",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: text, ai_response: botText }),
+          }
+        );
 
-      if (classifyRes.ok) {
-        const data = await classifyRes.json();
-        if (data.card_id) {
-          setActiveCardId(data.card_id);
+        if (classifyRes.ok) {
+          const data = await classifyRes.json();
+          if (data.card_id) {
+            setActiveCardId(data.card_id);
+            scrollTo("products");
+          }
         }
-      } else {
-        console.warn("Classification request failed");
+      } catch {
+        // non-critical
       }
-    } catch (err) {
-      console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        { type: "bot", text: "⚠️ Error streaming response." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [scrollTo, sessionId, setActiveCardId]
+  );
+
+  // --- Public entry point used by UI & global API ---------------------------------
+  const handleSendMessage = useCallback(
+    async ({ text }) => {
+      if (!text?.trim()) return;
+
+      // Ensure chat is visible when programmatically sending
+      setOpen(true);
+
+      // Local intent (navigate/launch) first
+      const handledLocally = tryLocalIntent(text);
+      if (handledLocally) {
+        // Add a little “okay!” for UX if there was no reply yet
+        setMessages((prev) => [
+          ...prev,
+          { type: "bot", text: "Happy to help. What else can I do?" },
+        ]);
+        return;
+      }
+
+      // Otherwise, go to backend
+      const userMsg = { type: "user", text };
+      setMessages((prev) => [...prev, userMsg]);
+      setAccordionOpen(false);
+      setLoading(true);
+
+      try {
+        await sendToBackend(text);
+      } catch (err) {
+        console.error(err);
+        setMessages((prev) => [
+          ...prev,
+          { type: "bot", text: "⚠️ Error streaming response." },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sendToBackend, tryLocalIntent]
+  );
 
   const handleQuestionClick = (question) => {
     handleSendMessage({ text: question });
@@ -160,11 +344,71 @@ const ChatBot = () => {
     setAccordionOpen(false);
   };
 
-  useEffect(() => {}, []);
+  // ---------- Programmatic control & event bridges --------------------------------
+  useEffect(() => {
+    // Global API
+    window.ChatBot = {
+      open: () => {
+        setOpen(true);
+        setTimeout(() => inputRef.current?.focusInput?.(), 60);
+      },
+      close: () => setOpen(false),
+      isOpen: () => open,
+      setText: (text) => {
+        setOpen(true);
+        setInputText(text || "");
+        setTimeout(() => inputRef.current?.focusInput?.(), 60);
+      },
+      focusInput: () => inputRef.current?.focusInput?.(),
+      clearInput: () => inputRef.current?.clear?.(),
+      sendMessage: (text) => {
+        setOpen(true);
+        if (text && text.trim()) {
+          handleSendMessage({ text });
+          setInputText("");
+          inputRef.current?.clear?.();
+        } else if ((inputText || "").trim()) {
+          // send current input
+          handleSendMessage({ text: inputText });
+          setInputText("");
+          inputRef.current?.clear?.();
+        }
+      },
+      // simple navigation helpers
+      navigate: (targetId) => scrollTo(targetId),
+      highlight: (name) => highlightCardByName(name),
+      launch: (appKey) => launchApp(appKey),
+    };
+
+    // DOM event fallbacks
+    const onOpen = () => window.ChatBot.open();
+    const onSetText = (e) => window.ChatBot.setText(e?.detail?.text || "");
+    const onSend = (e) => window.ChatBot.sendMessage(e?.detail?.text || "");
+    const onNav = (e) =>
+      e?.detail?.targetId && window.ChatBot.navigate(e.detail.targetId);
+    const onLaunch = (e) => e?.detail?.app && window.ChatBot.launch(e.detail.app);
+
+    window.addEventListener("chatbot:open", onOpen);
+    window.addEventListener("chatbot:setText", onSetText);
+    window.addEventListener("chatbot:send", onSend);
+    window.addEventListener("chatbot:navigate", onNav);
+    window.addEventListener("chatbot:launch", onLaunch);
+
+    return () => {
+      window.removeEventListener("chatbot:open", onOpen);
+      window.removeEventListener("chatbot:setText", onSetText);
+      window.removeEventListener("chatbot:send", onSend);
+      window.removeEventListener("chatbot:navigate", onNav);
+      window.removeEventListener("chatbot:launch", onLaunch);
+      try {
+        delete window.ChatBot;
+      } catch {}
+    };
+  }, [open, inputText, handleSendMessage, scrollTo, highlightCardByName, launchApp]);
 
   return (
     <>
-      {/* Your existing Chat FAB */}
+      {/* Floating Chat FAB */}
       <button className="chat-toggle" onClick={() => setOpen(!open)}>
         <img src="/icons/chat.svg" alt="Chat" className="chat-icon" />
       </button>
@@ -176,7 +420,7 @@ const ChatBot = () => {
       )}
 
       {open && (
-        <div className="chat-box">
+        <div className="chat-box chatbot-root">
           <div
             className="chat-header"
             style={{ background: "#2563eb", color: "#fff", fontWeight: 600 }}
@@ -288,7 +532,12 @@ const ChatBot = () => {
             </div>
           )}
 
-          <ChatInputWidget onSendMessage={handleSendMessage} />
+          <ChatInputWidget
+            ref={inputRef}
+            onSendMessage={handleSendMessage}
+            inputText={inputText}
+            setInputText={setInputText}
+          />
         </div>
       )}
     </>
@@ -296,6 +545,7 @@ const ChatBot = () => {
 };
 
 export default ChatBot;
+
 
 
 

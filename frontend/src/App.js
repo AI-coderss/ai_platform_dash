@@ -18,7 +18,20 @@ import LaptopSection3D from "./components/LaptopSection3D";
 /* import TestimonialSection from "./components/TestimonialSection"; */
 import VideoCarousel from "./components/VideoCarousel";
 import RadialNav from "./components/RadialNav";
-import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck,FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd} from "react-icons/fa";
+import {
+  FaHome,
+  FaThLarge,
+  FaPlayCircle,
+  FaShieldAlt,
+  FaEnvelopeOpenText,
+  FaClipboardCheck,
+  FaMicrophoneAlt,
+  FaChartBar,
+  FaFileMedical,
+  FaBaby,
+  FaHeadset,
+  FaUserMd,
+} from "react-icons/fa";
 
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
@@ -34,32 +47,31 @@ const audioMap = {
   6: "/assets/audio/patient_assistant.mp3",
 };
 // convenient scroller
-  const jump = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+const jump = (id) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
-  // product links from your app list
-  const urls = {
-    doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
-    transcript: "https://medicaltranscription-version2-tests.onrender.com",
-    analyst: "/videos/unddev.mp4",
-    report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-    ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
-    patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
-    survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
-  };
+// product links from your app list
+const urls = {
+  doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
+  transcript: "https://medicaltranscription-version2-tests.onrender.com",
+  analyst: "/videos/unddev.mp4",
+  report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
+  ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
+  patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
+  survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
+};
 const navItems = [
-    { id: "home",     label: "Home",               icon: <FaHome />,         onSelect: () => jump("hero") },
-    { id: "doctor",   label: "Doctor Assistant",   icon: <FaUserMd />,       href: urls.doctor },
-    { id: "scribe",   label: "Transcription",      icon: <FaMicrophoneAlt />,href: urls.transcript },
-    { id: "analyst",  label: "Data Analyst",       icon: <FaChartBar />,     href: urls.analyst },
-    { id: "report",   label: "Report Enhancer",    icon: <FaFileMedical />,  href: urls.report },
-    { id: "ivf",      label: "IVF Assistant",      icon: <FaBaby />,         href: urls.ivf },
-    { id: "patient",  label: "Patient Assistant",  icon: <FaHeadset />,      href: urls.patient },
-    { id: "survey",   label: "Survey",             icon: <FaClipboardCheck />,href: urls.survey },
-    // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
-  ];
+  { id: "home", label: "Home", icon: <FaHome />, onSelect: () => jump("hero") },
+  { id: "doctor", label: "Doctor Assistant", icon: <FaUserMd />, href: urls.doctor },
+  { id: "scribe", label: "Transcription", icon: <FaMicrophoneAlt />, href: urls.transcript },
+  { id: "analyst", label: "Data Analyst", icon: <FaChartBar />, href: urls.analyst },
+  { id: "report", label: "Report Enhancer", icon: <FaFileMedical />, href: urls.report },
+  { id: "ivf", label: "IVF Assistant", icon: <FaBaby />, href: urls.ivf },
+  { id: "patient", label: "Patient Assistant", icon: <FaHeadset />, href: urls.patient },
+  { id: "survey", label: "Survey", icon: <FaClipboardCheck />, href: urls.survey },
+];
 /* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
   const [open, setOpen] = useState(false);
@@ -72,18 +84,18 @@ const NavBar = ({ theme, onToggleTheme }) => {
   return (
     <nav className={`topnav ${open ? "open" : ""}`}>
       <div className="topnav-inner">
-        <a href="#hero" className="brand" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">
+        <a href="#hero" className="brand" onClick={(e) => handleNav(e, "hero")}>
           <img src="/assets/logo.png" alt="DSAH" />
           <span>DSAH AI</span>
         </a>
 
         <div className="topnav-links">
-          <a href="#hero" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">About</a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")} data-agent-id="nav.products">Products</a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")} data-agent-id="nav.policy">Our Policy</a>
-          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
+          <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")}>Watch Tutorial</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
           
         </div>
 
@@ -160,12 +172,12 @@ const NavBar = ({ theme, onToggleTheme }) => {
       </div>
 
       <div className="topnav-mobile">
-        <a href="#hero" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">About</a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")} data-agent-id="nav.products">Products</a>
-          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")} data-agent-id="nav.policy">Our Policy</a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
+        <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
+          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")}>Watch Tutorial</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
       </div>
     </nav>
   );
@@ -225,26 +237,22 @@ const HeroLogoParticles = ({ theme }) => {
   };
 
   // ====== GSAP SplitType animation for hero title (updated) ======
-useEffect(() => {
-  // Split into lines + words + chars so browser respects line wrapping
-  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
-
-  // Animate each char, but keep words/lines together
-  const tween = gsap.from(split.chars, {
-    x: 150,
-    opacity: 0,
-    duration: 0.7,
-    ease: "power4",
-    stagger: 0.04,
-    repeat: -1,
-    repeatDelay: 2,
-  });
-
-  return () => {
-    tween.kill();
-    split.revert();
-  };
-}, []);
+  useEffect(() => {
+    const split = new SplitType(".hero-title", { types: "lines, words, chars" });
+    const tween = gsap.from(split.chars, {
+      x: 150,
+      opacity: 0,
+      duration: 0.7,
+      ease: "power4",
+      stagger: 0.04,
+      repeat: -1,
+      repeatDelay: 2,
+    });
+    return () => {
+      tween.kill();
+      split.revert();
+    };
+  }, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
@@ -415,6 +423,7 @@ useEffect(() => {
     const CUBE_SIZE = 170;
     const ripple = buildRippleTexture();
 
+    const cubeGeo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
     const cubeMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       metalness: 0.0,
@@ -432,11 +441,11 @@ useEffect(() => {
       normalScale: new THREE.Vector2(0.6, 0.6),
     });
 
-    const cube = new THREE.Mesh(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), cubeMat);
+    const cube = new THREE.Mesh(cubeGeo, cubeMat);
     cubeRef.current = cube;
 
     // subtle white edges so the cube reads clearly (no colored borders)
-    const edgeGeom = new THREE.EdgesGeometry(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 1);
+    const edgeGeom = new THREE.EdgesGeometry(cubeGeo, 1);
     const edgeMat  = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
     const edgeLines = new THREE.LineSegments(edgeGeom, edgeMat);
     cube.add(edgeLines);
@@ -465,6 +474,7 @@ useEffect(() => {
       let z = r * Math.cos(ph);
       const ix = i * 3;
 
+      // clamp inside cube
       x = THREE.MathUtils.clamp(x, -half, half);
       y = THREE.MathUtils.clamp(y, -half, half);
       z = THREE.MathUtils.clamp(z, -half, half);
@@ -478,20 +488,13 @@ useEffect(() => {
       colors[ix] = colors[ix+1] = colors[ix+2] = 1.0;
     }
 
-    const posRefCurrent = positions;
-    const baseRefCurrent = base;
-    const velRefCurrent = velocities;
-    const spdRefCurrent = speeds;
-    const sizesRefCurrent = sizes;
-    const colorRefCurrent = colors;
-
-    // keep refs
-    posRef.current = posRefCurrent;
-    baseRef.current = baseRefCurrent;
-    velRef.current = velRefCurrent;
-    spdRef.current = spdRefCurrent;
-    sizesRef.current = sizesRefCurrent;
-    colorRef.current = colorRefCurrent;
+    // 🔧 CRITICAL: attach buffers to refs used by animate()
+    posRef.current = positions;
+    baseRef.current = base;
+    velRef.current = velocities;
+    spdRef.current = speeds;
+    sizesRef.current = sizes;
+    colorRef.current = colors;
 
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -541,10 +544,12 @@ useEffect(() => {
       targetCountRef.current = count;
 
       const colAttr = colorRef.current;
-      for (let i = 0; i < count; i++) {
-        colAttr[i*3]     = tColors[i*3];
-        colAttr[i*3 + 1] = tColors[i*3 + 1];
-        colAttr[i*3 + 2] = tColors[i*3 + 2];
+      if (colAttr) {
+        for (let i = 0; i < count; i++) {
+          colAttr[i*3]     = tColors[i*3];
+          colAttr[i*3 + 1] = tColors[i*3 + 1];
+          colAttr[i*3 + 2] = tColors[i*3 + 2];
+        }
       }
       const tint = new THREE.Color(primary);
       for (let i = count; i < colors.length / 3; i++) {
@@ -553,7 +558,9 @@ useEffect(() => {
         colors[ix + 1] = tint.g * 0.8;
         colors[ix + 2] = tint.b * 0.8;
       }
-      points.geometry.attributes.color.needsUpdate = true;
+      if (points.geometry?.attributes?.color) {
+        points.geometry.attributes.color.needsUpdate = true;
+      }
     })();
 
     const wrapper = mount;
@@ -575,6 +582,7 @@ useEffect(() => {
 
       const pos = posRef.current;
       const vel = velRef.current;
+      if (!pos || !vel) return;
 
       for (let i = 0; i < pos.length/3; i++) {
         const ix = i*3;
@@ -612,10 +620,12 @@ useEffect(() => {
         bounceRef.current.t = 0;
         disperseQueuedRef.current = false;
 
-        const pm = pointsRef.current.material;
-        const lm = linesRef.current.mesh.material;
-        if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
-        else { pm.opacity = 0.88; lm.opacity = 0.12; }
+        const pm = pointsRef.current?.material;
+        const lm = linesRef.current?.mesh?.material;
+        if (pm && lm) {
+          if (lockRef.current) { pm.opacity = 0.96; lm.opacity = 0.22; }
+          else { pm.opacity = 0.88; lm.opacity = 0.12; }
+        }
 
         burst(e.clientX, e.clientY, lockRef.current ? 26 : 20);
       }
@@ -645,7 +655,7 @@ useEffect(() => {
       const pos = posRef.current;
       const targets = targetRef.current;
       const tCount = targetCountRef.current;
-      if (!targets || tCount === 0) return Infinity;
+      if (!targets || tCount === 0 || !pos) return Infinity;
       const N = Math.min(500, tCount);
       let acc = 0;
       for (let i = 0; i < N; i++) {
@@ -687,12 +697,14 @@ useEffect(() => {
             disperseQueuedRef.current = true;
             const vel = velRef.current;
             const pos = posRef.current;
-            for (let i = 0; i < pos.length / 3; i++) {
-              const ix = i*3;
-              const n = new THREE.Vector3(pos[ix], pos[ix+1], pos[ix+2]).normalize();
-              vel[ix]     += n.x * (1.2 + Math.random()*0.6);
-              vel[ix + 1] += n.y * (1.2 + Math.random()*0.6);
-              vel[ix + 2] += n.z * (0.8 + Math.random()*0.4);
+            if (vel && pos) {
+              for (let i = 0; i < pos.length / 3; i++) {
+                const ix = i*3;
+                const n = new THREE.Vector3(pos[ix], pos[ix+1], pos[ix+2]).normalize();
+                vel[ix]     += n.x * (1.2 + Math.random()*0.6);
+                vel[ix + 1] += n.y * (1.2 + Math.random()*0.6);
+                vel[ix + 2] += n.z * (0.8 + Math.random()*0.4);
+              }
             }
             lockRef.current = false;
           }
@@ -712,6 +724,12 @@ useEffect(() => {
       const base = baseRef.current;
       const vel = velRef.current;
       const spd = spdRef.current;
+
+      if (!pos || !base || !vel || !spd || !pointsRef.current?.geometry?.attributes?.position) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
       const geomPos = pointsRef.current.geometry.attributes.position;
 
       const damping = 0.966;
@@ -722,7 +740,6 @@ useEffect(() => {
 
       const hoverPull = hoverRef.current ? 0.10 : 0.0;
       const lockPull  = lockRef.current ? 0.22 : 0.0;
-      const relax     = lockRef.current ? 0.02 : 0.012;
 
       if (lockRef.current && !bounceRef.current.started && targets && tCount > 0) {
         const err = morphError();
@@ -772,20 +789,23 @@ useEffect(() => {
         if (pos[ix+2] < -halfCube) { pos[ix+2] = -halfCube; vel[ix+2] *= -0.65; }
       }
       geomPos.needsUpdate = true;
+
       // flash pulse
       if (flashRef.current.active) {
         flashRef.current.t += dt;
-        const pm = pointsRef.current.material;
-        const lm = linesRef.current.mesh.material;
+        const pm = pointsRef.current?.material;
+        const lm = linesRef.current?.mesh?.material;
         const k = Math.max(0, 1 - flashRef.current.t / 0.9);
-        pm.size = 1.0 + k * 1.2;
-        pm.opacity = 0.96 + k * 0.2;
-        lm.opacity = 0.22 + k * 0.18;
-        if (flashRef.current.t > 0.9) {
-          flashRef.current.active = false;
-          pm.size = 1.0;
-          pm.opacity = lockRef.current ? 0.96 : 0.88;
-          lm.opacity = lockRef.current ? 0.22 : 0.12;
+        if (pm && lm) {
+          pm.size = 1.0 + k * 1.2;
+          pm.opacity = 0.96 + k * 0.2;
+          lm.opacity = 0.22 + k * 0.18;
+          if (flashRef.current.t > 0.9) {
+            flashRef.current.active = false;
+            pm.size = 1.0;
+            pm.opacity = lockRef.current ? 0.96 : 0.88;
+            lm.opacity = lockRef.current ? 0.22 : 0.12;
+          }
         }
       }
 
@@ -827,7 +847,9 @@ useEffect(() => {
       }
       pointsRef.current.geometry.attributes.color.needsUpdate = true;
     }
-    linesRef.current.mesh.material.color = new THREE.Color(accent);
+    if (linesRef.current?.mesh?.material) {
+      linesRef.current.mesh.material.color = new THREE.Color(accent);
+    }
   }, [theme]);
 
   // split hero
@@ -840,8 +862,8 @@ useEffect(() => {
             We build AI assistants for doctors and patients—reliable, secure, and integrated with DSAH workflows.
           </p>
           <div className="hero-ctas">
-            <a href="#products" className="btn primary" data-agent-id="nav.products">Explore Products</a>
-            <a href="#contact" className="btn ghost" data-agent-id="nav.contact">Talk to Us</a>
+            <a href="#products" className="btn primary">Explore Products</a>
+            <a href="#contact" className="btn ghost">Talk to Us</a>
           </div>
         </div>
 
@@ -853,18 +875,6 @@ useEffect(() => {
 };
 
 /* ------------------------ Product Card (audio ok) ------------------------ */
-const appKeyFromId = (id) => {
-  switch (id) {
-    case 1: return "doctor";
-    case 2: return "transcription";
-    case 3: return "analyst";
-    case 4: return "report";
-    case 5: return "ivf";
-    case 6: return "patient";
-    default: return `app${id}`;
-  }
-};
-
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
@@ -891,8 +901,6 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive, app.id]);
 
-  const key = app.agentKey || appKeyFromId(app.id);
-
   return (
     <div
       ref={cardRef}
@@ -908,22 +916,8 @@ const AppCard = ({ app, onPlay }) => {
         <p className="copy">{app.description}</p>
 
         <div className="app-actions" style={{ display: 'flex', gap: '1rem' }}>
-          <a
-            href={app.link}
-            className="btn"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-agent-id={`products.launch:${key}`}
-          >
-            Launch
-          </a>
-          <button
-            onClick={() => onPlay(app.helpVideo)}
-            className="btn"
-            data-agent-id={`products.help:${key}`}
-          >
-            Help
-          </button>
+          <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">Launch</a>
+          <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
         </div>
 
         {isActive && (
@@ -953,9 +947,9 @@ const Footer = () => (
       <div className="footer-col">
         <h4>Quick Links</h4>
         <ul>
-          <li><a href="#hero" data-agent-id="nav.about">About</a></li>
-          <li><a href="#products" data-agent-id="nav.products">Products</a></li>
-          <li><a href="#contact" data-agent-id="nav.contact">Contact</a></li>
+          <li><a href="#hero">About</a></li>
+          <li><a href="#products">Products</a></li>
+          <li><a href="#contact">Contact</a></li>
         </ul>
       </div>
       <div className="footer-col">
@@ -993,7 +987,6 @@ const App = () => {
       icon: "/icons/doctorAI.svg",
       link: "https://ai-doctor-assistant-app-dev.onrender.com",
       helpVideo: "/videos/doctorai.mp4",
-      agentKey: "doctor",
     },
     {
       id: 2, name: "📋 Medical Transcription App",
@@ -1001,7 +994,6 @@ const App = () => {
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
       helpVideo: "/videos/transcriptionapp.mp4",
-      agentKey: "transcription",
     },
     {
       id: 3, name: "📊 AI-Powered Data Analyst",
@@ -1009,7 +1001,6 @@ const App = () => {
       icon: "/icons/dashboard.svg",
       link: "/videos/unddev.mp4",
       helpVideo: "/videos/unddev.mp4",
-      agentKey: "analyst",
     },
     {
       id: 4, name: "🧠 Medical Report Enhancement App",
@@ -1017,7 +1008,6 @@ const App = () => {
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
       helpVideo: "/videos/medreport.mp4",
-      agentKey: "report",
     },
     {
       id: 5, name: "🧠 IVF Virtual Training Assistant",
@@ -1025,7 +1015,6 @@ const App = () => {
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
       helpVideo: "/videos/ivf.mp4",
-      agentKey: "ivf",
     },
     {
       id: 6, name: "💬 Patient Assistant",
@@ -1033,83 +1022,57 @@ const App = () => {
       icon: "/icons/voice.svg",
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
       helpVideo: "/videos/unddev.mp4",
-      agentKey: "patient",
-    },
-    // Survey card for completeness (tool can open via navigate_to "survey")
-    {
-      id: 7, name: "📝 Platform Survey",
-      description: "Share feedback about the AI applications you use",
-      icon: "/icons/clipboard.svg",
-      link: surveyUrl,
-      helpVideo: "/videos/unddev.mp4",
-      agentKey: "survey",
     },
   ];
 
-  // ===== Agent navigation + chatbot bridge =====
+  // -------- Global helper for voice tools & other programmatic control ----------
   useEffect(() => {
-    // Provide a stable programmatic API for the voice agent
-    window.agentNavigate = (section) => {
-      const s = String(section || "").toLowerCase();
+    const { setActiveCardId } = useCardStore.getState();
 
-      // Page sections
-      if (s === "home") { jump("hero"); return; }
-      if (s === "products") { jump("products"); return; }
-      if (s === "policy") { jump("policy"); return; }
-      if (s === "watch_tutorial") { jump("watch_tutorial"); return; }
-      if (s === "contact") { jump("contact"); return; }
-      if (s === "footer") { jump("footer"); return; }
-
-      // Product/app shortcuts
-      if (s === "doctor") { window.open(urls.doctor, "_blank", "noopener,noreferrer"); return; }
-      if (s === "transcription") { window.open(urls.transcript, "_blank", "noopener,noreferrer"); return; }
-      if (s === "analyst") { window.open(urls.analyst, "_blank", "noopener,noreferrer"); return; }
-      if (s === "report") { window.open(urls.report, "_blank", "noopener,noreferrer"); return; }
-      if (s === "ivf") { window.open(urls.ivf, "_blank", "noopener,noreferrer"); return; }
-      if (s === "patient") { window.open(urls.patient, "_blank", "noopener,noreferrer"); return; }
-      if (s === "survey") { window.open(urls.survey, "_blank", "noopener,noreferrer"); return; }
-
-      if (s === "chat") {
-        try {
-          // Best-effort hooks many widgets use:
-          window.ChatBot?.open?.();
-          // If your ChatBot exposes a focus method or DOM query, use it here as well.
-        } catch {}
-        // Also scroll near the bottom where ChatBot lives if needed
-        try { document.querySelector(".chatbot-root")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
-        return;
-      }
+    const highlightByName = (name) => {
+      if (!name) return;
+      const key = String(name).toLowerCase().trim();
+      const map = {
+        "ai doctor assistant": 1,
+        "doctor assistant": 1,
+        doctor: 1,
+        "medical transcription": 2,
+        transcription: 2,
+        scribe: 2,
+        analyst: 3,
+        "data analyst": 3,
+        "medical report enhancement": 4,
+        "report enhancer": 4,
+        report: 4,
+        ivf: 5,
+        "ivf assistant": 5,
+        patient: 6,
+        "patient assistant": 6,
+      };
+      const id = map[key];
+      if (id) setActiveCardId(id);
+      return id;
     };
 
-    // Event variant (used by VoiceAssistant if agentNavigate isn't present yet)
-    const onAgentNavigate = (e) => window.agentNavigate?.(e.detail?.section);
-    window.addEventListener("agent:navigate", onAgentNavigate);
-
-    // Chat ask bridge: The agent can send a message to the on-site chatbot
-    // Provide a default implementation using a DOM event the ChatBot can listen for.
-    window.ChatBotBridge = {
-      sendMessage: (text) => {
-        // Preferred: direct API if your ChatBot exposes one
-        try { window.ChatBot?.open?.(); } catch {}
-        try { window.ChatBot?.sendMessage?.(text); return; } catch {}
-
-        // Fallback: dispatch a DOM event the ChatBot component can subscribe to
-        window.dispatchEvent(new CustomEvent("chatbot:send", { detail: { text } }));
-      }
+    window.AppNav = {
+      navigate: (targetId) => {
+        const id = targetId === "home" ? "hero" : targetId;
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+      launch: (appKey) => {
+        const url = urls[appKey];
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+      },
+      highlight: (name) => {
+        const id = highlightByName(name);
+        if (id) window.AppNav.navigate("products");
+        return id;
+      },
     };
-
-    const onAgentChatAsk = (e) => {
-      const t = e.detail?.text || "";
-      if (!t) return;
-      window.ChatBotBridge?.sendMessage?.(t);
-    };
-    window.addEventListener("agent:chat.ask", onAgentChatAsk);
 
     return () => {
-      window.removeEventListener("agent:navigate", onAgentNavigate);
-      window.removeEventListener("agent:chat.ask", onAgentChatAsk);
-      try { delete window.agentNavigate; } catch {}
-      try { delete window.ChatBotBridge; } catch {}
+      try { delete window.AppNav; } catch {}
     };
   }, []);
 
@@ -1161,7 +1124,7 @@ const App = () => {
       <div className="section-title" href="#watch_tutorial" id="watch_tutorial">
         <VideoCarousel />
       </div>
-      <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
+      <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
         Take Survey 📝
       </a>
 
@@ -1178,7 +1141,7 @@ const App = () => {
     { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />,      targetId: "watch_tutorial" },
     { id: "policy",   label: "Policy",   icon: <FaShieldAlt />,       targetId: "policy" },
     { id: "contact",  label: "Contact",  icon: <FaEnvelopeOpenText />,targetId: "contact" },
-    { id: "survey",   label: "Survey",   icon: <FaClipboardCheck />,  href: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah" },
+    { id: "survey",   label: "Survey",   href: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah" },
   ]}
 />
 
@@ -1189,3 +1152,4 @@ const App = () => {
 };
 
 export default App;
+
