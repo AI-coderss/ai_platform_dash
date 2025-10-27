@@ -163,6 +163,24 @@ TOOLS = [
         "description": "Submit the contact form after required fields are present.",
         "parameters": { "type": "object", "additionalProperties": False, "properties": {} }
     }
+    ,{
+    "type": "function",
+    "name": "toggle_theme",
+    "description": "Switch the application theme.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "theme": {
+                "type": "string",
+                "enum": ["light", "dark", "system", "toggle"],
+                "description": "Target theme or 'toggle'."
+            }
+        },
+        "required": ["theme"]
+    }
+},
+
 ]
 
 @app.route('/api/rtc-connect', methods=['POST'])

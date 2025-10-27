@@ -23,40 +23,44 @@ const localStreamRef = React.createRef();
 
 /* ---------- Whitelists / tools (kept intact) ---------- */
 const ALLOWED_SECTIONS = new Set([
-  "home","products","policy","watch_tutorial","contact","footer",
-  "chat","doctor","transcription","analyst","report","ivf","patient","survey",
+  "home", "products", "policy", "watch_tutorial", "contact", "footer",
+  "chat", "doctor", "transcription", "analyst", "report", "ivf", "patient", "survey",
 ]);
 const ALLOWED_CONTROL_IDS = new Set([
-  "nav.about","nav.products","nav.policy","nav.watch_tutorial","nav.contact","nav.footer",
-  "products.launch:doctor","products.launch:transcription","products.launch:analyst","products.launch:report",
-  "products.launch:ivf","products.launch:patient","products.launch:survey",
-  "products.help:doctor","products.help:transcription","products.help:analyst","products.help:report",
-  "products.help:ivf","products.help:patient","products.help:survey",
+  "nav.about", "nav.products", "nav.policy", "nav.watch_tutorial", "nav.contact", "nav.footer",
+  "products.launch:doctor", "products.launch:transcription", "products.launch:analyst", "products.launch:report",
+  "products.launch:ivf", "products.launch:patient", "products.launch:survey",
+  "products.help:doctor", "products.help:transcription", "products.help:analyst", "products.help:report",
+  "products.help:ivf", "products.help:patient", "products.help:survey",
   "contact.submit",
 ]);
 const TOOL_SCHEMAS = [
   {
     type: "function", name: "navigate_to",
-    parameters: { type: "object", additionalProperties: false,
+    parameters: {
+      type: "object", additionalProperties: false,
       properties: { section: { type: "string", enum: Array.from(ALLOWED_SECTIONS) } },
       required: ["section"]
     }
   },
   {
     type: "function", name: "click_control",
-    parameters: { type: "object", additionalProperties: false,
+    parameters: {
+      type: "object", additionalProperties: false,
       properties: { control_id: { type: "string" } }, required: ["control_id"]
     }
   },
   {
     type: "function", name: "chat_ask",
-    parameters: { type: "object", additionalProperties: false,
+    parameters: {
+      type: "object", additionalProperties: false,
       properties: { text: { type: "string", minLength: 1, maxLength: 500 } }, required: ["text"]
     }
   },
   {
     type: "function", name: "contact_fill",
-    parameters: { type: "object", additionalProperties: false,
+    parameters: {
+      type: "object", additionalProperties: false,
       properties: { name: { type: "string" }, email: { type: "string" }, recipient: { type: "string" }, message: { type: "string" } }
     }
   },
@@ -64,6 +68,19 @@ const TOOL_SCHEMAS = [
     type: "function", name: "contact_submit",
     parameters: { type: "object", additionalProperties: false, properties: {} }
   },
+  {
+    type: "function",
+    name: "toggle_theme",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        theme: { type: "string", enum: ["light", "dark", "system", "toggle"] }
+      },
+      required: ["theme"]
+    }
+  }
+
 ];
 
 /* ---------- GLASS CUBE SHADERS (transparent; no background) ---------- */
@@ -351,18 +368,18 @@ const VoiceAssistant = () => {
 
   /* ---------- WebRTC core ---------- */
   const cleanupWebRTC = () => {
-    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch {} peerConnectionRef.current = null; }
-    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch {} dataChannelRef.current = null; }
-    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach(t=>t.stop()); } catch {} localStreamRef.current=null; }
+    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch { } peerConnectionRef.current = null; }
+    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch { } dataChannelRef.current = null; }
+    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach(t => t.stop()); } catch { } localStreamRef.current = null; }
 
     // teardown remote analyser
     try {
       if (remoteSourceRef.current) { remoteSourceRef.current.disconnect(); remoteSourceRef.current = null; }
       if (remoteAnalyserRef.current) { remoteAnalyserRef.current.disconnect(); remoteAnalyserRef.current = null; }
       if (remoteACtxRef.current) { remoteACtxRef.current.close(); remoteACtxRef.current = null; }
-    } catch {}
+    } catch { }
     setRemoteStream(null);
-    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch {}
+    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch { }
 
     setConnectionStatus("idle");
     setIsMicActive(false);
@@ -378,7 +395,7 @@ const VoiceAssistant = () => {
         type: "session.update",
         session: {
           voice: "alloy",
-          modalities: ["text","audio"],
+          modalities: ["text", "audio"],
           turn_detection: { type: "server_vad" },
           tools: TOOL_SCHEMAS, tool_choice: { type: "auto" },
           instructions:
@@ -386,7 +403,7 @@ const VoiceAssistant = () => {
             "For email: collect name, email, optional recipient, message; call contact_fill then contact_submit."
         }
       }));
-    } catch {}
+    } catch { }
   };
 
   const startWebRTC = async () => {
@@ -406,13 +423,13 @@ const VoiceAssistant = () => {
           const s = event.streams[0];
           if (audioPlayerRef.current) {
             audioPlayerRef.current.srcObject = s;
-            audioPlayerRef.current.play().catch(()=>{});
+            audioPlayerRef.current.play().catch(() => { });
           }
           setRemoteStream(s);
           setupRemoteAnalyser(s);   // 🔊 colors react to AI voice
         }
       };
-      stream.getTracks().forEach((t)=>pc.addTrack(t, stream));
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
       const ch = pc.createDataChannel("response", { ordered: true });
       dataChannelRef.current = ch;
@@ -421,13 +438,13 @@ const VoiceAssistant = () => {
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
-        try { ch.send(JSON.stringify({ type: "response.create", response: { modalities: ["text","audio"] } })); } catch {}
+        try { ch.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch { }
         sendSessionUpdate();
       };
       ch.onmessage = (event) => {
         let msg; try { msg = JSON.parse(event.data); } catch { return; }
         switch (msg.type) {
-          case "conversation.item.input_audio_transcription.completed": setTranscript(msg.transcript||""); setResponseText(""); break;
+          case "conversation.item.input_audio_transcription.completed": setTranscript(msg.transcript || ""); setResponseText(""); break;
           case "response.text.delta": setResponseText(prev => prev + (msg.delta || "")); break;
           case "response.done": setTranscript(""); break;
           default: break;
@@ -435,7 +452,7 @@ const VoiceAssistant = () => {
         // Tool streaming buffer
         if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
           const id = msg.item.call_id || msg.item.id || "default";
-          const prev = toolBuffersRef.current.get(id) || { name:"", argsText:"" };
+          const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
           prev.name = msg.item.name || prev.name;
           toolBuffersRef.current.set(id, prev);
           return;
@@ -443,7 +460,7 @@ const VoiceAssistant = () => {
         if (msg.type === "response.function_call_arguments.delta" || msg.type === "tool_call.delta") {
           const id = msg.call_id || msg.id || "default";
           const delta = msg.delta || msg.arguments_delta || "";
-          const prev = toolBuffersRef.current.get(id) || { name:"", argsText:"" };
+          const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
           prev.argsText += (delta || "");
           toolBuffersRef.current.set(id, prev);
           return;
@@ -459,7 +476,7 @@ const VoiceAssistant = () => {
           toolBuffersRef.current.delete(id);
           if (!buf) return;
           let args = {};
-          try { args = JSON.parse(buf.argsText || "{}"); } catch {}
+          try { args = JSON.parse(buf.argsText || "{}"); } catch { }
           handleToolCall(buf.name || "unknown_tool", args);
         }
       };
@@ -467,7 +484,7 @@ const VoiceAssistant = () => {
       ch.onclose = cleanupWebRTC;
       pc.onconnectionstatechange = () => {
         const s = pc.connectionState;
-        if (s==="failed" || s==="disconnected" || s==="closed") cleanupWebRTC();
+        if (s === "failed" || s === "disconnected" || s === "closed") cleanupWebRTC();
       };
 
       const offer = await pc.createOffer({ offerToReceiveAudio: true });
@@ -479,11 +496,11 @@ const VoiceAssistant = () => {
 
       const res = await fetch(
         "https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect",
-        { method:"POST", headers:{ "Content-Type":"application/sdp" }, body: offer.sdp }
+        { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp }
       );
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const answer = await res.text();
-      await pc.setRemoteDescription({ type:"answer", sdp: answer });
+      await pc.setRemoteDescription({ type: "answer", sdp: answer });
     } catch {
       setConnectionStatus("error");
       setResponseText("Failed to start session.");
@@ -496,7 +513,7 @@ const VoiceAssistant = () => {
     if (name === "navigate_to") {
       const section = String(args?.section || "").trim();
       if (!ALLOWED_SECTIONS.has(section)) return;
-      if (window.agentNavigate) { try { window.agentNavigate(section); } catch {} }
+      if (window.agentNavigate) { try { window.agentNavigate(section); } catch { } }
       else { window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } })); }
       return;
     }
@@ -507,15 +524,15 @@ const VoiceAssistant = () => {
       if (now - last < 400) return; recentClicksRef.current.set(id, now);
       const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
       if (el) {
-        try { el.scrollIntoView({ behavior:"smooth", block:"center" }); } catch {}
-        try { el.focus({ preventScroll:true }); } catch {}
-        try { el.click(); } catch {}
+        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch { }
+        try { el.focus({ preventScroll: true }); } catch { }
+        try { el.click(); } catch { }
       }
       return;
     }
     if (name === "chat_ask") {
       const text = String(args?.text || "").trim(); if (!text) return;
-      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch {} }
+      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch { } }
       else { window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } })); }
       return;
     }
@@ -526,10 +543,10 @@ const VoiceAssistant = () => {
         recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
         message: typeof args?.message === "string" ? args.message : undefined,
       };
-      try { window.agentNavigate?.("contact"); } catch {}
-      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch {} }
+      try { window.agentNavigate?.("contact"); } catch { }
+      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch { } }
       else {
-        const setVal = (sel, val) => { if (val == null) return; const el = document.querySelector(sel); if (!el) return; el.value = val; el.dispatchEvent(new Event("input", { bubbles:true })); };
+        const setVal = (sel, val) => { if (val == null) return; const el = document.querySelector(sel); if (!el) return; el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); };
         setVal('[data-agent-id="contact.name"]', payload.name);
         setVal('[data-agent-id="contact.email"]', payload.email);
         setVal('[data-agent-id="contact.recipient"]', payload.recipient);
@@ -538,15 +555,42 @@ const VoiceAssistant = () => {
       return;
     }
     if (name === "contact_submit") {
-      try { window.agentNavigate?.("contact"); } catch {}
-      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch {} }
+      try { window.agentNavigate?.("contact"); } catch { }
+      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch { } }
       else {
         const btn = document.querySelector('[data-agent-id="contact.submit"]');
-        if (btn) { try { btn.click(); } catch {} }
+        if (btn) { try { btn.click(); } catch { } }
         else { document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.(); }
       }
       return;
     }
+    if (name === "toggle_theme") {
+      const mode = String(args?.theme || "toggle").toLowerCase(); // "light"|"dark"|"system"|"toggle"
+      const STORAGE_KEY = "app-theme";
+
+      const getSystemPrefersDark = () =>
+        window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      const applyThemeAttr = (m) => {
+        const root = document.documentElement;
+        const isDark = m === 'dark' || (m === 'system' && getSystemPrefersDark());
+        if (isDark) root.setAttribute('data-theme', 'dark');
+        else root.removeAttribute('data-theme');
+        window.dispatchEvent(new CustomEvent('theme:changed', { detail: { mode: m, isDark } }));
+      };
+
+      const current = localStorage.getItem(STORAGE_KEY) || 'light';
+      let next = mode;
+      if (mode === 'toggle') {
+        // flip just dark/light; keep 'system' as resolving to actual value
+        next = current === 'dark' ? 'light' : 'dark';
+      }
+
+      localStorage.setItem(STORAGE_KEY, next);
+      applyThemeAttr(next);
+      return;
+    }
+
   };
 
   /* ---------- Remote analyser (AI audio) ---------- */
@@ -571,20 +615,20 @@ const VoiceAssistant = () => {
 
   const readRemoteLevels = () => {
     const analyser = remoteAnalyserRef.current;
-    if (!analyser) return { bass:0, mid:0, treble:0, overall:0 };
+    if (!analyser) return { bass: 0, mid: 0, treble: 0, overall: 0 };
     const data = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(data);
     const bassEnd = Math.floor(data.length * 0.12);
-    const midEnd  = Math.floor(data.length * 0.5);
-    let b=0,m=0,t=0;
-    for (let i=0;i<bassEnd;i++) b+=data[i];
-    for (let i=bassEnd;i<midEnd;i++) m+=data[i];
-    for (let i=midEnd;i<data.length;i++) t+=data[i];
-    b = (b/bassEnd)/255; m=(m/(midEnd-bassEnd))/255; t=(t/(data.length-midEnd))/255;
-    let overall = (b+m+t)/3;
-    levelSmoothRef.current = levelSmoothRef.current*0.80 + overall*0.20;
+    const midEnd = Math.floor(data.length * 0.5);
+    let b = 0, m = 0, t = 0;
+    for (let i = 0; i < bassEnd; i++) b += data[i];
+    for (let i = bassEnd; i < midEnd; i++) m += data[i];
+    for (let i = midEnd; i < data.length; i++) t += data[i];
+    b = (b / bassEnd) / 255; m = (m / (midEnd - bassEnd)) / 255; t = (t / (data.length - midEnd)) / 255;
+    let overall = (b + m + t) / 3;
+    levelSmoothRef.current = levelSmoothRef.current * 0.80 + overall * 0.20;
     overall = levelSmoothRef.current;
-    return { bass:b, mid:m, treble:t, overall };
+    return { bass: b, mid: m, treble: t, overall };
   };
 
   /* ---------- Cube GL init/render ---------- */
@@ -608,7 +652,7 @@ const VoiceAssistant = () => {
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(prog));
     cubeProgRef.current = prog;
 
-    const verts = new Float32Array([-1,-1, 1,-1, -1,1,  -1,1, 1,-1, 1,1]);
+    const verts = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
     const buf = gl.createBuffer(); cubeBufRef.current = buf;
     gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(prog, "position"); cubePosLocRef.current = posLoc;
@@ -617,7 +661,7 @@ const VoiceAssistant = () => {
     cubeTimeLocRef.current = gl.getUniformLocation(prog, "time");
     cubeResLocRef.current = gl.getUniformLocation(prog, "resolution");
 
-    gl.clearColor(0,0,0,0);
+    gl.clearColor(0, 0, 0, 0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -626,7 +670,7 @@ const VoiceAssistant = () => {
       const dpr = Math.max(1, 0.5 * window.devicePixelRatio);
       canvas.width = Math.max(1, Math.floor(rect.width * dpr));
       canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      gl.viewport(0,0,canvas.width, canvas.height);
+      gl.viewport(0, 0, canvas.width, canvas.height);
     };
 
     const draw = (now) => {
@@ -646,13 +690,13 @@ const VoiceAssistant = () => {
     canvas.__cleanup = () => {
       cancelAnimationFrame(cubeRAF.current);
       window.removeEventListener("resize", resize);
-      try { const ext = gl.getExtension("WEBGL_lose_context"); if (ext) ext.loseContext(); } catch {}
-      cubeGlRef.current = null; cubeProgRef.current=null; cubeBufRef.current=null;
+      try { const ext = gl.getExtension("WEBGL_lose_context"); if (ext) ext.loseContext(); } catch { }
+      cubeGlRef.current = null; cubeProgRef.current = null; cubeBufRef.current = null;
     };
   };
   const teardownCube = () => {
     const canvas = cubeCanvasRef.current;
-    if (canvas && typeof canvas.__cleanup === "function") { try { canvas.__cleanup(); } catch {} delete canvas.__cleanup; }
+    if (canvas && typeof canvas.__cleanup === "function") { try { canvas.__cleanup(); } catch { } delete canvas.__cleanup; }
   };
 
   /* ---------- Substance setup (Three.js) — your texture & sim ---------- */
@@ -683,11 +727,11 @@ const VoiceAssistant = () => {
     const previous = new Float32Array(res * res);
     const velocity = new Float32Array(res * res * 2);
     const vorticity = new Float32Array(res * res);
-    const pressure  = new Float32Array(res * res);
+    const pressure = new Float32Array(res * res);
 
     for (let i = 0; i < res * res; i++) {
       current[i] = 0.0; previous[i] = 0.0; vorticity[i] = 0.0; pressure[i] = 0.0;
-      velocity[i*2] = 0.0; velocity[i*2+1] = 0.0;
+      velocity[i * 2] = 0.0; velocity[i * 2 + 1] = 0.0;
     }
     waterDataRef.current = { current, previous, velocity, vorticity, pressure };
 
@@ -705,7 +749,7 @@ const VoiceAssistant = () => {
       fragmentShader: subFragment,
       uniforms: {
         u_time: { value: 0.0 },
-        u_resolution: { value: new THREE.Vector2(1,1) },
+        u_resolution: { value: new THREE.Vector2(1, 1) },
         u_speed: { value: 1.3 },
         u_color1: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
         u_color2: { value: new THREE.Vector3(0.9, 0.95, 1.0) },
@@ -730,7 +774,7 @@ const VoiceAssistant = () => {
     });
     subMatRef.current = material;
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), material);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
     scene.add(mesh);
 
     // Sizing to container
@@ -760,25 +804,25 @@ const VoiceAssistant = () => {
       const r2 = radius * radius;
 
       const prev = waterDataRef.current.previous;
-      const vel  = waterDataRef.current.velocity;
+      const vel = waterDataRef.current.velocity;
 
       for (let i = -radius; i <= radius; i++) {
         for (let j = -radius; j <= radius; j++) {
-          const d2 = i*i + j*j;
+          const d2 = i * i + j * j;
           if (d2 <= r2) {
             const px = tx + i, py = ty + j;
-            if (px>=0 && px<R && py>=0 && py<R) {
-              const idx = py*R + px;
+            if (px >= 0 && px < R && py >= 0 && py < R) {
+              const idx = py * R + px;
               const dist = Math.sqrt(d2);
               const fall = 1.0 - dist / radius;
               const rippleValue = Math.cos((dist / radius) * Math.PI * 0.5) * strength * fall;
               prev[idx] += rippleValue;
 
               const angle = Math.atan2(j, i);
-              const velIdx = idx*2;
+              const velIdx = idx * 2;
               const vstr = rippleValue * settings.spiralIntensity;
-              vel[velIdx]   += Math.cos(angle) * vstr;
-              vel[velIdx+1] += Math.sin(angle) * vstr;
+              vel[velIdx] += Math.cos(angle) * vstr;
+              vel[velIdx + 1] += Math.sin(angle) * vstr;
             }
           }
         }
@@ -818,19 +862,19 @@ const VoiceAssistant = () => {
       const waveHeight = settings.waveHeight;
 
       // velocity decay
-      for (let i=0;i<R*R*2;i++) vel[i] *= (1.0 - motionDecay);
+      for (let i = 0; i < R * R * 2; i++) vel[i] *= (1.0 - motionDecay);
 
       // update waves
-      for (let y=1; y<R-1; y++){
-        for (let x=1; x<R-1; x++){
-          const i = y*R + x;
+      for (let y = 1; y < R - 1; y++) {
+        for (let x = 1; x < R - 1; x++) {
+          const i = y * R + x;
           const top = prev[i - R], bottom = prev[i + R], left = prev[i - 1], right = prev[i + 1];
           let v = (top + bottom + left + right) * 0.5 - cur[i];
-          v  = v * damping + prev[i] * (1.0 - damping);
+          v = v * damping + prev[i] * (1.0 - damping);
           v += (0 - prev[i]) * tension;
 
-          const velIdx = i*2;
-          const velMag = Math.sqrt(vel[velIdx]*vel[velIdx] + vel[velIdx+1]*vel[velIdx+1]);
+          const velIdx = i * 2;
+          const velMag = Math.sqrt(vel[velIdx] * vel[velIdx] + vel[velIdx + 1] * vel[velIdx + 1]);
           v += Math.min(velMag * waveHeight, 0.1);
 
           v *= 1.0 - rippleDecay * 0.01;
@@ -838,8 +882,8 @@ const VoiceAssistant = () => {
         }
       }
       // zero edges
-      for (let i=0;i<R;i++){
-        cur[i]=0; cur[(R-1)*R+i]=0; cur[i*R]=0; cur[i*R+(R-1)]=0;
+      for (let i = 0; i < R; i++) {
+        cur[i] = 0; cur[(R - 1) * R + i] = 0; cur[i * R] = 0; cur[i * R + (R - 1)] = 0;
       }
       // ping-pong
       waterDataRef.current.current = prev;
@@ -860,20 +904,20 @@ const VoiceAssistant = () => {
 
       // audio-reactive uniforms from AI voice
       const { bass, mid, treble, overall } = readRemoteLevels();
-      material.uniforms.u_audioLow.value  = material.uniforms.u_audioLow.value*0.8  + bass*0.2;
-      material.uniforms.u_audioMid.value  = material.uniforms.u_audioMid.value*0.8  + mid*0.2;
-      material.uniforms.u_audioHigh.value = material.uniforms.u_audioHigh.value*0.8 + treble*0.2;
-      material.uniforms.u_audioOverall.value = material.uniforms.u_audioOverall.value*0.8 + overall*0.2;
+      material.uniforms.u_audioLow.value = material.uniforms.u_audioLow.value * 0.8 + bass * 0.2;
+      material.uniforms.u_audioMid.value = material.uniforms.u_audioMid.value * 0.8 + mid * 0.2;
+      material.uniforms.u_audioHigh.value = material.uniforms.u_audioHigh.value * 0.8 + treble * 0.2;
+      material.uniforms.u_audioOverall.value = material.uniforms.u_audioOverall.value * 0.8 + overall * 0.2;
 
       // vivid palette shift based on audio (don’t keep static preset colors)
       const hue = 180 + Math.min(160, overall * 360); // 180°..~340°
-      const s = 0.85, l1=0.60, l2=0.78, l3=0.92;
-      const [r1,g1,b1] = hslToRgb(hue,   s, l1);
-      const [r2,g2,b2] = hslToRgb(hue+8, s, l2);
-      const [r3,g3,b3] = hslToRgb(hue+16,s, l3);
-      material.uniforms.u_color1.value.set(r1,g1,b1);
-      material.uniforms.u_color2.value.set(r2,g2,b2);
-      material.uniforms.u_color3.value.set(r3,g3,b3);
+      const s = 0.85, l1 = 0.60, l2 = 0.78, l3 = 0.92;
+      const [r1, g1, b1] = hslToRgb(hue, s, l1);
+      const [r2, g2, b2] = hslToRgb(hue + 8, s, l2);
+      const [r3, g3, b3] = hslToRgb(hue + 16, s, l3);
+      material.uniforms.u_color1.value.set(r1, g1, b1);
+      material.uniforms.u_color2.value.set(r2, g2, b2);
+      material.uniforms.u_color3.value.set(r3, g3, b3);
 
       const t = subClockRef.current.getElapsedTime();
       material.uniforms.u_time.value = t;
@@ -889,23 +933,23 @@ const VoiceAssistant = () => {
     mount.__cleanup = () => {
       subAliveRef.current = false;
       cancelAnimationFrame(subRAF.current);
-      try { mount.removeEventListener("mousemove", onMove); } catch {}
-      try { mount.removeEventListener("touchmove", onMove); } catch {}
-      try { mount.removeEventListener("click", onClick); } catch {}
-      try { mount.__ro?.disconnect(); } catch {}
-      try { renderer.dispose(); } catch {}
+      try { mount.removeEventListener("mousemove", onMove); } catch { }
+      try { mount.removeEventListener("touchmove", onMove); } catch { }
+      try { mount.removeEventListener("click", onClick); } catch { }
+      try { mount.__ro?.disconnect(); } catch { }
+      try { renderer.dispose(); } catch { }
       subRendererRef.current = null;
       subSceneRef.current = null;
       subCameraRef.current = null;
       subMatRef.current = null;
       subTexRef.current = null;
-      waterDataRef.current = { current:null, previous:null, velocity:null, vorticity:null, pressure:null };
+      waterDataRef.current = { current: null, previous: null, velocity: null, vorticity: null, pressure: null };
     };
   };
 
   const teardownSubstance = () => {
     const m = subMountRef.current;
-    if (m && typeof m.__cleanup === "function") { try { m.__cleanup(); } catch {} m.innerHTML = ""; delete m.__cleanup; }
+    if (m && typeof m.__cleanup === "function") { try { m.__cleanup(); } catch { } m.innerHTML = ""; delete m.__cleanup; }
   };
 
   /* ---------- Open/close ---------- */
