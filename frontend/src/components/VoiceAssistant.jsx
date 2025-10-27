@@ -548,12 +548,7 @@ const VoiceAssistant = () => {
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
 
-            {/* Optional debug text/ASR */}
-            {responseText && (
-              <div className="voice-transcript">
-                {responseText}
-              </div>
-            )}
+           
           </motion.div>
         )}
       </AnimatePresence>
