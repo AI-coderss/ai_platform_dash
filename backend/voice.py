@@ -57,35 +57,131 @@ vector_store = get_vector_store()
 def home():
     return "Flask API is running!"
 
+# ---- Optional: simple context endpoint (noop/passthrough for now) ----
+@app.route('/api/session-context', methods=['POST', 'OPTIONS'])
+def api_session_context():
+    """
+    Optional endpoint to receive transcript/context and keep parity with clients
+    that may want to push context. We simply log and return ok.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = (data.get("session_id") or "").strip()
+        transcript = (data.get("transcript") or "").strip()
+        logger.info(f"[session-context] session_id={session_id} chars={len(transcript)}")
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        logger.exception("session-context error")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+# ------------------------ Function-calling tools ------------------------
+# Keep these in sync with the frontend's allowed lists.
+NAV_ALLOWED = [
+    "home", "products", "policy", "watch_tutorial", "contact", "footer",
+    "chat",        # open/show chatbot
+    "doctor",      # open Doctor Assistant app
+    "transcription",
+    "analyst",
+    "report",
+    "ivf",
+    "patient",
+    "survey"
+]
+
+# We keep click_control tool schema generic (the frontend maintains a strict whitelist
+# and uses data-agent-id). You can choose to hard-enforce an enum here later if desired.
+TOOLS = [
+    {
+        "type": "function",
+        "name": "navigate_to",
+        "description": "Navigate the platform to an allowed section or open a specific product/app.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "section": {
+                    "type": "string",
+                    "description": "One of the allowed section names.",
+                    "enum": NAV_ALLOWED
+                }
+            },
+            "required": ["section"]
+        }
+    },
+    {
+        "type": "function",
+        "name": "click_control",
+        "description": "Click a whitelisted UI control by its data-agent-id. Use ONLY ids you have been told are available.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "control_id": {
+                    "type": "string",
+                    "description": "A safe, whitelisted control id like 'products.launch:doctor' or 'nav.products'."
+                }
+            },
+            "required": ["control_id"]
+        }
+    },
+    {
+        "type": "function",
+        "name": "chat_ask",
+        "description": "Type a message into the platform's chatbot and submit.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "The exact message to send into the on-platform chatbot."
+                }
+            },
+            "required": ["text"]
+        }
+    }
+]
+
 @app.route('/api/rtc-connect', methods=['POST'])
 def connect_rtc():
     try:
         client_sdp = request.get_data(as_text=True)
         if not client_sdp:
-            return Response("No SDP provided", status=400)
+            return Response("No SDP provided", status=400, mimetype='text/plain')
 
-        # Step 1: Create Realtime session + instructions
+        # Optional client-provided session identifier (not strictly needed for OpenAI)
+        session_id = request.args.get("session_id") or request.headers.get("X-Session-Id") or ""
+
+        # 1) Create the Realtime session with instructions + tools.
         session_payload = {
             "model": MODEL_ID,
             "voice": VOICE,
-            "instructions": DEFAULT_INSTRUCTIONS
+            "instructions": DEFAULT_INSTRUCTIONS + "\n\n" +
+                            "When the user asks you to open pages, click buttons, or type into the chatbot, "
+                            "use the provided tools strictly with the allowed values.",
+            "tools": TOOLS,
+            "tool_choice": "auto",
+            "turn_detection": { "type": "server_vad" },
+            # You can also declare modalities here; audio/text are inferred by WebRTC use.
         }
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
-        session_resp = requests.post(OPENAI_SESSION_URL, headers=headers, json=session_payload)
+        session_resp = requests.post(OPENAI_SESSION_URL, headers=headers, json=session_payload, timeout=30)
         if not session_resp.ok:
-            logger.error(f"Session create failed: {session_resp.text}")
-            return Response("Failed to create realtime session", status=500)
+            logger.error(f"Session create failed: {session_resp.status_code} {session_resp.text}")
+            return Response("Failed to create realtime session", status=500, mimetype='text/plain')
 
         token_data = session_resp.json()
         ephemeral_token = token_data.get("client_secret", {}).get("value")
         if not ephemeral_token:
             logger.error("Ephemeral token missing")
-            return Response("Missing ephemeral token", status=500)
+            return Response("Missing ephemeral token", status=500, mimetype='text/plain')
 
-        # Step 2: SDP exchange
+        # 2) SDP exchange
         sdp_headers = {
             "Authorization": f"Bearer {ephemeral_token}",
             "Content-Type": "application/sdp"
@@ -96,19 +192,19 @@ def connect_rtc():
             params={
                 "model": MODEL_ID,
                 "voice": VOICE
-                # instructions already set at session creation
             },
-            data=client_sdp
+            data=client_sdp,
+            timeout=60
         )
         if not sdp_resp.ok:
-            logger.error(f"SDP exchange failed: {sdp_resp.text}")
-            return Response("SDP exchange error", status=500)
+            logger.error(f"SDP exchange failed: {sdp_resp.status_code} {sdp_resp.text}")
+            return Response("SDP exchange error", status=500, mimetype='text/plain')
 
         return Response(sdp_resp.content, status=200, mimetype='application/sdp')
 
     except Exception as e:
         logger.exception("RTC connection error")
-        return Response(f"Error: {e}", status=500)
+        return Response(f"Error: {e}", status=500, mimetype='text/plain')
 
 @app.route('/api/search', methods=['POST'])
 def search():

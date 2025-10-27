@@ -72,18 +72,18 @@ const NavBar = ({ theme, onToggleTheme }) => {
   return (
     <nav className={`topnav ${open ? "open" : ""}`}>
       <div className="topnav-inner">
-        <a href="#hero" className="brand" onClick={(e) => handleNav(e, "hero")}>
+        <a href="#hero" className="brand" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">
           <img src="/assets/logo.png" alt="DSAH" />
           <span>DSAH AI</span>
         </a>
 
         <div className="topnav-links">
-          <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
-          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")}>Watch Tutorial</a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+          <a href="#hero" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">About</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")} data-agent-id="nav.products">Products</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")} data-agent-id="nav.policy">Our Policy</a>
+          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
           
         </div>
 
@@ -160,12 +160,12 @@ const NavBar = ({ theme, onToggleTheme }) => {
       </div>
 
       <div className="topnav-mobile">
-        <a href="#hero" onClick={(e) => handleNav(e, "hero")}>About</a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")}>Products</a>
-          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")}>Watch Tutorial</a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")}>Our Policy</a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")}>Contact</a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")}>Footer</a>
+        <a href="#hero" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">About</a>
+          <a href="#products" onClick={(e) => handleNav(e, "products")} data-agent-id="nav.products">Products</a>
+          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
+          <a href="#policy" onClick={(e) => handleNav(e, "policy")} data-agent-id="nav.policy">Our Policy</a>
+          <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
+          <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
       </div>
     </nav>
   );
@@ -413,7 +413,6 @@ useEffect(() => {
 
     /* ----------------------------- Glass Cube ----------------------------- */
     const CUBE_SIZE = 170;
-    const cubeGeo = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
     const ripple = buildRippleTexture();
 
     const cubeMat = new THREE.MeshPhysicalMaterial({
@@ -433,11 +432,11 @@ useEffect(() => {
       normalScale: new THREE.Vector2(0.6, 0.6),
     });
 
-    const cube = new THREE.Mesh(cubeGeo, cubeMat);
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), cubeMat);
     cubeRef.current = cube;
 
     // subtle white edges so the cube reads clearly (no colored borders)
-    const edgeGeom = new THREE.EdgesGeometry(cubeGeo, 1);
+    const edgeGeom = new THREE.EdgesGeometry(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 1);
     const edgeMat  = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
     const edgeLines = new THREE.LineSegments(edgeGeom, edgeMat);
     cube.add(edgeLines);
@@ -479,12 +478,20 @@ useEffect(() => {
       colors[ix] = colors[ix+1] = colors[ix+2] = 1.0;
     }
 
-    posRef.current = positions;
-    baseRef.current = base;
-    velRef.current = velocities;
-    spdRef.current = speeds;
-    sizesRef.current = sizes;
-    colorRef.current = colors;
+    const posRefCurrent = positions;
+    const baseRefCurrent = base;
+    const velRefCurrent = velocities;
+    const spdRefCurrent = speeds;
+    const sizesRefCurrent = sizes;
+    const colorRefCurrent = colors;
+
+    // keep refs
+    posRef.current = posRefCurrent;
+    baseRef.current = baseRefCurrent;
+    velRef.current = velRefCurrent;
+    spdRef.current = spdRefCurrent;
+    sizesRef.current = sizesRefCurrent;
+    colorRef.current = colorRefCurrent;
 
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -833,8 +840,8 @@ useEffect(() => {
             We build AI assistants for doctors and patients—reliable, secure, and integrated with DSAH workflows.
           </p>
           <div className="hero-ctas">
-            <a href="#products" className="btn primary">Explore Products</a>
-            <a href="#contact" className="btn ghost">Talk to Us</a>
+            <a href="#products" className="btn primary" data-agent-id="nav.products">Explore Products</a>
+            <a href="#contact" className="btn ghost" data-agent-id="nav.contact">Talk to Us</a>
           </div>
         </div>
 
@@ -846,6 +853,18 @@ useEffect(() => {
 };
 
 /* ------------------------ Product Card (audio ok) ------------------------ */
+const appKeyFromId = (id) => {
+  switch (id) {
+    case 1: return "doctor";
+    case 2: return "transcription";
+    case 3: return "analyst";
+    case 4: return "report";
+    case 5: return "ivf";
+    case 6: return "patient";
+    default: return `app${id}`;
+  }
+};
+
 const AppCard = ({ app, onPlay }) => {
   const { activeCardId } = useCardStore();
   const isActive = activeCardId === app.id;
@@ -872,6 +891,8 @@ const AppCard = ({ app, onPlay }) => {
     }
   }, [isActive, app.id]);
 
+  const key = app.agentKey || appKeyFromId(app.id);
+
   return (
     <div
       ref={cardRef}
@@ -887,8 +908,22 @@ const AppCard = ({ app, onPlay }) => {
         <p className="copy">{app.description}</p>
 
         <div className="app-actions" style={{ display: 'flex', gap: '1rem' }}>
-          <a href={app.link} className="btn" target="_blank" rel="noopener noreferrer">Launch</a>
-          <button onClick={() => onPlay(app.helpVideo)} className="btn">Help</button>
+          <a
+            href={app.link}
+            className="btn"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-agent-id={`products.launch:${key}`}
+          >
+            Launch
+          </a>
+          <button
+            onClick={() => onPlay(app.helpVideo)}
+            className="btn"
+            data-agent-id={`products.help:${key}`}
+          >
+            Help
+          </button>
         </div>
 
         {isActive && (
@@ -918,9 +953,9 @@ const Footer = () => (
       <div className="footer-col">
         <h4>Quick Links</h4>
         <ul>
-          <li><a href="#hero">About</a></li>
-          <li><a href="#products">Products</a></li>
-          <li><a href="#contact">Contact</a></li>
+          <li><a href="#hero" data-agent-id="nav.about">About</a></li>
+          <li><a href="#products" data-agent-id="nav.products">Products</a></li>
+          <li><a href="#contact" data-agent-id="nav.contact">Contact</a></li>
         </ul>
       </div>
       <div className="footer-col">
@@ -958,6 +993,7 @@ const App = () => {
       icon: "/icons/doctorAI.svg",
       link: "https://ai-doctor-assistant-app-dev.onrender.com",
       helpVideo: "/videos/doctorai.mp4",
+      agentKey: "doctor",
     },
     {
       id: 2, name: "📋 Medical Transcription App",
@@ -965,6 +1001,7 @@ const App = () => {
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
       helpVideo: "/videos/transcriptionapp.mp4",
+      agentKey: "transcription",
     },
     {
       id: 3, name: "📊 AI-Powered Data Analyst",
@@ -972,6 +1009,7 @@ const App = () => {
       icon: "/icons/dashboard.svg",
       link: "/videos/unddev.mp4",
       helpVideo: "/videos/unddev.mp4",
+      agentKey: "analyst",
     },
     {
       id: 4, name: "🧠 Medical Report Enhancement App",
@@ -979,6 +1017,7 @@ const App = () => {
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
       helpVideo: "/videos/medreport.mp4",
+      agentKey: "report",
     },
     {
       id: 5, name: "🧠 IVF Virtual Training Assistant",
@@ -986,6 +1025,7 @@ const App = () => {
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
       helpVideo: "/videos/ivf.mp4",
+      agentKey: "ivf",
     },
     {
       id: 6, name: "💬 Patient Assistant",
@@ -993,8 +1033,85 @@ const App = () => {
       icon: "/icons/voice.svg",
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
       helpVideo: "/videos/unddev.mp4",
+      agentKey: "patient",
+    },
+    // Survey card for completeness (tool can open via navigate_to "survey")
+    {
+      id: 7, name: "📝 Platform Survey",
+      description: "Share feedback about the AI applications you use",
+      icon: "/icons/clipboard.svg",
+      link: surveyUrl,
+      helpVideo: "/videos/unddev.mp4",
+      agentKey: "survey",
     },
   ];
+
+  // ===== Agent navigation + chatbot bridge =====
+  useEffect(() => {
+    // Provide a stable programmatic API for the voice agent
+    window.agentNavigate = (section) => {
+      const s = String(section || "").toLowerCase();
+
+      // Page sections
+      if (s === "home") { jump("hero"); return; }
+      if (s === "products") { jump("products"); return; }
+      if (s === "policy") { jump("policy"); return; }
+      if (s === "watch_tutorial") { jump("watch_tutorial"); return; }
+      if (s === "contact") { jump("contact"); return; }
+      if (s === "footer") { jump("footer"); return; }
+
+      // Product/app shortcuts
+      if (s === "doctor") { window.open(urls.doctor, "_blank", "noopener,noreferrer"); return; }
+      if (s === "transcription") { window.open(urls.transcript, "_blank", "noopener,noreferrer"); return; }
+      if (s === "analyst") { window.open(urls.analyst, "_blank", "noopener,noreferrer"); return; }
+      if (s === "report") { window.open(urls.report, "_blank", "noopener,noreferrer"); return; }
+      if (s === "ivf") { window.open(urls.ivf, "_blank", "noopener,noreferrer"); return; }
+      if (s === "patient") { window.open(urls.patient, "_blank", "noopener,noreferrer"); return; }
+      if (s === "survey") { window.open(urls.survey, "_blank", "noopener,noreferrer"); return; }
+
+      if (s === "chat") {
+        try {
+          // Best-effort hooks many widgets use:
+          window.ChatBot?.open?.();
+          // If your ChatBot exposes a focus method or DOM query, use it here as well.
+        } catch {}
+        // Also scroll near the bottom where ChatBot lives if needed
+        try { document.querySelector(".chatbot-root")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
+        return;
+      }
+    };
+
+    // Event variant (used by VoiceAssistant if agentNavigate isn't present yet)
+    const onAgentNavigate = (e) => window.agentNavigate?.(e.detail?.section);
+    window.addEventListener("agent:navigate", onAgentNavigate);
+
+    // Chat ask bridge: The agent can send a message to the on-site chatbot
+    // Provide a default implementation using a DOM event the ChatBot can listen for.
+    window.ChatBotBridge = {
+      sendMessage: (text) => {
+        // Preferred: direct API if your ChatBot exposes one
+        try { window.ChatBot?.open?.(); } catch {}
+        try { window.ChatBot?.sendMessage?.(text); return; } catch {}
+
+        // Fallback: dispatch a DOM event the ChatBot component can subscribe to
+        window.dispatchEvent(new CustomEvent("chatbot:send", { detail: { text } }));
+      }
+    };
+
+    const onAgentChatAsk = (e) => {
+      const t = e.detail?.text || "";
+      if (!t) return;
+      window.ChatBotBridge?.sendMessage?.(t);
+    };
+    window.addEventListener("agent:chat.ask", onAgentChatAsk);
+
+    return () => {
+      window.removeEventListener("agent:navigate", onAgentNavigate);
+      window.removeEventListener("agent:chat.ask", onAgentChatAsk);
+      try { delete window.agentNavigate; } catch {}
+      try { delete window.ChatBotBridge; } catch {}
+    };
+  }, []);
 
   return (
     <div className="container">
@@ -1044,7 +1161,7 @@ const App = () => {
       <div className="section-title" href="#watch_tutorial" id="watch_tutorial">
         <VideoCarousel />
       </div>
-      <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey">
+      <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
         Take Survey 📝
       </a>
 

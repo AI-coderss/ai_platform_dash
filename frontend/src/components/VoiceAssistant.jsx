@@ -1,3 +1,5 @@
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
@@ -9,6 +11,105 @@ import useUiStore from "./store/useUiStore"; // ⬅️ NEW
 const peerConnectionRef = React.createRef();
 const dataChannelRef = React.createRef();
 const localStreamRef = React.createRef();
+
+/**
+ * Agent-safe, whitelisted sections the model is allowed to navigate to.
+ * Keep this list consistent with the backend tool enum.
+ */
+const ALLOWED_SECTIONS = new Set([
+  "home", "products", "policy", "watch_tutorial", "contact", "footer",
+  "chat",
+  "doctor", "transcription", "analyst", "report", "ivf", "patient", "survey",
+]);
+
+/**
+ * Whitelisted clickable control ids (data-agent-id values).
+ * Add/remove as your UI evolves. These exist in App.jsx (top nav + product cards).
+ */
+const ALLOWED_CONTROL_IDS = new Set([
+  // Top nav
+  "nav.about",
+  "nav.products",
+  "nav.policy",
+  "nav.watch_tutorial",
+  "nav.contact",
+  "nav.footer",
+
+  // Product launches
+  "products.launch:doctor",
+  "products.launch:transcription",
+  "products.launch:analyst",
+  "products.launch:report",
+  "products.launch:ivf",
+  "products.launch:patient",
+  "products.launch:survey",
+
+  // Product help buttons
+  "products.help:doctor",
+  "products.help:transcription",
+  "products.help:analyst",
+  "products.help:report",
+  "products.help:ivf",
+  "products.help:patient",
+  "products.help:survey",
+]);
+
+/** Tool schemas sent to the Realtime session via session.update (mirrors backend). */
+const TOOL_SCHEMAS = [
+  {
+    type: "function",
+    name: "navigate_to",
+    description: "Navigate the platform to an allowed section or open a specific product/app.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        section: {
+          type: "string",
+          description: "One of the allowed section names.",
+          enum: Array.from(ALLOWED_SECTIONS),
+        },
+      },
+      required: ["section"],
+    },
+  },
+  {
+    type: "function",
+    name: "click_control",
+    description:
+      "Click a whitelisted UI control by its data-agent-id. Use ONLY ids you have been told are available.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        control_id: {
+          type: "string",
+          description:
+            "A safe, whitelisted control id like 'products.launch:doctor' or 'nav.products'.",
+        },
+      },
+      required: ["control_id"],
+    },
+  },
+  {
+    type: "function",
+    name: "chat_ask",
+    description: "Type a message into the platform's chatbot and submit.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        text: {
+          type: "string",
+          minLength: 1,
+          maxLength: 500,
+          description: "The exact message to send into the on-platform chatbot.",
+        },
+      },
+      required: ["text"],
+    },
+  },
+];
 
 const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +124,11 @@ const VoiceAssistant = () => {
   // ⬇️ NEW: shared UI store flags/actions
   const { hideVoiceBtn, chooseVoice, resetToggles } = useUiStore();
 
+  // Buffer of streaming tool-call arguments by id
+  const toolBuffersRef = useRef(new Map());
+  // Small dedupe window for clicks
+  const recentClicksRef = useRef(new Map());
+
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
       dragConstraintsRef.current = document.body;
@@ -31,15 +137,15 @@ const VoiceAssistant = () => {
 
   const cleanupWebRTC = () => {
     if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
+      try { peerConnectionRef.current.close(); } catch {}
       peerConnectionRef.current = null;
     }
     if (dataChannelRef.current) {
-      dataChannelRef.current.close();
+      try { dataChannelRef.current.close(); } catch {}
       dataChannelRef.current = null;
     }
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
+      try { localStreamRef.current.getTracks().forEach(track => track.stop()); } catch {}
       localStreamRef.current = null;
     }
     setConnectionStatus("idle");
@@ -64,6 +170,34 @@ const VoiceAssistant = () => {
     });
   };
 
+  const sendSessionUpdate = () => {
+    const ch = dataChannelRef.current;
+    if (!ch || ch.readyState !== "open") return;
+
+    const instruction =
+      "You are the Instructional Chatbot voice assistant for the DSAH AI platform. " +
+      "Speak briefly. When the user asks to open sections, click specific buttons, or ask the on-site chatbot a question, " +
+      "use the appropriate tool (navigate_to, click_control, chat_ask). " +
+      "Only use allowed sections and whitelisted control ids. If unsure, ask a short clarification.";
+
+    const msg = {
+      type: "session.update",
+      session: {
+        voice: "alloy",
+        modalities: ["text", "audio"],
+        turn_detection: { type: "server_vad" },
+        tools: TOOL_SCHEMAS,
+        tool_choice: { type: "auto" },
+        instructions: instruction,
+      },
+    };
+    try {
+      ch.send(JSON.stringify(msg));
+    } catch (e) {
+      console.warn("session.update send failed:", e);
+    }
+  };
+
   const startWebRTC = async () => {
     if (peerConnectionRef.current || connectionStatus === "connecting") return;
     setConnectionStatus("connecting");
@@ -79,11 +213,14 @@ const VoiceAssistant = () => {
       peerConnectionRef.current = pc;
 
       pc.ontrack = (event) => {
-        console.log("✅ Received remote audio track!");
         if (event.streams && event.streams[0]) {
           const stream = event.streams[0];
-          audioPlayerRef.current.srcObject = stream;
-          audioPlayerRef.current.play().catch(e => console.error("Audio play failed:", e));
+          if (audioPlayerRef.current) {
+            audioPlayerRef.current.srcObject = stream;
+            audioPlayerRef.current
+              .play()
+              .catch(e => console.error("Audio play failed:", e));
+          }
           setRemoteStream(stream);
         }
       };
@@ -94,41 +231,85 @@ const VoiceAssistant = () => {
       dataChannelRef.current = channel;
 
       channel.onopen = () => {
-        console.log("✅ Data channel opened");
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
 
-        const sessionConfig = {
-          type: "session.update",
-          session: { modalities: ["text", "audio"], turn_detection: "vad" },
-        };
-        channel.send(JSON.stringify(sessionConfig));
+        // Send a minimal kick message (optional) + register tools/instructions
+        try {
+          channel.send(JSON.stringify({
+            type: "response.create",
+            response: { modalities: ["text", "audio"] },
+          }));
+        } catch {}
 
-        const createResponse = {
-          type: "response.create",
-          response: { modalities: ["text", "audio"] },
-        };
-        channel.send(JSON.stringify(createResponse));
+        // Prime tool schemas/instructions
+        sendSessionUpdate();
       };
 
       channel.onmessage = async (event) => {
-        const msg = JSON.parse(event.data);
-        console.log("<- Received message:", msg);
+        let msg;
+        try {
+          msg = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        // ---- Standard text/ASR messages ----
         switch (msg.type) {
           case "conversation.item.input_audio_transcription.completed":
-            setTranscript(msg.transcript);
+            setTranscript(msg.transcript || "");
             setResponseText("");
             break;
           case "response.text.delta":
-            setResponseText((prev) => prev + msg.delta);
+            setResponseText((prev) => prev + (msg.delta || ""));
             break;
           case "response.done":
-            console.log("Response finished.");
             setTranscript("");
             break;
           default:
             break;
+        }
+
+        // ---- Tool call lifecycle (delta buffering → done → dispatch) ----
+        // Realtime variants to be robust:
+        if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
+          const id = msg.item.call_id || msg.item.id || "default";
+          const name = msg.item.name || "";
+          const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
+          prev.name = name || prev.name;
+          toolBuffersRef.current.set(id, prev);
+          return;
+        }
+
+        if (msg.type === "response.function_call_arguments.delta" || msg.type === "tool_call.delta") {
+          const id = msg.call_id || msg.id || "default";
+          const delta = msg.delta || msg.arguments_delta || "";
+          const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
+          prev.argsText += (delta || "");
+          toolBuffersRef.current.set(id, prev);
+          return;
+        }
+
+        if (
+          msg.type === "response.function_call_arguments.done" ||
+          msg.type === "tool_call_arguments.done" ||
+          msg.type === "response.function_call.completed" ||
+          msg.type === "tool_call.completed"
+        ) {
+          const id = msg.call_id || msg.id || "default";
+          const buf = toolBuffersRef.current.get(id);
+          toolBuffersRef.current.delete(id);
+          if (!buf) return;
+
+          const name = buf.name || "unknown_tool";
+          let args = {};
+          try {
+            args = JSON.parse(buf.argsText || "{}");
+          } catch (e) {
+            console.warn("Failed parsing tool args:", e, buf.argsText);
+          }
+          handleToolCall(name, args);
         }
       };
 
@@ -139,19 +320,22 @@ const VoiceAssistant = () => {
       };
 
       channel.onclose = () => {
-        console.log("Data channel closed");
         cleanupWebRTC();
       };
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
-        console.log(`Connection state changed to: ${state}`);
-        if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+        if (state === "failed" || state === "disconnected" || state === "closed") {
           cleanupWebRTC();
         }
       };
 
-      const offer = await pc.createOffer();
+      const offer = await pc.createOffer({ offerToReceiveAudio: true });
+      // Opus tuning (optional)
+      offer.sdp = offer.sdp.replace(
+        /a=rtpmap:\d+ opus\/48000\/2/g,
+        "a=rtpmap:111 opus/48000/2\r\n" + "a=fmtp:111 minptime=10;useinbandfec=1"
+      );
       await pc.setLocalDescription(offer);
 
       const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect", {
@@ -173,6 +357,56 @@ const VoiceAssistant = () => {
     }
   };
 
+  // ---- Tool execution handlers ----
+  const handleToolCall = (name, args) => {
+    if (!name) return;
+
+    if (name === "navigate_to") {
+      const section = String(args?.section || "").trim();
+      if (!ALLOWED_SECTIONS.has(section)) return;
+      // Prefer direct function if provided, otherwise event
+      if (window.agentNavigate && typeof window.agentNavigate === "function") {
+        try { window.agentNavigate(section); } catch {}
+      } else {
+        window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } }));
+      }
+      return;
+    }
+
+    if (name === "click_control") {
+      const id = String(args?.control_id || "").trim();
+      if (!ALLOWED_CONTROL_IDS.has(id)) return;
+      // dedupe: avoid accidental double-click sprees
+      const now = Date.now();
+      const last = recentClicksRef.current.get(id) || 0;
+      if (now - last < 400) return;
+      recentClicksRef.current.set(id, now);
+
+      const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
+      if (el) {
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch {}
+        // Focus then click for accessibility
+        try { el.focus({ preventScroll: true }); } catch {}
+        try { el.click(); } catch {}
+      }
+      return;
+    }
+
+    if (name === "chat_ask") {
+      const text = String(args?.text || "").trim();
+      if (!text) return;
+      // Try a direct bridge API if available, else fire an event
+      if (window.ChatBotBridge && typeof window.ChatBotBridge.sendMessage === "function") {
+        try { window.ChatBotBridge.sendMessage(text); } catch {}
+      } else {
+        window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } }));
+      }
+      return;
+    }
+  };
+
   const toggleMic = () => {
     if (connectionStatus === "connected" && localStreamRef.current) {
       const nextState = !isMicActive;
@@ -180,7 +414,6 @@ const VoiceAssistant = () => {
       localStreamRef.current.getAudioTracks().forEach(track => {
         track.enabled = nextState;
       });
-      console.log(`Microphone ${nextState ? 'enabled' : 'disabled'}`);
     }
   };
 
@@ -241,6 +474,3 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
-
-
-
