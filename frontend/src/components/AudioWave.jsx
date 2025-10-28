@@ -1,140 +1,38 @@
-/* eslint-disable no-unused-vars */
-import React, { useEffect, useRef } from "react";
-import "../styles/AudioWave.css";
+import React, { useEffect, useRef } from 'react';
+import '../styles/AudioWave.css';
 
-/**
- * Props:
- *  - stream?: MediaStream
- *  - audioUrl?: string
- *  - onEnded?: () => void
- *  - boost?: number       (subtle vertical exaggeration; default 1.1)
- *  - height?: number      (CSS pixel height; default 56)
- *  - smoothness?: number  (0..1, higher = smoother; default 0.9)
- */
-const AudioWave = ({
-  stream,
-  audioUrl,
-  onEnded,
-  boost = 1.1,
-  height = 56,
-  smoothness = 0.9,
-}) => {
+const AudioWave = ({ stream, audioUrl, onEnded }) => {
   const canvasRef = useRef(null);
-
-  const audioRef = useRef(null);
-  const audioCtxRef = useRef(null);
+  const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
-  const gainSilentRef = useRef(null);
-  const sourceRef = useRef(null);
-  const rafRef = useRef(null);
-  const resizeObsRef = useRef(null);
-  const smoothLevelRef = useRef(0.0);
+  const animationFrameIdRef = useRef(null);
 
-  const cleanupAudio = () => {
-    cancelAnimationFrame(rafRef.current || 0);
-    rafRef.current = null;
-
-    try { analyserRef.current?.disconnect(); } catch {}
-    try { gainSilentRef.current?.disconnect(); } catch {}
-    try { sourceRef.current?.disconnect(); } catch {}
-
-    analyserRef.current = null;
-    gainSilentRef.current = null;
-    sourceRef.current = null;
-
-    if (audioRef.current) {
-      try { audioRef.current.pause(); } catch {}
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-      audioCtxRef.current.close().catch(() => {});
-    }
-    audioCtxRef.current = null;
-  };
-
-  const ensureAudioContext = async () => {
-    if (audioCtxRef.current) return audioCtxRef.current;
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    const ctx = new Ctx();
-    audioCtxRef.current = ctx;
-    if (ctx.state === "suspended") {
-      try { await ctx.resume(); } catch {}
-    }
-    return ctx;
-  };
-
-  const resumeOnGestureOnce = () => {
-    const resume = async () => {
-      if (audioCtxRef.current?.state === "suspended") {
-        try { await audioCtxRef.current.resume(); } catch {}
-      }
-      window.removeEventListener("pointerdown", resume);
-      window.removeEventListener("keydown", resume);
-    };
-    window.addEventListener("pointerdown", resume, { once: true });
-    window.addEventListener("keydown", resume, { once: true });
-  };
-
-  const setupCanvasSizing = () => {
+  useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.parentElement?.clientWidth || 600;
 
-    const parent = canvas.parentElement;
-    const ctx = canvas.getContext("2d");
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.height = 300;
 
-    const applySize = () => {
-      const w = (parent?.clientWidth || 300);
-      const h = (parent?.clientHeight || height);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      canvas.width = Math.max(2, Math.floor(w * dpr));
-      canvas.height = Math.max(2, Math.floor(h * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const turbulenceFactor = 0.25;
+    const maxAmplitude = canvas.height / 3.5;
+    const baseLine = canvas.height / 2;
+    const numberOfWaves = 10;
+    let globalTime = 0;
+
+    const createGradient = () => {
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, 'rgba(255, 25, 255, 0.2)');
+      gradient.addColorStop(0.5, 'rgba(25, 255, 255, 0.75)');
+      gradient.addColorStop(1, 'rgba(255, 255, 25, 0.2)');
+      return gradient;
     };
 
-    applySize();
+    const gradient = createGradient();
 
-    try { resizeObsRef.current?.disconnect(); } catch {}
-    resizeObsRef.current = new ResizeObserver(applySize);
-    resizeObsRef.current.observe(parent || canvas);
-  };
-
-  const draw = (ctx, analyser, canvas, dpr) => {
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    // Softer motion
-    const turbulenceFactor = 0.12;
-    const maxAmplitude = (canvas.height / dpr) / 6 * boost;  // smaller than before
-    const baseLine = (canvas.height / dpr) / 2;
-    const numberOfWaves = 8;                                  // slightly fewer lines
-    let t = 0;
-
-    const gradient = (() => {
-      const g = ctx.createLinearGradient(0, 0, canvas.width / dpr, 0);
-      g.addColorStop(0,   "rgba(255, 25, 255, 0.25)");
-      g.addColorStop(0.5, "rgba(25, 255, 255, 0.85)");
-      g.addColorStop(1,   "rgba(255, 255, 25, 0.25)");
-      return g;
-    })();
-
-    const animate = () => {
-      if (!analyserRef.current) return;
-
-      analyser.getByteFrequencyData(dataArray);
-
-      // Compute a global, smoothed energy (keeps wave near center)
-      const avg = dataArray.reduce((a, b) => a + b, 0) / (bufferLength * 255);
-      smoothLevelRef.current =
-        smoothness * smoothLevelRef.current + (1 - smoothness) * avg;
-
-      const energyScale = 0.85 + 0.25 * smoothLevelRef.current; // ~0.85..1.1
-      const viewW = canvas.width / dpr;
-
+    const drawWave = (dataArray) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      t += 0.04;
+      globalTime += 0.05;
 
       for (let j = 0; j < numberOfWaves; j++) {
         ctx.beginPath();
@@ -142,18 +40,19 @@ const AudioWave = ({
         ctx.strokeStyle = gradient;
 
         let x = 0;
-        const sliceWidth = viewW / dataArray.length;
+        const sliceWidth = canvas.width / dataArray.length;
         let lastX = 0;
         let lastY = baseLine;
 
         for (let i = 0; i < dataArray.length; i++) {
-          // gentle per-sample variance around a midline
-          const damp = 1 - Math.pow((2 * i) / dataArray.length - 1, 2);
-          const amplitude = maxAmplitude * damp * energyScale;
-
-          const invert = j % 2 ? 1 : -1;
-          const freq = invert * (0.05 + turbulenceFactor);
-          const y = baseLine + Math.sin(i * freq + t + j) * amplitude;
+          const v = dataArray[i] / 128.0;
+          const mid = dataArray.length / 2;
+          const distanceFromMid = Math.abs(i - mid) / mid;
+          const dampFactor = 1 - Math.pow((2 * i) / dataArray.length - 1, 2);
+          const amplitude = maxAmplitude * dampFactor * (1 - distanceFromMid);
+          const isWaveInverted = j % 2 ? 1 : -1;
+          const frequency = isWaveInverted * (0.05 + turbulenceFactor);
+          const y = baseLine + Math.sin(i * frequency + globalTime + j) * amplitude * v;
 
           if (i === 0) ctx.moveTo(x, y);
           else {
@@ -167,111 +66,72 @@ const AudioWave = ({
           x += sliceWidth;
         }
 
-        ctx.lineTo(canvas.width / dpr, lastY);
+        ctx.lineTo(canvas.width, lastY);
         ctx.stroke();
       }
-
-      rafRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
-  };
+    const animate = () => {
+      const analyser = analyserRef.current;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  const setupFromStream = async (mediaStream) => {
-    if (!mediaStream) return;
+      analyser.getByteFrequencyData(dataArray);
+      drawWave(dataArray);
+      animationFrameIdRef.current = requestAnimationFrame(animate);
+    };
 
-    // Wait until an audio track is present
-    const tracks = mediaStream.getAudioTracks?.() || [];
-    if (tracks.length === 0) {
-      const retry = () => setupFromStream(mediaStream);
-      const id = setInterval(() => {
-        const t = mediaStream.getAudioTracks?.() || [];
-        if (t.length > 0) {
-          clearInterval(id);
-          retry();
-        }
-      }, 150);
-      setTimeout(() => clearInterval(id), 5000);
-      return;
-    }
+    const setupFromStream = (stream) => {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
 
-    const ctx = await ensureAudioContext();
-    resumeOnGestureOnce();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
 
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.9; // smoother
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      animate();
+    };
 
-    const source = ctx.createMediaStreamSource(mediaStream);
-    source.connect(analyser);
+    const setupFromAudio = (url) => {
+      const audio = new Audio(url);
+      audio.crossOrigin = 'anonymous';
+      audio.play();
 
-    // Safari: need chain to destination to tick analysis (muted)
-    const silent = ctx.createGain();
-    silent.gain.value = 0;
-    analyser.connect(silent);
-    silent.connect(ctx.destination);
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioContext;
 
-    analyserRef.current = analyser;
-    sourceRef.current = source;
-    gainSilentRef.current = silent;
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
 
-    const canvas = canvasRef.current;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    draw(canvas.getContext("2d"), analyser, canvas, dpr);
-  };
+      const source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
 
-  const setupFromAudioUrl = async (url) => {
-    const ctx = await ensureAudioContext();
-    resumeOnGestureOnce();
+      animate();
 
-    const el = new Audio(url);
-    el.crossOrigin = "anonymous";
-    el.loop = false;
-    el.preload = "auto";
-    el.play().catch(() => {});
-    audioRef.current = el;
-
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.9;
-
-    const source = ctx.createMediaElementSource(el);
-    source.connect(analyser);
-    analyser.connect(ctx.destination);
-
-    analyserRef.current = analyser;
-    sourceRef.current = source;
-
-    el.addEventListener("ended", () => {
-      onEnded?.();
-      cleanupAudio();
-    });
-
-    const canvas = canvasRef.current;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    draw(canvas.getContext("2d"), analyser, canvas, dpr);
-  };
-
-  useEffect(() => {
-    setupCanvasSizing();
+      audio.addEventListener('ended', () => {
+        onEnded?.();
+        cancelAnimationFrame(animationFrameIdRef.current);
+        if (audioContext.state !== 'closed') audioContext.close();
+      });
+    };
 
     if (stream) setupFromStream(stream);
-    else if (audioUrl) setupFromAudioUrl(audioUrl);
+    else if (audioUrl) setupFromAudio(audioUrl);
 
     return () => {
-      try { resizeObsRef.current?.disconnect(); } catch {}
-      resizeObsRef.current = null;
-      cleanupAudio();
+      cancelAnimationFrame(animationFrameIdRef.current);
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stream, audioUrl]);
+  }, [stream, audioUrl, onEnded]);
 
   return (
-    <div
-      className="container-audio-wave"
-      style={{ width: "100%", height: `${height}px`, pointerEvents: "none" }}
-    >
-      <canvas ref={canvasRef} />
+    <div className="container-audio-wave">
+      <canvas ref={canvasRef} id="waveCanvas"></canvas>
     </div>
   );
 };
