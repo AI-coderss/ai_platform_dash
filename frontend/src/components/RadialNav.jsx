@@ -38,6 +38,25 @@ const RadialNav = ({ items, lift = 132 }) => {
 
   const faceRef = useRef(null);
 
+  // --- rotation (drag) state & helpers (ADDED) ---
+  const draggingRef = useRef(false);
+  const startAngleRef = useRef(0);
+  const rotorStartRef = useRef(0);
+
+  const clampDeg = (d) => ((d % 360) + 360) % 360;
+
+  // absolute angle (0..360) from pointer
+  const eventAngle = (ev) => {
+    const r = faceRef.current.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dx = ev.clientX - cx;
+    const dy = ev.clientY - cy;
+    let a = (Math.atan2(dy, dx) * 180) / Math.PI; // -180..180
+    if (a < 0) a += 360;                            // -> 0..360
+    return { a, dx, dy, r };
+  };
+
   // Default website sections
   const navItems = useMemo(
     () =>
@@ -169,6 +188,34 @@ const RadialNav = ({ items, lift = 132 }) => {
     }
   };
 
+  // --- drag-to-rotate handlers (ADDED) ---
+  const onPointerDown = (ev) => {
+    if (!isOpen || !faceRef.current) return;
+    draggingRef.current = true;
+    ev.currentTarget.setPointerCapture?.(ev.pointerId);
+    const { a } = eventAngle(ev);
+    startAngleRef.current = a;
+    rotorStartRef.current = rotorDeg;
+  };
+
+  const onPointerMove = (ev) => {
+    if (!isOpen || !faceRef.current) return;
+
+    // keep hover highlight/live light updating during drag
+    updateHoverFromMouse(ev);
+
+    if (!draggingRef.current) return;
+    const { a } = eventAngle(ev);
+    const delta = a - startAngleRef.current;
+    setRotorDeg(clampDeg(rotorStartRef.current + delta));
+  };
+
+  const onPointerUp = (ev) => {
+    if (!isOpen || !faceRef.current) return;
+    draggingRef.current = false;
+    ev.currentTarget.releasePointerCapture?.(ev.pointerId);
+  };
+
   // Navigation behavior
   const runItem = (it) => {
     if (it.onClick) it.onClick();
@@ -198,6 +245,9 @@ const RadialNav = ({ items, lift = 132 }) => {
           }}
           onMouseMove={updateHoverFromMouse}
           onMouseLeave={clearHover}
+          onPointerDown={onPointerDown}   // ADDED
+          onPointerMove={onPointerMove}   // ADDED
+          onPointerUp={onPointerUp}       // ADDED
         >
           <div className="rn-ring" />
           <div className="rn-separators" />
@@ -240,6 +290,3 @@ const RadialNav = ({ items, lift = 132 }) => {
 };
 
 export default RadialNav;
-
-
-
