@@ -82,10 +82,8 @@ const TOOL_SCHEMAS = [
 ];
 
 /* =====================================================================================
-   ReactiveOrb — WebGL “electric sun” orb (perfect circle + faster spin + rich hover)
-   - Square canvas with aspect-ratio 1 => never clipped/oval
-   - Faster rotation (prop `speed`)
-   - Blue palette blends to warm sun flares on hover + with audio level
+   ReactiveOrb — keep your design; only enforce circle, lock canvas size, and
+   make rotation speed react to audio level.
 ===================================================================================== */
 const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
   const hostRef = useRef(null);
@@ -97,7 +95,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
   const orbMatRef = useRef(null);
   const haloRef = useRef(null);
   const rafRef = useRef(0);
-  const roRef = useRef(null);
 
   // audio analysis
   const audioCtxRef = useRef(null);
@@ -160,11 +157,10 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     return f;
   }`;
 
-  // vertex: stronger displacement; parameters set via uniforms
   const vtx = `
   uniform float u_time;
-  uniform float u_audio;     // 0..1
-  uniform float u_hover;     // 0..1
+  uniform float u_audio;
+  uniform float u_hover;
   uniform float u_dispBase;
   uniform float u_dispAudio;
   uniform float u_dispHover;
@@ -178,17 +174,14 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     vec3 P = normal * 2.0 + vec3(u_time*0.22, u_time*0.18, u_time*0.16);
     float n = fbm(P);
     vNoise = n;
-
     float disp = (u_dispBase + u_dispAudio * u_audio + u_dispHover * u_hover) * n;
     vec3 displaced = position + normal * disp;
-
     vec4 wp = modelMatrix * vec4(displaced, 1.0);
     vWorldPos = wp.xyz;
     vViewDir = normalize(cameraPosition - wp.xyz);
     gl_Position = projectionMatrix * viewMatrix * wp;
   }`;
 
-  // fragment: blue→warm palette blend (hover & audio), vivid hotspot
   const frg = `
   precision highp float;
   uniform float u_time;
@@ -200,58 +193,39 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
   varying vec3 vWorldPos;
   varying vec3 vViewDir;
   varying float vNoise;
-
-  // Blue palette (base)
   const vec3 b_core1 = vec3(0.03, 0.06, 0.13);
   const vec3 b_core2 = vec3(0.05, 0.15, 0.35);
   const vec3 b_glow1 = vec3(0.00, 0.72, 1.00);
   const vec3 b_glow2 = vec3(0.42, 0.90, 1.00);
-
-  // Warm palette (sun)
   const vec3 w_core1 = vec3(0.10, 0.02, 0.00);
   const vec3 w_core2 = vec3(0.72, 0.22, 0.03);
   const vec3 w_glow1 = vec3(1.00, 0.45, 0.05);
   const vec3 w_glow2 = vec3(1.00, 0.80, 0.30);
-
   float fresnel(vec3 n, vec3 v, float p){
     return pow(1.0 - max(dot(normalize(n), normalize(v)), 0.0), p);
   }
-
   void main() {
-    // plasma from noise
     float bands = sin(9.0 * vNoise + u_time*1.6);
     float plasma = smoothstep(-0.9, 0.9, bands);
-
-    // mix factor: warm colors rise on hover + with audio
     float warm = clamp(0.65*u_hover + 0.5*u_audio, 0.0, 1.0);
-
     vec3 coreBlue = mix(b_core1, b_core2, plasma);
     vec3 coreWarm = mix(w_core1, w_core2, plasma);
     vec3 baseCol  = mix(coreBlue, coreWarm, warm);
-
-    // fresnel rim (color also blends)
     float fr = fresnel(vNormal, vViewDir, 2.4 + 3.3*u_audio);
     vec3 rimBlue = mix(b_glow1, b_glow2, 0.5 + 0.5*sin(u_time*1.5));
     vec3 rimWarm = mix(w_glow1, w_glow2, 0.5 + 0.5*sin(u_time*1.8));
     vec3 rimCol  = mix(rimBlue, rimWarm, warm);
-
     vec3 col = baseCol + fr * rimCol * (1.1 + 1.7*u_audio);
-
-    // sparkles
     float spark = smoothstep(0.70, 1.0, fract(vNoise*9.0 + u_time*0.9));
     col += spark * 0.10 * mix(b_glow2, w_glow2, warm);
-
-    // hover hotspot on rim (now much more obvious)
     vec2 nv = normalize(vNormal.xy);
     float dirMatch = max(0.0, dot(nv, normalize(u_hotDir)));
     float rimness = smoothstep(0.25, 0.88, fresnel(vNormal, vViewDir, 2.2));
     float hotspot = pow(dirMatch, 12.0) * rimness * (0.35 + 1.2*u_hover);
     col += hotspot * mix(b_glow2, w_glow1, warm) * 2.2;
-
     gl_FragColor = vec4(col, 1.0);
   }`;
 
-  // halo (outside additive glow), tint changes with hover/audio
   const haloFrg = `
   precision highp float;
   uniform float u_time;
@@ -268,7 +242,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     gl_FragColor = vec4(c, a*0.55);
   }`;
 
-  // init three scene once
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
@@ -278,10 +251,14 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     camera.position.set(0, 0, 3.0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
-    renderer.setClearAlpha(0); // transparent
+    renderer.setClearAlpha(0);
     host.appendChild(renderer.domElement);
 
-    // sphere (slightly smaller so halo never clips in the card)
+    // 🔒 perfect circle mask on both wrapper and canvas
+    host.style.borderRadius = "50%";
+    host.style.overflow = "hidden";
+    renderer.domElement.style.borderRadius = "50%";
+
     const geo = new THREE.SphereGeometry(0.92, 196, 196);
     const orbMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -301,7 +278,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     const orb = new THREE.Mesh(geo, orbMat);
     scene.add(orb);
 
-    // halo (slightly larger sphere, additive)
     const haloGeo = new THREE.SphereGeometry(1.08, 160, 160);
     const haloMat = new THREE.ShaderMaterial({
       uniforms: { u_time: { value: 0 }, u_audio: { value: 0 }, u_tint: { value: new THREE.Color(0x00b7ff) } },
@@ -321,22 +297,15 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     const halo = new THREE.Mesh(haloGeo, haloMat);
     scene.add(halo);
 
-    // subtle ambient
     scene.add(new THREE.AmbientLight(0x2244ff, 0.08));
 
-    // sizing — enforce perfect square canvas so circle never squashes/clips
-    const resize = () => {
-      const d = Math.min(size, host.clientWidth || size);
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-      renderer.setSize(d, d, false);
-      camera.aspect = 1;
-      camera.updateProjectionMatrix();
-      orbMat.uniforms.u_res.value.set(d, d);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(host);
-    roRef.current = ro;
+    // 🔒 lock canvas size — no ResizeObserver, no layout-driven changes
+    const d = size;
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setSize(d, d, false);
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
+    orbMat.uniforms.u_res.value.set(d, d);
 
     sceneRef.current = scene;
     cameraRef.current = camera;
@@ -345,7 +314,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     orbMatRef.current = orbMat;
     haloRef.current = halo;
 
-    // pointer interactions: hover, hotspot angle, gentle tilt toward cursor
+    // hover/tilt
     const onEnter = () => (hoverRef.current = 1);
     const onLeave = () => { hoverRef.current = 0; tiltTargetRef.current = { x: 0, y: 0 }; };
     const onMove = (e) => {
@@ -355,7 +324,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       const dx = e.clientX - cx;
       const dy = e.clientY - cy;
       hotAngleRef.current = Math.atan2(dy, dx);
-      // normalized tilt target (small)
       const nx = (dx / (rect.width / 2));
       const ny = (dy / (rect.height / 2));
       tiltTargetRef.current = { x: ny * 0.12, y: -nx * 0.12 };
@@ -364,52 +332,35 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     renderer.domElement.addEventListener("pointerleave", onLeave);
     renderer.domElement.addEventListener("pointermove", onMove);
 
-    // animation loop
     const clock = new THREE.Clock();
     const blue = new THREE.Color(0x00b7ff);
     const warm = new THREE.Color(0xff6b00);
 
     const loop = () => {
       rafRef.current = requestAnimationFrame(loop);
-
       const t = clock.getElapsedTime();
       const orb = orbRef.current;
       const mat = orbMatRef.current;
       const halo = haloRef.current;
 
-      // rotation (faster): base spin * speed
+      // audio analysis value from previous effect (smoothed in uniforms)
+      const audioLevel = mat.uniforms.u_audio.value;
+
+      // 🎚️ rotation speed reacts to audio
+      const boost = 1 + audioLevel * 2.5;  // 1..3.5x
       if (orb) {
-        orb.rotation.y += 0.02 * speed;             // visible spin
-        // smooth tilt toward pointer (eased)
+        orb.rotation.y += 0.02 * speed * boost;
         orb.rotation.x += (tiltTargetRef.current.x - orb.rotation.x) * 0.08;
         orb.rotation.z += (tiltTargetRef.current.y - orb.rotation.z) * 0.08;
       }
-      if (halo) halo.rotation.y += 0.008 * speed;
-
-      // audio analysis
-      let level = 0;
-      const an = analyserRef.current;
-      const buf = freqRef.current;
-      if (an && buf) {
-        an.getByteFrequencyData(buf);
-        const end = Math.floor(buf.length * 0.6);
-        let s = 0;
-        for (let i = 0; i < end; i++) s += buf[i];
-        level = end ? s / (end * 255) : 0;
-      }
+      if (halo) halo.rotation.y += 0.008 * speed * boost;
 
       // uniforms
-      const u = mat.uniforms;
-      u.u_time.value = t;
-      u.u_audio.value = u.u_audio.value * 0.85 + level * 0.15;
-      u.u_hover.value = u.u_hover.value * 0.80 + hoverRef.current * 0.20;
-      u.u_hotDir.value.set(Math.cos(hotAngleRef.current), Math.sin(hotAngleRef.current));
-
+      mat.uniforms.u_time.value = t;
       halo.material.uniforms.u_time.value = t;
-      halo.material.uniforms.u_audio.value = u.u_audio.value;
 
-      // halo tint blends from blue to warm on hover + audio
-      const mixK = Math.min(1, 0.7 * hoverRef.current + 0.5 * u.u_audio.value);
+      // halo tint blends blue→warm with audio/hover
+      const mixK = Math.min(1, 0.7 * hoverRef.current + 0.5 * audioLevel);
       const tint = blue.clone().lerp(warm, mixK);
       halo.material.uniforms.u_tint.value.copy(tint);
 
@@ -419,23 +370,20 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      try { ro.disconnect(); } catch { }
+      try {
+        renderer.domElement.removeEventListener("pointerenter", onEnter);
+        renderer.domElement.removeEventListener("pointerleave", onLeave);
+        renderer.domElement.removeEventListener("pointermove", onMove);
+      } catch {}
       renderer.domElement.replaceWith(document.createComment("orb-canvas-removed"));
       renderer.dispose();
-      try {
-        geo.dispose(); haloGeo.dispose(); orbMat.dispose(); haloMat.dispose();
-      } catch { }
-      scene.clear();
+      try { geo.dispose(); haloGeo.dispose(); orbMat.dispose(); haloMat.dispose(); } catch {}
       sceneRef.current = null; cameraRef.current = null; rendererRef.current = null;
       orbRef.current = null; orbMatRef.current = null; haloRef.current = null;
-      renderer.domElement.removeEventListener("pointerenter", onEnter);
-      renderer.domElement.removeEventListener("pointerleave", onLeave);
-      renderer.domElement.removeEventListener("pointermove", onMove);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size, speed]);
 
-  // build AudioContext from remote stream
+  // build AudioContext from remote stream (kept intact, just used for rotation/color)
   useEffect(() => {
     let ac, an, src;
     if (stream) {
@@ -454,14 +402,36 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       }
     }
     return () => {
-      try { src && src.disconnect(); } catch { }
-      try { an && an.disconnect(); } catch { }
-      try { ac && ac.close(); } catch { }
+      try { src && src.disconnect(); } catch {}
+      try { an && an.disconnect(); } catch {}
+      try { ac && ac.close(); } catch {}
       audioCtxRef.current = null;
       analyserRef.current = null;
       freqRef.current = null;
     };
   }, [stream]);
+
+  // sample audio & push to uniforms (smoothing)
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const an = analyserRef.current;
+      const buf = freqRef.current;
+      const mat = orbMatRef.current;
+      if (!an || !buf || !mat) return;
+      an.getByteFrequencyData(buf);
+      const end = Math.floor(buf.length * 0.6);
+      let s = 0;
+      for (let i = 0; i < end; i++) s += buf[i];
+      const level = end ? s / (end * 255) : 0;
+      mat.uniforms.u_audio.value = mat.uniforms.u_audio.value * 0.85 + level * 0.15;
+      mat.uniforms.u_hover.value = mat.uniforms.u_hover.value * 0.80 + hoverRef.current * 0.20;
+      mat.uniforms.u_hotDir.value.set(Math.cos(hotAngleRef.current), Math.sin(hotAngleRef.current));
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   return (
     <div
@@ -473,8 +443,8 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
         background: "transparent",
         pointerEvents: "auto",
         userSelect: "none",
-        borderRadius: "50%",   // ⬅️ circle mask
-        overflow: "hidden",    // ⬅️ hide outside corners
+        borderRadius: "50%",   // ✅ circle mask
+        overflow: "hidden",    // ✅ hide corners forever
       }}
     />
   );
@@ -503,10 +473,10 @@ const VoiceAssistant = () => {
   }, []);
 
   const cleanupWebRTC = () => {
-    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch { } peerConnectionRef.current = null; }
-    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch { } dataChannelRef.current = null; }
-    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach((t) => t.stop()); } catch { } localStreamRef.current = null; }
-    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch { }
+    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch {} peerConnectionRef.current = null; }
+    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch {} dataChannelRef.current = null; }
+    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach((t) => t.stop()); } catch {} localStreamRef.current = null; }
+    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch {}
 
     setConnectionStatus("idle");
     setIsMicActive(false);
@@ -521,7 +491,7 @@ const VoiceAssistant = () => {
     if (name === "navigate_to") {
       const section = String(args?.section || "").trim();
       if (!ALLOWED_SECTIONS.has(section)) return;
-      if (window.agentNavigate) { try { window.agentNavigate(section); } catch { } }
+      if (window.agentNavigate) { try { window.agentNavigate(section); } catch {} }
       else { window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } })); }
       return;
     }
@@ -532,15 +502,15 @@ const VoiceAssistant = () => {
       if (now - last < 400) return; recentClicksRef.current.set(id, now);
       const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
       if (el) {
-        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch { }
-        try { el.focus({ preventScroll: true }); } catch { }
-        try { el.click(); } catch { }
+        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
+        try { el.focus({ preventScroll: true }); } catch {}
+        try { el.click(); } catch {}
       }
       return;
     }
     if (name === "chat_ask") {
       const text = String(args?.text || "").trim(); if (!text) return;
-      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch { } }
+      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch {} }
       else { window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } })); }
       return;
     }
@@ -551,8 +521,8 @@ const VoiceAssistant = () => {
         recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
         message: typeof args?.message === "string" ? args.message : undefined,
       };
-      try { window.agentNavigate?.("contact"); } catch { }
-      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch { } }
+      try { window.agentNavigate?.("contact"); } catch {}
+      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch {} }
       else {
         const setVal = (sel, val) => { if (val == null) return; const el = document.querySelector(sel); if (!el) return; el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); };
         setVal('[data-agent-id="contact.name"]', payload.name);
@@ -563,11 +533,11 @@ const VoiceAssistant = () => {
       return;
     }
     if (name === "contact_submit") {
-      try { window.agentNavigate?.("contact"); } catch { }
-      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch { } }
+      try { window.agentNavigate?.("contact"); } catch {}
+      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch {} }
       else {
         const btn = document.querySelector('[data-agent-id="contact.submit"]');
-        if (btn) { try { btn.click(); } catch { } }
+        if (btn) { try { btn.click(); } catch {} }
         else { document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.(); }
       }
       return;
@@ -592,8 +562,8 @@ const VoiceAssistant = () => {
     }
     if (name === "set_chat_visible") {
       const on = !!args?.visible;
-      if (on) { if (window.ChatBot?.open) { try { window.ChatBot.open(); } catch { } } else { window.dispatchEvent(new CustomEvent("chatbot:open")); } }
-      else { if (window.ChatBot?.close) { try { window.ChatBot.close(); } catch { } } else { window.dispatchEvent(new CustomEvent("chatbot:close")); } }
+      if (on) { if (window.ChatBot?.open) { try { window.ChatBot.open(); } catch {} } else { window.dispatchEvent(new CustomEvent("chatbot:open")); } }
+      else { if (window.ChatBot?.close) { try { window.ChatBot.close(); } catch {} } else { window.dispatchEvent(new CustomEvent("chatbot:close")); } }
       return;
     }
     if (name === "chat_toggle") {
@@ -621,7 +591,7 @@ const VoiceAssistant = () => {
           tool_choice: { type: "auto" }
         }
       }));
-    } catch { }
+    } catch {}
   };
 
   const startWebRTC = async () => {
@@ -641,7 +611,7 @@ const VoiceAssistant = () => {
           const s = event.streams[0];
           if (audioPlayerRef.current) {
             audioPlayerRef.current.srcObject = s;
-            audioPlayerRef.current.play().catch(() => { });
+            audioPlayerRef.current.play().catch(() => {});
           }
           setRemoteStream(s);
         }
@@ -657,7 +627,7 @@ const VoiceAssistant = () => {
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
         sendSessionUpdate();
-        try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch { }
+        try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch {}
       };
 
       channel.onmessage = (event) => {
@@ -689,7 +659,7 @@ const VoiceAssistant = () => {
           toolBuffersRef.current.delete(id);
           if (!buf) return;
           let args = {};
-          try { args = JSON.parse(buf.argsText || "{}"); } catch { }
+          try { args = JSON.parse(buf.argsText || "{}"); } catch {}
           handleToolCall(buf.name || "unknown_tool", args);
           return;
         }
@@ -741,7 +711,7 @@ const VoiceAssistant = () => {
     if (connectionStatus === "connected" && localStreamRef.current) {
       const next = !isMicActive;
       setIsMicActive(next);
-      try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch { }
+      try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch {}
     }
   };
 
@@ -769,8 +739,8 @@ const VoiceAssistant = () => {
               <button className="close-btn-green" onClick={toggleAssistant}>✖</button>
             </div>
 
-            {/* NEW: perfect-circle, faster, multi-color reactive orb */}
-            <ReactiveOrb  size={220} speed={2.2} />
+            {/* ✅ perfect-circle, locked size, audio-reactive rotation & color */}
+            <ReactiveOrb stream={remoteStream} size={220} speed={2.2} />
 
             <div className="voice-visualizer-container">
               {remoteStream ? (
@@ -800,3 +770,4 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
