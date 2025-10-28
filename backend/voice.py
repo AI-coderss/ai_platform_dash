@@ -231,6 +231,7 @@ def connect_rtc():
                 "values, then call contact_submit to send. When the user asks you to open pages, click buttons, "
                 "or type into the chatbot, use the provided tools strictly with the allowed values."
                 "If the user asks to open or close the chatbot, call set_chat_visible with visible=true or visible=false respectively."
+                "if the user asks you to go the About section, use the navigate_to tool with section='about'. which is the top of the platform."
             ),
             "tools": TOOLS,
             "tool_choice": "auto",

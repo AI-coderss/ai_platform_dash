@@ -867,7 +867,7 @@ const VoiceAssistant = () => {
         {isOpen && (
           <motion.div
             className="voice-sidebar glassmorphic"
-            style={{ position: "fixed", top: 96, left: 96, zIndex: 1001, width: "320px", height: "400px" }}
+            style={{ position: "fixed", top: 96, left: 96, zIndex: 1001, width: "380px", height: "600px" }}
             drag
             dragConstraints={dragConstraintsRef}
             dragElastic={0.2}
