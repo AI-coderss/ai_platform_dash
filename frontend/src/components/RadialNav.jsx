@@ -6,6 +6,15 @@
    - No boxes/cards around icons
    - External CSS: ../styles/RadialNav.css
 */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* RadialNav.jsx — bottom-center radial website navigator (JS only)
+   - Smooth mouse-follow wedge with easing
+   - Wheel rotation with mouse wheel
+   - Tangential icons + tiny labels
+   - Shadow separators between sectors
+   - No boxes/cards around icons
+   - External CSS: ../styles/RadialNav.css
+*/
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FaHome,
@@ -22,19 +31,24 @@ const RadialNav = ({ items, lift = 132 }) => {
   const [rotorDeg, setRotorDeg] = useState(0);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [selIdx, setSelIdx] = useState(0);
+
+  // --- smooth wedge start (deg) ---
+  const [wedgeDeg, setWedgeDeg] = useState(0);
+  const targetStartRef = useRef(0);
+
   const faceRef = useRef(null);
 
-  // Default website sections (consistent with your app)
+  // Default website sections
   const navItems = useMemo(
     () =>
       items && items.length
         ? items
         : [
-            { id: "about",    label: "About",    icon: <FaHome />,            targetId: "hero" },
-            { id: "products", label: "Products", icon: <FaThLarge />,         targetId: "products" },
-            { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />,      targetId: "watch_tutorial" },
-            { id: "policy",   label: "Policy",   icon: <FaShieldAlt />,       targetId: "policy" },
-            { id: "contact",  label: "Contact",  icon: <FaEnvelopeOpenText />,targetId: "contact" },
+            { id: "about",    label: "About",    icon: <FaHome />,             targetId: "hero" },
+            { id: "products", label: "Products", icon: <FaThLarge />,          targetId: "products" },
+            { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />,       targetId: "watch_tutorial" },
+            { id: "policy",   label: "Policy",   icon: <FaShieldAlt />,        targetId: "policy" },
+            { id: "contact",  label: "Contact",  icon: <FaEnvelopeOpenText />, targetId: "contact" },
             {
               id: "survey",
               label: "Survey",
@@ -61,7 +75,7 @@ const RadialNav = ({ items, lift = 132 }) => {
     return () => document.documentElement.style.removeProperty("--rn-open-lift");
   }, [lift]);
 
-  // Wheel rotation
+  // Wheel rotation (discrete sectors, like a detented dial)
   useEffect(() => {
     if (!isOpen) return;
     const onWheel = (e) => {
@@ -85,7 +99,35 @@ const RadialNav = ({ items, lift = 132 }) => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Hover tracking from cursor position
+  // Init wedge to selected sector whenever selection/count changes
+  useEffect(() => {
+    const start = (selIdx * sector) % 360;
+    setWedgeDeg(start);
+    targetStartRef.current = start;
+  }, [selIdx, sector, isOpen]);
+
+  // Smoothly ease wedge toward target angle (shortest path on the circle)
+  useEffect(() => {
+    if (!isOpen) return;
+    let raf;
+    const smooth = () => {
+      setWedgeDeg((prev) => {
+        const target = targetStartRef.current;
+        // shortest angular delta in [-180, 180]
+        let diff = ((target - prev + 540) % 360) - 180;
+        const step = diff * 0.18; // easing factor (0.1–0.25 feels like real hardware)
+        if (Math.abs(diff) < 0.35) return target;
+        let next = prev + step;
+        next = ((next % 360) + 360) % 360;
+        return next;
+      });
+      raf = requestAnimationFrame(smooth);
+    };
+    raf = requestAnimationFrame(smooth);
+    return () => cancelAnimationFrame(raf);
+  }, [isOpen]);
+
+  // Hover tracking from cursor position + live lighting
   const updateHoverFromMouse = (ev) => {
     if (!isOpen || !faceRef.current) return;
     const r = faceRef.current.getBoundingClientRect();
@@ -93,15 +135,39 @@ const RadialNav = ({ items, lift = 132 }) => {
     const cy = r.top + r.height / 2;
     const dx = ev.clientX - cx;
     const dy = ev.clientY - cy;
+
+    // absolute angle (0..360), 0 = +X (right), 90 = down?
     let a = (Math.atan2(dy, dx) * 180) / Math.PI; // -180..180
     if (a < 0) a += 360; // 0..360
 
-    // compensate rotor rotation
-    let idx = Math.floor((((a - rotorDeg) % 360) + 360) % 360 / sector);
-    if (idx < 0) idx += count;
+    // compensate rotor rotation so highlight tracks ITEMS
+    const local = ((a - rotorDeg) % 360 + 360) % 360;
+
+    // index + sector start snapped to sector grid
+    const idx = Math.floor(local / sector);
+    const start = Math.floor(local / sector) * sector;
+
     setHoverIdx(idx);
+
+    // tell the smoother where to go
+    targetStartRef.current = start;
+
+    // live light (0–100%)
+    const lx = Math.max(0, Math.min(100, (dx / (r.width / 2)) * 50 + 50));
+    const ly = Math.max(0, Math.min(100, (dy / (r.height / 2)) * 50 + 50));
+    faceRef.current.style.setProperty("--rn-light-x", `${lx}%`);
+    faceRef.current.style.setProperty("--rn-light-y", `${ly}%`);
   };
-  const clearHover = () => setHoverIdx(null);
+
+  const clearHover = () => {
+    setHoverIdx(null);
+    // glide back to the selected sector
+    targetStartRef.current = (selIdx * sector) % 360;
+    if (faceRef.current) {
+      faceRef.current.style.setProperty("--rn-light-x", "50%");
+      faceRef.current.style.setProperty("--rn-light-y", "30%");
+    }
+  };
 
   // Navigation behavior
   const runItem = (it) => {
@@ -112,11 +178,9 @@ const RadialNav = ({ items, lift = 132 }) => {
     } else if (it.href) {
       window.open(it.href, "_blank", "noopener,noreferrer");
     }
+    setSelIdx((hoverIdx ?? selIdx) % count);
     setIsOpen(false);
   };
-
-  // ✅ FIX: keep wedge directly aligned with hovered sector (remove double-rotation)
-  const wedgeStart = ((hoverIdx ?? selIdx) * sector) % 360;
 
   return (
     <div className={`rn-root ${isOpen ? "open" : ""}`}>
@@ -128,7 +192,8 @@ const RadialNav = ({ items, lift = 132 }) => {
           style={{
             "--rn-count": count,
             "--rn-rotor": `${rotorDeg}deg`,
-            "--sector-start": `${wedgeStart}deg`,
+            "--sector-start": `${wedgeDeg}deg`,
+            "--sector-mid": `${(wedgeDeg + sector / 2) % 360}deg`,
             "--sector-sweep": `${sector}deg`,
           }}
           onMouseMove={updateHoverFromMouse}
@@ -138,9 +203,7 @@ const RadialNav = ({ items, lift = 132 }) => {
           <div className="rn-separators" />
           <div className="rn-inner" />
           <div className="rn-wedge" />
-          <div className="rn-center" aria-hidden>
-            ⚙️
-          </div>
+          <div className="rn-center" aria-hidden>⚙️</div>
 
           <div className="rn-rotor">
             {navItems.map((it, i) => {
@@ -152,10 +215,7 @@ const RadialNav = ({ items, lift = 132 }) => {
                   style={{ "--i": i }}
                   title={it.label}
                   aria-label={it.label}
-                  onClick={() => {
-                    setSelIdx(i);
-                    runItem(it);
-                  }}
+                  onClick={() => runItem(it)}
                 >
                   <span className="rn-icon">{it.icon}</span>
                   <span className="rn-label">{it.label}</span>
@@ -180,4 +240,6 @@ const RadialNav = ({ items, lift = 132 }) => {
 };
 
 export default RadialNav;
+
+
 

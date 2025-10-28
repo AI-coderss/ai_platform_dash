@@ -3,15 +3,15 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave";
 import "../styles/VoiceAssistant.css";
 import useUiStore from "./store/useUiStore";
-
-/* THREE for shader circle */
-import * as THREE from "three";
 
 /* ---------- WebRTC refs ---------- */
 const peerConnectionRef = React.createRef();
@@ -20,207 +20,170 @@ const localStreamRef = React.createRef();
 
 /* ---------- Whitelists / tools (kept intact) ---------- */
 const ALLOWED_SECTIONS = new Set([
-  "home", "products", "policy", "watch_tutorial", "contact", "footer",
-  "chat", "doctor", "transcription", "analyst", "report", "ivf", "patient", "survey",
+  "home",
+  "products",
+  "policy",
+  "watch_tutorial",
+  "contact",
+  "footer",
+  "chat",
+  "doctor",
+  "transcription",
+  "analyst",
+  "report",
+  "ivf",
+  "patient",
+  "survey",
 ]);
 const ALLOWED_CONTROL_IDS = new Set([
-  "nav.about", "nav.products", "nav.policy", "nav.watch_tutorial", "nav.contact", "nav.footer",
-  "products.launch:doctor", "products.launch:transcription", "products.launch:analyst", "products.launch:report",
-  "products.launch:ivf", "products.launch:patient", "products.launch:survey",
-  "products.help:doctor", "products.help:transcription", "products.help:analyst", "products.help:report",
-  "products.help:ivf", "products.help:patient", "products.help:survey",
+  "nav.about",
+  "nav.products",
+  "nav.policy",
+  "nav.watch_tutorial",
+  "nav.contact",
+  "nav.footer",
+  "products.launch:doctor",
+  "products.launch:transcription",
+  "products.launch:analyst",
+  "products.launch:report",
+  "products.launch:ivf",
+  "products.launch:patient",
+  "products.launch:survey",
+  "products.help:doctor",
+  "products.help:transcription",
+  "products.help:analyst",
+  "products.help:report",
+  "products.help:ivf",
+  "products.help:patient",
+  "products.help:survey",
   "contact.submit",
 ]);
 const TOOL_SCHEMAS = [
-  { type: "function", name: "navigate_to",
-    parameters: { type: "object", additionalProperties: false,
+  {
+    type: "function",
+    name: "navigate_to",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
       properties: { section: { type: "string", enum: Array.from(ALLOWED_SECTIONS) } },
-      required: ["section"]
-    }
+      required: ["section"],
+    },
   },
-  { type: "function", name: "click_control",
-    parameters: { type: "object", additionalProperties: false,
-      properties: { control_id: { type: "string" } }, required: ["control_id"]
-    }
+  {
+    type: "function",
+    name: "click_control",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { control_id: { type: "string" } },
+      required: ["control_id"],
+    },
   },
-  { type: "function", name: "chat_ask",
-    parameters: { type: "object", additionalProperties: false,
-      properties: { text: { type: "string", minLength: 1, maxLength: 500 } }, required: ["text"]
-    }
+  {
+    type: "function",
+    name: "chat_ask",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { text: { type: "string", minLength: 1, maxLength: 500 } },
+      required: ["text"],
+    },
   },
-  { type: "function", name: "contact_fill",
-    parameters: { type: "object", additionalProperties: false,
-      properties: { name: { type: "string" }, email: { type: "string" }, recipient: { type: "string" }, message: { type: "string" } }
-    }
+  {
+    type: "function",
+    name: "contact_fill",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        name: { type: "string" },
+        email: { type: "string" },
+        recipient: { type: "string" },
+        message: { type: "string" },
+      },
+    },
   },
-  { type: "function", name: "contact_submit",
-    parameters: { type: "object", additionalProperties: false, properties: {} }
+  { type: "function", name: "contact_submit", parameters: { type: "object", additionalProperties: false, properties: {} } },
+  {
+    type: "function",
+    name: "toggle_theme",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { theme: { type: "string", enum: ["light", "dark", "system", "toggle"] } },
+      required: ["theme"],
+    },
   },
-  { type: "function", name: "toggle_theme",
-    parameters: { type: "object", additionalProperties: false,
-      properties: { theme: { type: "string", enum: ["light", "dark", "system", "toggle"] } }, required: ["theme"]
-    }
-  },
-  { type: "function", name: "chat_toggle",
-    parameters: { type: "object", additionalProperties: false, properties: {} }
-  },
-  { type: "function", name: "chat_close",
-    parameters: { type: "object", additionalProperties: false, properties: {} }
-  },
-  { type: "function", name: "set_chat_visible",
-    parameters: { type: "object", additionalProperties: false,
-      properties: { visible: { type: "boolean" } }, required: ["visible"]
-    }
+  { type: "function", name: "chat_toggle", parameters: { type: "object", additionalProperties: false, properties: {} } },
+  { type: "function", name: "chat_close", parameters: { type: "object", additionalProperties: false, properties: {} } },
+  {
+    type: "function",
+    name: "set_chat_visible",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { visible: { type: "boolean" } },
+      required: ["visible"],
+    },
   },
 ];
 
-/* ---------------- Water-ripple circle (your original shader & behavior) ---------------- */
-const WaterRippleCircle = ({ stream, height = 170 }) => {
-  const containerRef = useRef(null);
-  const rendererRef = useRef(null);
-  const sceneRef = useRef(null);
-  const cameraRef = useRef(null);
-  const meshRef = useRef(null);
-  const materialRef = useRef(null);
-  const rafRef = useRef(0);
+/* ------------------------------------------------------------------------------------
+   PortalCircle: video-based portal (transparent outside), audio + hover reactive
+   - No background fill (fully transparent outside the circle)
+   - Uses a looping portal video for the inner visuals (from your example snippet)
+   - Remote AI audio (MediaStream) drives glow thickness & subtle scale "breathing"
+   - Hover highlight follows the pointer around the ring
+-------------------------------------------------------------------------------------*/
+const PortalCircle = ({
+  stream,           // remoteStream from WebRTC (AI voice)
+  size = 180,       // diameter in px (component will center itself)
+  videoSrc = "https://cdn.pixabay.com/video/2020/01/22/31495-387312407_tiny.mp4",
+}) => {
+  const wrapRef = useRef(null);
+  const videoRef = useRef(null);
 
-  // Audio analysis from AI playback (remoteStream)
+  // audio-reactivity
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
-  const dataArrayRef = useRef(null);
-  const sourceRef = useRef(null);
+  const timeDataRef = useRef(null);
+  const rafRef = useRef(0);
 
-  // Water simulation buffers/settings (same structure as your JS)
-  const waterSettingsRef = useRef({
-    resolution: 256,
-    damping: 0.913,
-    tension: 0.02,
-    rippleStrength: 0.2,
-    mouseIntensity: 1.2,
-    clickIntensity: 3.0,
-    rippleRadius: 8,
-    splatForce: 50000,
-    splatThickness: 0.1,
-    vorticityInfluence: 0.2,
-    swirlIntensity: 0.2,
-    pressure: 0.3,
-    velocityDissipation: 0.08,
-    densityDissipation: 1.0,
-    displacementScale: 0.01,
-  });
+  // pointer highlight
+  const [hover, setHover] = useState(false);
+  const mouseRef = useRef({ x: 0, y: 0 });
 
-  const buffersRef = useRef(null);
-  const waterTextureRef = useRef(null);
-
-  // Pointer state (hover ripples)
-  const lastMouseRef = useRef({ x: 0, y: 0 });
-  const throttleRef = useRef(0);
-  const clockRef = useRef(new THREE.Clock());
-
-  // === shaders (exactly your vertex/fragment, with final alpha = circle mask to keep canvas transparent) ===
-  const vertexShader = `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  // Inject tiny keyframes once
+  useEffect(() => {
+    const id = "portal-circle-inline-styles";
+    if (!document.getElementById(id)) {
+      const style = document.createElement("style");
+      style.id = id;
+      style.innerHTML = `
+        @keyframes portalSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `;
+      document.head.appendChild(style);
     }
-  `;
-  const fragmentShader = `
-    uniform float u_time;
-    uniform vec2 u_resolution;
-    uniform vec3 u_color1;
-    uniform vec3 u_color2;
-    uniform vec3 u_color3;
-    uniform vec3 u_background;
-    uniform float u_speed;
-    uniform sampler2D u_waterTexture;
-    uniform float u_waterStrength;
-    uniform float u_ripple_time;
-    uniform vec2 u_ripple_position;
-    uniform float u_ripple_strength;
-    uniform sampler2D u_textTexture;
-    uniform bool u_showText;
-    uniform bool u_isMonochrome;
-    uniform float u_audioLow;
-    uniform float u_audioMid;
-    uniform float u_audioHigh;
-    uniform float u_audioOverall;
-    uniform float u_audioReactivity;
+  }, []);
 
-    varying vec2 vUv;
+  // Ensure the video plays (muted/inline)
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const tryPlay = () => {
+      v.muted = true;
+      v.playsInline = true;
+      v.loop = true;
+      v.autoplay = true;
+      v.play().catch(() => {});
+    };
+    tryPlay();
+    const onClick = () => v.play().catch(() => {});
+    v.addEventListener("click", onClick);
+    return () => v.removeEventListener("click", onClick);
+  }, []);
 
-    void main() {
-      vec2 r = u_resolution;
-      vec2 FC = gl_FragCoord.xy;
-      vec2 uv = vec2(FC.x / r.x, 1.0 - FC.y / r.y);
-      vec2 screenP = (FC.xy * 2.0 - r) / r.y;
-
-      vec2 wCoord = vec2(FC.x / r.x, FC.y / r.y);
-      float waterHeight = texture2D(u_waterTexture, wCoord).r;
-      float waterInfluence = clamp(waterHeight * u_waterStrength, -0.5, 0.5);
-
-      float baseRadius = 0.99;
-      float audioPulse = u_audioOverall * u_audioReactivity * 0.1;
-      float waterPulse = waterInfluence * 0.3;
-      float circleRadius = baseRadius + audioPulse + waterPulse;
-
-      float distFromCenter = length(screenP);
-      float inCircle = smoothstep(circleRadius + 0.1, circleRadius - 0.1, distFromCenter);
-
-      vec4 o = vec4(0.0);
-
-      if (inCircle > 0.0) {
-        vec2 p = screenP * 1.1;
-
-        float rippleTime = u_time - u_ripple_time;
-        vec2 ripplePos = u_ripple_position * r;
-        float rippleDist = distance(FC.xy, ripplePos);
-
-        float clickRipple = 0.0;
-        if (rippleTime < 3.0 && rippleTime > 0.0) {
-          float rippleRadius = rippleTime * 150.0;
-          float rippleWidth = 30.0;
-          float rippleDecay = 1.0 - rippleTime / 3.0;
-          clickRipple = exp(-abs(rippleDist - rippleRadius) / rippleWidth) * rippleDecay * u_ripple_strength;
-        }
-
-        float totalWaterInfluence = clamp((waterInfluence + clickRipple * 0.1) * u_waterStrength, -0.8, 0.8);
-        float audioInfluence = (u_audioLow * 0.3 + u_audioMid * 0.4 + u_audioHigh * 0.3) * u_audioReactivity;
-
-        float angle = length(p) * 4.0 + audioInfluence * 2.0;
-        mat2 R = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-        p *= R;
-
-        float l = length(p) - 0.7 + totalWaterInfluence * 0.5 + audioInfluence * 0.2;
-        float t = u_time * u_speed + totalWaterInfluence * 2.0 + audioInfluence * 1.5;
-        float enhancedY = p.y + totalWaterInfluence * 0.3 + audioInfluence * 0.2;
-
-        float pattern1 = 0.5 + 0.5 * tanh(0.1 / max(l / 0.1, -l) - sin(l + enhancedY * max(1.0, -l / 0.1) + t));
-        float pattern2 = 0.5 + 0.5 * tanh(0.1 / max(l / 0.1, -l) - sin(l + enhancedY * max(1.0, -l / 0.1) + t + 1.0));
-        float pattern3 = 0.5 + 0.5 * tanh(0.1 / max(l / 0.1, -l) - sin(l + enhancedY * max(1.0, -l / 0.1) + t + 2.0));
-
-        float intensity = 1.0 + totalWaterInfluence * 0.5 + audioInfluence * 0.3;
-
-        if (u_isMonochrome) {
-          float mono = (pattern1 + pattern2 + pattern3) / 3.0 * intensity;
-          o = vec4(mono, mono, mono, inCircle);
-        } else {
-          o.r = pattern1 * u_color1.r * intensity;
-          o.g = pattern2 * u_color2.g * intensity;
-          o.b = pattern3 * u_color3.b * intensity;
-          o.a = inCircle;
-        }
-      }
-
-      vec3 bgColor = u_isMonochrome ? vec3(0.0) : u_background;
-      vec3 finalColor = mix(bgColor, o.rgb, o.a);
-
-      // Transparent outside the circle to avoid any white box
-      gl_FragColor = vec4(finalColor, o.a);
-    }
-  `;
-
-  // Audio init from remote stream
+  // Build AudioContext on remote stream for reactivity
   useEffect(() => {
     let ac, an, src;
     if (stream) {
@@ -228,365 +191,191 @@ const WaterRippleCircle = ({ stream, height = 170 }) => {
         ac = new (window.AudioContext || window.webkitAudioContext)();
         an = ac.createAnalyser();
         an.fftSize = 256;
-        an.smoothingTimeConstant = 0.8;
+        an.smoothingTimeConstant = 0.85;
         src = ac.createMediaStreamSource(stream);
         src.connect(an);
-
         audioCtxRef.current = ac;
         analyserRef.current = an;
-        dataArrayRef.current = new Uint8Array(an.frequencyBinCount);
-        sourceRef.current = src;
-      } catch {}
+        timeDataRef.current = new Uint8Array(an.frequencyBinCount);
+      } catch (e) {
+        console.warn("Audio analyser init failed:", e);
+      }
     }
     return () => {
-      try { src?.disconnect(); } catch {}
-      try { an?.disconnect(); } catch {}
-      try { ac?.close(); } catch {}
+      try { src && src.disconnect(); } catch {}
+      try { an && an.disconnect(); } catch {}
+      try { ac && ac.close(); } catch {}
       audioCtxRef.current = null;
       analyserRef.current = null;
-      dataArrayRef.current = null;
-      sourceRef.current = null;
+      timeDataRef.current = null;
     };
   }, [stream]);
 
-  // Water buffers + texture
+  // Animation loop: set CSS vars for glow/scale and hover hotspot
   useEffect(() => {
-    const resolution = waterSettingsRef.current.resolution;
-    const size = resolution * resolution;
-
-    const buffers = {
-      current: new Float32Array(size),
-      previous: new Float32Array(size),
-      velocity: new Float32Array(size * 2),
-      vorticity: new Float32Array(size),
-      pressure: new Float32Array(size),
-    };
-    buffersRef.current = buffers;
-
-    const tex = new THREE.DataTexture(
-      buffers.current,
-      resolution,
-      resolution,
-      THREE.RedFormat,
-      THREE.FloatType
-    );
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
-    waterTextureRef.current = tex;
-
-    return () => {
-      waterTextureRef.current?.dispose?.();
-      buffersRef.current = null;
-      waterTextureRef.current = null;
-    };
-  }, []);
-
-  // Three.js scene
-  useEffect(() => {
-    const el = containerRef.current;
+    const el = wrapRef.current;
     if (!el) return;
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
-    camera.position.z = 1;
+    const tick = () => {
+      rafRef.current = requestAnimationFrame(tick);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
-    renderer.setClearColor(0x000000, 0); // fully transparent
-    el.appendChild(renderer.domElement);
-
-    // material uniforms (initial values mirror your preset "Ice White")
-    const uniforms = {
-      u_time: { value: 0.0 },
-      u_resolution: { value: new THREE.Vector2(1, 1) },
-      u_speed: { value: 1.3 },
-      u_color1: { value: new THREE.Vector3(1.0, 1.0, 1.0) },
-      u_color2: { value: new THREE.Vector3(0.9, 0.95, 1.0) },
-      u_color3: { value: new THREE.Vector3(0.8, 0.9, 1.0) },
-      u_background: { value: new THREE.Vector3(0.02, 0.02, 0.05) },
-      u_waterTexture: { value: waterTextureRef.current },
-      u_waterStrength: { value: 0.55 },
-      u_ripple_time: { value: -10.0 },
-      u_ripple_position: { value: new THREE.Vector2(0.5, 0.5) },
-      u_ripple_strength: { value: 0.5 },
-      u_textTexture: { value: null },
-      u_showText: { value: false }, // no text inside circle for the card
-      u_isMonochrome: { value: false },
-      u_audioLow: { value: 0.0 },
-      u_audioMid: { value: 0.0 },
-      u_audioHigh: { value: 0.0 },
-      u_audioOverall: { value: 0.0 },
-      u_audioReactivity: { value: 1.0 },
-      
-    };
-
-    const material = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms,
-      transparent: true,
-    });
-
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    sceneRef.current = scene;
-    cameraRef.current = camera;
-    rendererRef.current = renderer;
-    meshRef.current = mesh;
-    materialRef.current = material;
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      renderer.setPixelRatio(dpr);
-      renderer.setSize(w, h, false);
-      material.uniforms.u_resolution.value.set(w, h);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(el);
-
-    // helpers: local -> tex coords for ripples
-    const addRipple = (x, y, strength = 1.0) => {
-      const ws = waterSettingsRef.current;
-      const buffers = buffersRef.current;
-      const resolution = ws.resolution;
-      if (!buffers) return;
-
-      const rect = renderer.domElement.getBoundingClientRect();
-      const nx = (x - rect.left) / rect.width;
-      const ny = 1.0 - (y - rect.top) / rect.height;
-
-      const texX = Math.floor(nx * resolution);
-      const texY = Math.floor(ny * resolution);
-      const radius = Math.max(ws.rippleRadius, Math.floor(0.1 * resolution));
-      const rippleStrength = strength * (ws.splatForce / 100000);
-
-      const radiusSq = radius * radius;
-      for (let i = -radius; i <= radius; i++) {
-        for (let j = -radius; j <= radius; j++) {
-          const distSq = i * i + j * j;
-          if (distSq <= radiusSq) {
-            const px = texX + i;
-            const py = texY + j;
-            if (px >= 0 && px < resolution && py >= 0 && py < resolution) {
-              const idx = py * resolution + px;
-              const velIdx = idx * 2;
-              const dist = Math.sqrt(distSq);
-              const falloff = 1.0 - dist / radius;
-              const rippleVal = Math.cos((dist / radius) * Math.PI * 0.5) * rippleStrength * falloff;
-              buffers.previous[idx] += rippleVal;
-
-              const angle = Math.atan2(j, i);
-              const velStr = rippleVal * waterSettingsRef.current.swirlIntensity;
-              buffers.velocity[velIdx] += Math.cos(angle) * velStr;
-              buffers.velocity[velIdx + 1] += Math.sin(angle) * velStr;
-
-              const swirlAngle = angle + Math.PI * 0.5;
-              const swirlStrength = Math.min(velStr * 0.3, 0.1);
-              buffers.velocity[velIdx] += Math.cos(swirlAngle) * swirlStrength;
-              buffers.velocity[velIdx + 1] += Math.sin(swirlAngle) * swirlStrength;
-            }
-          }
-        }
-      }
-
-      // uniforms for click ripple ring
-      material.uniforms.u_ripple_position.value.set(nx, ny);
-      material.uniforms.u_ripple_time.value = clockRef.current.getElapsedTime();
-    };
-
-    const updateWaterSimulation = () => {
-      const ws = waterSettingsRef.current;
-      const buffers = buffersRef.current;
-      if (!buffers) return;
-
-      const { current, previous, velocity, vorticity } = buffers;
-      const { damping, resolution } = ws;
-      const safeTension = Math.min(ws.tension, 0.05);
-      const velocityDissipation = ws.velocityDissipation;
-      const densityDissipation = ws.densityDissipation;
-      const vorticityInfluence = Math.min(Math.max(ws.swirlIntensity, 0.0), 0.5);
-
-      // dissipate velocity
-      for (let i = 0; i < resolution * resolution * 2; i++) {
-        velocity[i] *= 1.0 - velocityDissipation;
-      }
-
-      // vorticity calc
-      for (let i = 1; i < resolution - 1; i++) {
-        for (let j = 1; j < resolution - 1; j++) {
-          const index = i * resolution + j;
-          const left = velocity[(index - 1) * 2 + 1];
-          const right = velocity[(index + 1) * 2 + 1];
-          const bottom = velocity[(index - resolution) * 2];
-          const top = velocity[(index + resolution) * 2];
-          vorticity[index] = (right - left - (top - bottom)) * 0.5;
-        }
-      }
-
-      if (vorticityInfluence > 0.001) {
-        for (let i = 1; i < resolution - 1; i++) {
-          for (let j = 1; j < resolution - 1; j++) {
-            const index = i * resolution + j;
-            const velIndex = index * 2;
-            const left = Math.abs(vorticity[index - 1]);
-            const right = Math.abs(vorticity[index + 1]);
-            const bottom = Math.abs(vorticity[index - resolution]);
-            const top = Math.abs(vorticity[index + resolution]);
-            const gradX = (right - left) * 0.5;
-            const gradY = (top - bottom) * 0.5;
-            const len = Math.sqrt(gradX * gradX + gradY * gradY) + 1e-5;
-            const safeV = Math.max(-1.0, Math.min(1.0, vorticity[index]));
-            const fx = (gradY / len) * safeV * vorticityInfluence * 0.1;
-            const fy = (-gradX / len) * safeV * vorticityInfluence * 0.1;
-            velocity[velIndex] += Math.max(-0.1, Math.min(0.1, fx));
-            velocity[velIndex + 1] += Math.max(-0.1, Math.min(0.1, fy));
-          }
-        }
-      }
-
-      // wave equation + damping + velocity influence
-      for (let i = 1; i < resolution - 1; i++) {
-        for (let j = 1; j < resolution - 1; j++) {
-          const index = i * resolution + j;
-          const velIndex = index * 2;
-          const top = previous[index - resolution];
-          const bottom = previous[index + resolution];
-          const left = previous[index - 1];
-          const right = previous[index + 1];
-          current[index] = (top + bottom + left + right) / 2 - current[index];
-          current[index] = current[index] * ws.damping + previous[index] * (1 - ws.damping);
-          current[index] += (0 - previous[index]) * safeTension;
-
-          const velMagnitude = Math.sqrt(velocity[velIndex] ** 2 + velocity[velIndex + 1] ** 2);
-          const safeVelInfluence = Math.min(velMagnitude * ws.displacementScale, 0.1);
-          current[index] += safeVelInfluence;
-
-          current[index] *= 1.0 - densityDissipation * 0.01;
-          current[index] = Math.max(-2.0, Math.min(2.0, current[index]));
-        }
-      }
-
-      // zero boundary
-      for (let i = 0; i < resolution; i++) {
-        current[i] = 0;
-        current[(resolution - 1) * resolution + i] = 0;
-        current[i * resolution] = 0;
-        current[i * resolution + (resolution - 1)] = 0;
-      }
-
-      // swap
-      [buffers.current, buffers.previous] = [buffers.previous, buffers.current];
-      waterTextureRef.current.image.data = buffers.current;
-      waterTextureRef.current.needsUpdate = true;
-    };
-
-    // pointer interactions (hover ripples)
-    const onPointerMove = (e) => {
-      const now = performance.now();
-      if (now - throttleRef.current < 8) return;
-      throttleRef.current = now;
-      lastMouseRef.current = { x: e.clientX, y: e.clientY };
-
-      const dx = e.movementX ?? 0;
-      const dy = e.movementY ?? 0;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 1) {
-        const velInfluence = Math.min(dist / 10, 2.0);
-        const base = Math.min(dist / 20, 1.0);
-        const intensity = base * velInfluence * waterSettingsRef.current.mouseIntensity * (0.7 + Math.random() * 0.3);
-        addRipple(e.clientX, e.clientY, intensity);
-      }
-    };
-    const onPointerDown = (e) => {
-      addRipple(e.clientX, e.clientY, waterSettingsRef.current.clickIntensity);
-    };
-
-    renderer.domElement.addEventListener("pointermove", onPointerMove);
-    renderer.domElement.addEventListener("pointerdown", onPointerDown);
-
-    // initial gentle center ripple
-    setTimeout(() => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      addRipple(rect.left + rect.width / 2, rect.top + rect.height / 2, 1.5);
-    }, 400);
-
-    // animation loop (time, audio uniforms, water sim, render)
-    const animate = () => {
-      rafRef.current = requestAnimationFrame(animate);
-
-      // time
-      material.uniforms.u_time.value = clockRef.current.getElapsedTime();
-
-      // audio from remote stream (bass/mid/treble/overall)
+      // audio → level
+      let level = 0.0;
       const an = analyserRef.current;
-      const arr = dataArrayRef.current;
-      if (an && arr) {
-        an.getByteFrequencyData(arr);
-        const bassEnd = Math.floor(arr.length * 0.1);
-        const midEnd = Math.floor(arr.length * 0.5);
-        let bass = 0, mid = 0, treble = 0;
-        for (let i = 0; i < bassEnd; i++) bass += arr[i];
-        bass = bassEnd ? (bass / bassEnd / 255) : 0;
-        for (let i = bassEnd; i < midEnd; i++) mid += arr[i];
-        mid = (midEnd - bassEnd) ? (mid / (midEnd - bassEnd) / 255) : 0;
-        for (let i = midEnd; i < arr.length; i++) treble += arr[i];
-        treble = (arr.length - midEnd) ? (treble / (arr.length - midEnd) / 255) : 0;
-        const overall = (bass + mid + treble) / 3;
-
-        material.uniforms.u_audioLow.value = material.uniforms.u_audioLow.value * 0.8 + bass * 0.2;
-        material.uniforms.u_audioMid.value = material.uniforms.u_audioMid.value * 0.8 + mid * 0.2;
-        material.uniforms.u_audioHigh.value = material.uniforms.u_audioHigh.value * 0.8 + treble * 0.2;
-        material.uniforms.u_audioOverall.value = material.uniforms.u_audioOverall.value * 0.8 + overall * 0.2;
-      } else {
-        // decay to zero if no stream
-        material.uniforms.u_audioLow.value *= 0.95;
-        material.uniforms.u_audioMid.value *= 0.95;
-        material.uniforms.u_audioHigh.value *= 0.95;
-        material.uniforms.u_audioOverall.value *= 0.95;
+      const td = timeDataRef.current;
+      if (an && td) {
+        an.getByteFrequencyData(td);
+        // take low+mid emphasis
+        const end = Math.floor(td.length * 0.5);
+        let sum = 0;
+        for (let i = 0; i < end; i++) sum += td[i];
+        level = end ? sum / (end * 255) : 0;
       }
 
-      updateWaterSimulation();
-      renderer.render(scene, camera);
-    };
-    rafRef.current = requestAnimationFrame(animate);
+      // ease old → new for smoother motion
+      const prev = parseFloat(getComputedStyle(el).getPropertyValue("--audio").trim() || "0");
+      const eased = prev * 0.85 + level * 0.15;
 
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      renderer.domElement.removeEventListener("pointermove", onPointerMove);
-      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
-      try { geometry.dispose(); } catch {}
-      try { material.dispose(); } catch {}
-      try { renderer.dispose(); } catch {}
-      if (el && renderer.domElement && el.contains(renderer.domElement)) {
-        el.removeChild(renderer.domElement);
-      }
-      sceneRef.current = null;
-      cameraRef.current = null;
-      rendererRef.current = null;
-      meshRef.current = null;
-      materialRef.current = null;
+      // hover hotspot (angle around rim)
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = mouseRef.current.x - cx;
+      const dy = mouseRef.current.y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const r = rect.width / 2;
+      // hotspot only near rim
+      const onRim = Math.max(0, Math.min(1, (dist - r * 0.62) / (r * 0.16)));
+      const angle = (Math.atan2(dy, dx) + Math.PI * 2) % (Math.PI * 2); // 0..2π
+      const hotspot = hover ? onRim * 1 : 0;
+
+      el.style.setProperty("--audio", eased.toFixed(4));
+      el.style.setProperty("--hotspot", hotspot.toFixed(3));
+      el.style.setProperty("--hotAngle", `${angle}rad`);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [hover]);
 
   return (
     <div
-      ref={containerRef}
+      ref={wrapRef}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+      onPointerMove={(e) => (mouseRef.current = { x: e.clientX, y: e.clientY })}
       style={{
+        // container is transparent outside the circle
         width: "100%",
-        height,
-        marginTop: 6,
-        marginBottom: 6,
-        borderRadius: 12,
-        overflow: "hidden",     // keep it clean inside the card
-        pointerEvents: "auto",
+        height: size,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "transparent",
+        // CSS variables that drive effects
+        // --audio: audio reactivity 0..1
+        // --hotspot: 0..1 how strong the hover ring is
+        // --hotAngle: where the hover highlight is (radians)
+        "--audio": 0,
+        "--hotspot": 0,
+        "--hotAngle": "0rad",
       }}
-    />
+    >
+      <div
+        style={{
+          position: "relative",
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          overflow: "hidden",
+          background: "transparent",
+          // subtle breath with audio + soft hover lift
+          transform:
+            "translateZ(0) scale(" +
+            (1 + 0.03 * Number(getComputedStyle(document.documentElement).getPropertyValue("--na") || 0)).toString() +
+            ")",
+          // shadow intensity reacts to audio (computed below with a function)
+          boxShadow:
+            "0 0 " +
+            Math.round(24 + 80 * (hover ? 0.2 : 0) + 180 * 0.0) + // fallback; will be overridden in effect below
+            "px rgba(0,183,255,0.35)",
+          willChange: "transform, box-shadow",
+        }}
+      >
+        {/* The inner moving portal visuals — video-based, masked to circle, fully transparent outside */}
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          autoPlay
+          muted
+          playsInline
+          loop
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            background: "transparent",
+            // a touch of energy
+            filter: "saturate(1.25) contrast(1.1)",
+          }}
+        />
+
+        {/* Electric ring layer (reacts to audio + hover) */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: "-6%",
+            borderRadius: "50%",
+            // mask to a thin ring around ~65% radius
+            WebkitMask:
+              "radial-gradient(circle at center, transparent 60%, black 61%, black 78%, transparent 79%)",
+            mask: "radial-gradient(circle at center, transparent 60%, black 61%, black 78%, transparent 79%)",
+            background:
+              "conic-gradient(from calc(var(--hotAngle) - 0.25turn), rgba(0,212,255,0) 0deg, rgba(0,212,255,0.8) 25deg, rgba(0,212,255,0) 60deg)",
+            filter: "blur(1.2px)",
+            mixBlendMode: "screen",
+            animation: "portalSpin 6s linear infinite",
+            // opacity lifts with audio and hover
+            opacity: "calc(0.35 + 0.85 * var(--audio) + 0.35 * var(--hotspot))",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Outer glow that thickens with audio */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            pointerEvents: "none",
+            boxShadow:
+              "0 0 calc(26px + 120px * var(--audio)) rgba(0,183,255,0.45), " +
+              "0 0 calc(10px + 70px * var(--audio)) rgba(0,183,255,0.35)",
+          }}
+        />
+
+        {/* Rim highlight that follows the mouse around the ring */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: "-2%",
+            borderRadius: "50%",
+            WebkitMask:
+              "radial-gradient(circle at center, transparent 58%, black 63%, black 78%, transparent 82%)",
+            mask: "radial-gradient(circle at center, transparent 58%, black 63%, black 78%, transparent 82%)",
+            background:
+              "conic-gradient(from var(--hotAngle), rgba(255,255,255,0.0) 0deg, rgba(0,242,255,0.95) 18deg, rgba(255,255,255,0.0) 48deg)",
+            opacity: "calc(0.06 + 0.65 * var(--hotspot))",
+            filter: "blur(0.5px)",
+            mixBlendMode: "screen",
+            pointerEvents: "none",
+            transition: "opacity 120ms linear",
+          }}
+        />
+      </div>
+    </div>
   );
 };
 
@@ -613,10 +402,27 @@ const VoiceAssistant = () => {
   }, []);
 
   const cleanupWebRTC = () => {
-    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch {} peerConnectionRef.current = null; }
-    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch {} dataChannelRef.current = null; }
-    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach(t => t.stop()); } catch {} localStreamRef.current = null; }
-    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch {}
+    if (peerConnectionRef.current) {
+      try {
+        peerConnectionRef.current.close();
+      } catch {}
+      peerConnectionRef.current = null;
+    }
+    if (dataChannelRef.current) {
+      try {
+        dataChannelRef.current.close();
+      } catch {}
+      dataChannelRef.current = null;
+    }
+    if (localStreamRef.current) {
+      try {
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
+      } catch {}
+      localStreamRef.current = null;
+    }
+    try {
+      if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null;
+    } catch {}
 
     setConnectionStatus("idle");
     setIsMicActive(false);
@@ -631,27 +437,46 @@ const VoiceAssistant = () => {
     if (name === "navigate_to") {
       const section = String(args?.section || "").trim();
       if (!ALLOWED_SECTIONS.has(section)) return;
-      if (window.agentNavigate) { try { window.agentNavigate(section); } catch {} }
-      else { window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } })); }
+      if (window.agentNavigate) {
+        try {
+          window.agentNavigate(section);
+        } catch {}
+      } else {
+        window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } }));
+      }
       return;
     }
     if (name === "click_control") {
       const id = String(args?.control_id || "").trim();
       if (!ALLOWED_CONTROL_IDS.has(id)) return;
-      const now = Date.now(); const last = recentClicksRef.current.get(id) || 0;
-      if (now - last < 400) return; recentClicksRef.current.set(id, now);
+      const now = Date.now();
+      const last = recentClicksRef.current.get(id) || 0;
+      if (now - last < 400) return;
+      recentClicksRef.current.set(id, now);
       const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
       if (el) {
-        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
-        try { el.focus({ preventScroll: true }); } catch {}
-        try { el.click(); } catch {}
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch {}
+        try {
+          el.focus({ preventScroll: true });
+        } catch {}
+        try {
+          el.click();
+        } catch {}
       }
       return;
     }
     if (name === "chat_ask") {
-      const text = String(args?.text || "").trim(); if (!text) return;
-      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch {} }
-      else { window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } })); }
+      const text = String(args?.text || "").trim();
+      if (!text) return;
+      if (window.ChatBotBridge?.sendMessage) {
+        try {
+          window.ChatBotBridge.sendMessage(text);
+        } catch {}
+      } else {
+        window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } }));
+      }
       return;
     }
     if (name === "contact_fill") {
@@ -661,10 +486,21 @@ const VoiceAssistant = () => {
         recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
         message: typeof args?.message === "string" ? args.message : undefined,
       };
-      try { window.agentNavigate?.("contact"); } catch {}
-      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch {} }
-      else {
-        const setVal = (sel, val) => { if (val == null) return; const el = document.querySelector(sel); if (!el) return; el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); };
+      try {
+        window.agentNavigate?.("contact");
+      } catch {}
+      if (window.ContactBridge?.fill) {
+        try {
+          window.ContactBridge.fill(payload);
+        } catch {}
+      } else {
+        const setVal = (sel, val) => {
+          if (val == null) return;
+          const el = document.querySelector(sel);
+          if (!el) return;
+          el.value = val;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        };
         setVal('[data-agent-id="contact.name"]', payload.name);
         setVal('[data-agent-id="contact.email"]', payload.email);
         setVal('[data-agent-id="contact.recipient"]', payload.recipient);
@@ -673,12 +509,22 @@ const VoiceAssistant = () => {
       return;
     }
     if (name === "contact_submit") {
-      try { window.agentNavigate?.("contact"); } catch {}
-      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch {} }
-      else {
+      try {
+        window.agentNavigate?.("contact");
+      } catch {}
+      if (window.ContactBridge?.submit) {
+        try {
+          window.ContactBridge.submit();
+        } catch {}
+      } else {
         const btn = document.querySelector('[data-agent-id="contact.submit"]');
-        if (btn) { try { btn.click(); } catch {} }
-        else { document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.(); }
+        if (btn) {
+          try {
+            btn.click();
+          } catch {}
+        } else {
+          document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.();
+        }
       }
       return;
     }
@@ -686,24 +532,39 @@ const VoiceAssistant = () => {
       const mode = String(args?.theme || "toggle").toLowerCase();
       const STORAGE_KEY = "app-theme";
       const getSystemPrefersDark = () =>
-        window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
       const applyThemeAttr = (m) => {
         const root = document.documentElement;
-        const isDark = m === 'dark' || (m === 'system' && getSystemPrefersDark());
-        if (isDark) root.setAttribute('data-theme', 'dark');
-        else root.removeAttribute('data-theme');
-        window.dispatchEvent(new CustomEvent('theme:changed', { detail: { mode: m, isDark } }));
+        const isDark = m === "dark" || (m === "system" && getSystemPrefersDark());
+        if (isDark) root.setAttribute("data-theme", "dark");
+        else root.removeAttribute("data-theme");
+        window.dispatchEvent(new CustomEvent("theme:changed", { detail: { mode: m, isDark } }));
       };
-      const current = localStorage.getItem(STORAGE_KEY) || 'light';
-      let next = mode === 'toggle' ? (current === 'dark' ? 'light' : 'dark') : mode;
+      const current = localStorage.getItem(STORAGE_KEY) || "light";
+      let next = mode === "toggle" ? (current === "dark" ? "light" : "dark") : mode;
       localStorage.setItem(STORAGE_KEY, next);
       applyThemeAttr(next);
       return;
     }
     if (name === "set_chat_visible") {
       const on = !!args?.visible;
-      if (on) { if (window.ChatBot?.open) { try { window.ChatBot.open(); } catch {} } else { window.dispatchEvent(new CustomEvent("chatbot:open")); } }
-      else { if (window.ChatBot?.close) { try { window.ChatBot.close(); } catch {} } else { window.dispatchEvent(new CustomEvent("chatbot:close")); } }
+      if (on) {
+        if (window.ChatBot?.open) {
+          try {
+            window.ChatBot.open();
+          } catch {}
+        } else {
+          window.dispatchEvent(new CustomEvent("chatbot:open"));
+        }
+      } else {
+        if (window.ChatBot?.close) {
+          try {
+            window.ChatBot.close();
+          } catch {}
+        } else {
+          window.dispatchEvent(new CustomEvent("chatbot:close"));
+        }
+      }
       return;
     }
     if (name === "chat_toggle") {
@@ -722,15 +583,17 @@ const VoiceAssistant = () => {
     const ch = dataChannelRef.current;
     if (!ch || ch.readyState !== "open") return;
     try {
-      ch.send(JSON.stringify({
-        type: "session.update",
-        session: {
-          modalities: ["text", "audio"],
-          turn_detection: { type: "server_vad" },
-          tools: TOOL_SCHEMAS,
-          tool_choice: { type: "auto" }
-        }
-      }));
+      ch.send(
+        JSON.stringify({
+          type: "session.update",
+          session: {
+            modalities: ["text", "audio"],
+            turn_detection: { type: "server_vad" },
+            tools: TOOL_SCHEMAS,
+            tool_choice: { type: "auto" },
+          },
+        })
+      );
     } catch {}
   };
 
@@ -767,14 +630,31 @@ const VoiceAssistant = () => {
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
         sendSessionUpdate();
-        try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text","audio"] } })); } catch {}
+        try {
+          channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } }));
+        } catch {}
       };
 
       channel.onmessage = (event) => {
-        let msg; try { msg = JSON.parse(event.data); } catch { return; }
-        if (msg.type === "conversation.item.input_audio_transcription.completed") { setTranscript(msg.transcript || ""); setResponseText(""); return; }
-        if (msg.type === "response.text.delta") { setResponseText((p) => p + (msg.delta || "")); return; }
-        if (msg.type === "response.done") { setTranscript(""); return; }
+        let msg;
+        try {
+          msg = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        if (msg.type === "conversation.item.input_audio_transcription.completed") {
+          setTranscript(msg.transcript || "");
+          setResponseText("");
+          return;
+        }
+        if (msg.type === "response.text.delta") {
+          setResponseText((p) => p + (msg.delta || ""));
+          return;
+        }
+        if (msg.type === "response.done") {
+          setTranscript("");
+          return;
+        }
 
         if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
           const id = msg.item.call_id || msg.item.id || "default";
@@ -784,7 +664,7 @@ const VoiceAssistant = () => {
         if (msg.type === "response.function_call_arguments.delta" || msg.type === "tool_call.delta") {
           const id = msg.call_id || msg.id || "default";
           const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
-          prev.argsText += (msg.delta || msg.arguments_delta || "");
+          prev.argsText += msg.delta || msg.arguments_delta || "";
           toolBuffersRef.current.set(id, prev);
           return;
         }
@@ -799,14 +679,21 @@ const VoiceAssistant = () => {
           toolBuffersRef.current.delete(id);
           if (!buf) return;
           let args = {};
-          try { args = JSON.parse(buf.argsText || "{}"); } catch {}
+          try {
+            args = JSON.parse(buf.argsText || "{}");
+          } catch {}
           handleToolCall(buf.name || "unknown_tool", args);
           return;
         }
       };
 
-      channel.onerror = () => { setConnectionStatus("error"); setResponseText("Connection error."); };
-      channel.onclose = () => { cleanupWebRTC(); };
+      channel.onerror = () => {
+        setConnectionStatus("error");
+        setResponseText("Connection error.");
+      };
+      channel.onclose = () => {
+        cleanupWebRTC();
+      };
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
@@ -829,7 +716,6 @@ const VoiceAssistant = () => {
 
       const answer = await res.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
-
     } catch (err) {
       console.error("WebRTC error:", err);
       setConnectionStatus("error");
@@ -841,8 +727,12 @@ const VoiceAssistant = () => {
   const toggleAssistant = () => {
     setIsOpen((prev) => {
       const opening = !prev;
-      if (opening) { chooseVoice(); startWebRTC(); }
-      else { cleanupWebRTC(); }
+      if (opening) {
+        chooseVoice();
+        startWebRTC();
+      } else {
+        cleanupWebRTC();
+      }
       return !prev;
     });
   };
@@ -851,7 +741,9 @@ const VoiceAssistant = () => {
     if (connectionStatus === "connected" && localStreamRef.current) {
       const next = !isMicActive;
       setIsMicActive(next);
-      try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch {}
+      try {
+        localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next));
+      } catch {}
     }
   };
 
@@ -867,7 +759,15 @@ const VoiceAssistant = () => {
         {isOpen && (
           <motion.div
             className="voice-sidebar glassmorphic"
-            style={{ position: "fixed", top: 96, left: 96, zIndex: 1001, width: "380px", height: "600px" }}
+            style={{
+              position: "fixed",
+              top: 96,
+              left: 96,
+              zIndex: 1001,
+              width: "380px",
+              height: "600px",
+              background: "transparent", // ensure the whole card is transparent behind
+            }}
             drag
             dragConstraints={dragConstraintsRef}
             dragElastic={0.2}
@@ -876,11 +776,13 @@ const VoiceAssistant = () => {
 
             <div className="voice-header">
               <h3>Voice Assistant</h3>
-              <button className="close-btn-green" onClick={toggleAssistant}>✖</button>
+              <button className="close-btn-green" onClick={toggleAssistant}>
+                ✖
+              </button>
             </div>
 
-            {/* Top: exact shader circle with hover ripples, transparent outside */}
-            <WaterRippleCircle stream={remoteStream} height={170} />
+            {/* Replaced: WebGL circle → PortalCircle (video-based, fully transparent outside) */}
+            <PortalCircle stream={remoteStream} size={180} />
 
             {/* Your existing audio wave below the circle */}
             <div className="voice-visualizer-container">
@@ -912,3 +814,4 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+

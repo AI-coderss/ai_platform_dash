@@ -997,7 +997,7 @@ const App = () => {
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://ai-doctor-assistant-app-dev.onrender.com",
-      helpVideo: "/videos/doctorai.mp4",
+      helpVideo: "https://youtu.be/Y41W9xl1oms",
       agentKey: "doctor",
     },
     {
