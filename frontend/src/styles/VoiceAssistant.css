@@ -468,3 +468,7 @@
   }
   .va2-micbtn{ width: 56px; height: 56px; }
 }
+/* VoiceAssistant.css */
+.voice-sidebar canvas {
+  max-width: none !important;
+}

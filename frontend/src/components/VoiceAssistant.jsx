@@ -301,8 +301,19 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
 
     // 🔒 lock canvas size — no ResizeObserver, no layout-driven changes
     const d = size;
+    // AFTER: lock both drawing buffer AND CSS box size
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    renderer.setSize(d, d, false);
+    renderer.setSize(d, d, true);         // ✅ true = also sets canvas.style width/height
+    const cvs = renderer.domElement;
+    cvs.style.width = `${d}px`;
+    cvs.style.height = `${d}px`;
+    cvs.style.minWidth = `${d}px`;
+    cvs.style.minHeight = `${d}px`;
+    cvs.style.maxWidth = `${d}px`;
+    cvs.style.maxHeight = `${d}px`;
+    cvs.style.flex = "0 0 auto";
+    cvs.style.display = "block";          // avoid inline-canvas baseline quirks
+
     camera.aspect = 1;
     camera.updateProjectionMatrix();
     orbMat.uniforms.u_res.value.set(d, d);
@@ -374,10 +385,10 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
         renderer.domElement.removeEventListener("pointerenter", onEnter);
         renderer.domElement.removeEventListener("pointerleave", onLeave);
         renderer.domElement.removeEventListener("pointermove", onMove);
-      } catch {}
+      } catch { }
       renderer.domElement.replaceWith(document.createComment("orb-canvas-removed"));
       renderer.dispose();
-      try { geo.dispose(); haloGeo.dispose(); orbMat.dispose(); haloMat.dispose(); } catch {}
+      try { geo.dispose(); haloGeo.dispose(); orbMat.dispose(); haloMat.dispose(); } catch { }
       sceneRef.current = null; cameraRef.current = null; rendererRef.current = null;
       orbRef.current = null; orbMatRef.current = null; haloRef.current = null;
     };
@@ -402,9 +413,9 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       }
     }
     return () => {
-      try { src && src.disconnect(); } catch {}
-      try { an && an.disconnect(); } catch {}
-      try { ac && ac.close(); } catch {}
+      try { src && src.disconnect(); } catch { }
+      try { an && an.disconnect(); } catch { }
+      try { ac && ac.close(); } catch { }
       audioCtxRef.current = null;
       analyserRef.current = null;
       freqRef.current = null;
@@ -439,12 +450,15 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       style={{
         width: `${size}px`,
         height: `${size}px`,
+        minWidth: `${size}px`,       // ✅ new
+        minHeight: `${size}px`,      // ✅ new
+        flex: "0 0 auto",            // ✅ new (don’t let flexbox shrink it)
         margin: "10px auto 4px",
         background: "transparent",
         pointerEvents: "auto",
         userSelect: "none",
-        borderRadius: "50%",   // ✅ circle mask
-        overflow: "hidden",    // ✅ hide corners forever
+        borderRadius: "50%",
+        overflow: "hidden",
       }}
     />
   );
@@ -473,10 +487,10 @@ const VoiceAssistant = () => {
   }, []);
 
   const cleanupWebRTC = () => {
-    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch {} peerConnectionRef.current = null; }
-    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch {} dataChannelRef.current = null; }
-    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach((t) => t.stop()); } catch {} localStreamRef.current = null; }
-    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch {}
+    if (peerConnectionRef.current) { try { peerConnectionRef.current.close(); } catch { } peerConnectionRef.current = null; }
+    if (dataChannelRef.current) { try { dataChannelRef.current.close(); } catch { } dataChannelRef.current = null; }
+    if (localStreamRef.current) { try { localStreamRef.current.getTracks().forEach((t) => t.stop()); } catch { } localStreamRef.current = null; }
+    try { if (audioPlayerRef.current) audioPlayerRef.current.srcObject = null; } catch { }
 
     setConnectionStatus("idle");
     setIsMicActive(false);
@@ -491,7 +505,7 @@ const VoiceAssistant = () => {
     if (name === "navigate_to") {
       const section = String(args?.section || "").trim();
       if (!ALLOWED_SECTIONS.has(section)) return;
-      if (window.agentNavigate) { try { window.agentNavigate(section); } catch {} }
+      if (window.agentNavigate) { try { window.agentNavigate(section); } catch { } }
       else { window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } })); }
       return;
     }
@@ -502,15 +516,15 @@ const VoiceAssistant = () => {
       if (now - last < 400) return; recentClicksRef.current.set(id, now);
       const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
       if (el) {
-        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
-        try { el.focus({ preventScroll: true }); } catch {}
-        try { el.click(); } catch {}
+        try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch { }
+        try { el.focus({ preventScroll: true }); } catch { }
+        try { el.click(); } catch { }
       }
       return;
     }
     if (name === "chat_ask") {
       const text = String(args?.text || "").trim(); if (!text) return;
-      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch {} }
+      if (window.ChatBotBridge?.sendMessage) { try { window.ChatBotBridge.sendMessage(text); } catch { } }
       else { window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } })); }
       return;
     }
@@ -521,8 +535,8 @@ const VoiceAssistant = () => {
         recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
         message: typeof args?.message === "string" ? args.message : undefined,
       };
-      try { window.agentNavigate?.("contact"); } catch {}
-      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch {} }
+      try { window.agentNavigate?.("contact"); } catch { }
+      if (window.ContactBridge?.fill) { try { window.ContactBridge.fill(payload); } catch { } }
       else {
         const setVal = (sel, val) => { if (val == null) return; const el = document.querySelector(sel); if (!el) return; el.value = val; el.dispatchEvent(new Event("input", { bubbles: true })); };
         setVal('[data-agent-id="contact.name"]', payload.name);
@@ -533,11 +547,11 @@ const VoiceAssistant = () => {
       return;
     }
     if (name === "contact_submit") {
-      try { window.agentNavigate?.("contact"); } catch {}
-      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch {} }
+      try { window.agentNavigate?.("contact"); } catch { }
+      if (window.ContactBridge?.submit) { try { window.ContactBridge.submit(); } catch { } }
       else {
         const btn = document.querySelector('[data-agent-id="contact.submit"]');
-        if (btn) { try { btn.click(); } catch {} }
+        if (btn) { try { btn.click(); } catch { } }
         else { document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.(); }
       }
       return;
@@ -562,8 +576,8 @@ const VoiceAssistant = () => {
     }
     if (name === "set_chat_visible") {
       const on = !!args?.visible;
-      if (on) { if (window.ChatBot?.open) { try { window.ChatBot.open(); } catch {} } else { window.dispatchEvent(new CustomEvent("chatbot:open")); } }
-      else { if (window.ChatBot?.close) { try { window.ChatBot.close(); } catch {} } else { window.dispatchEvent(new CustomEvent("chatbot:close")); } }
+      if (on) { if (window.ChatBot?.open) { try { window.ChatBot.open(); } catch { } } else { window.dispatchEvent(new CustomEvent("chatbot:open")); } }
+      else { if (window.ChatBot?.close) { try { window.ChatBot.close(); } catch { } } else { window.dispatchEvent(new CustomEvent("chatbot:close")); } }
       return;
     }
     if (name === "chat_toggle") {
@@ -591,7 +605,7 @@ const VoiceAssistant = () => {
           tool_choice: { type: "auto" }
         }
       }));
-    } catch {}
+    } catch { }
   };
 
   const startWebRTC = async () => {
@@ -611,7 +625,7 @@ const VoiceAssistant = () => {
           const s = event.streams[0];
           if (audioPlayerRef.current) {
             audioPlayerRef.current.srcObject = s;
-            audioPlayerRef.current.play().catch(() => {});
+            audioPlayerRef.current.play().catch(() => { });
           }
           setRemoteStream(s);
         }
@@ -627,7 +641,7 @@ const VoiceAssistant = () => {
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
         sendSessionUpdate();
-        try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch {}
+        try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch { }
       };
 
       channel.onmessage = (event) => {
@@ -659,7 +673,7 @@ const VoiceAssistant = () => {
           toolBuffersRef.current.delete(id);
           if (!buf) return;
           let args = {};
-          try { args = JSON.parse(buf.argsText || "{}"); } catch {}
+          try { args = JSON.parse(buf.argsText || "{}"); } catch { }
           handleToolCall(buf.name || "unknown_tool", args);
           return;
         }
@@ -711,7 +725,7 @@ const VoiceAssistant = () => {
     if (connectionStatus === "connected" && localStreamRef.current) {
       const next = !isMicActive;
       setIsMicActive(next);
-      try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch {}
+      try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch { }
     }
   };
 
