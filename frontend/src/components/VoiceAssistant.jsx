@@ -770,7 +770,7 @@ const VoiceAssistant = () => {
             </div>
 
             {/* NEW: perfect-circle, faster, multi-color reactive orb */}
-            <ReactiveOrb stream={remoteStream} size={220} speed={2.2} />
+            <ReactiveOrb  size={220} speed={2.2} />
 
             <div className="voice-visualizer-container">
               {remoteStream ? (
