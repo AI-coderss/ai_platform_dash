@@ -19,6 +19,7 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
+import Aquarium from "./components/Aquarium";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 /* import TestimonialSection from "./components/TestimonialSection"; */
 import VideoCarousel from "./components/VideoCarousel";
@@ -1172,6 +1173,7 @@ const App = () => {
 />
 
       <ChatBot />
+      <Aquarium/>
       <Footer />
     </div>
   );
