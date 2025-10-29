@@ -492,6 +492,17 @@ const VoiceAssistant = () => {
   const recentClicksRef = useRef(new Map());
 
   const { hideVoiceBtn, chooseVoice, resetToggles } = useUiStore();
+  // 🔔 Wake listeners (finger-snap + "help" hotword)
+  const wakeEnabledRef = useRef(false);
+  const wakeStreamRef = useRef(null);
+  const wakeACtxRef = useRef(null);
+  const wakeAnalyserRef = useRef(null);
+  const wakeFreqBufRef = useRef(null);
+  const wakeTimeBufRef = useRef(null);
+  const wakeRAFRef = useRef(0);
+  const snapCooldownRef = useRef(0);   // ms epoch
+  const hotwordCooldownRef = useRef(0);   // ms epoch
+  const srRef = useRef(null); // SpeechRecognition instance
 
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
@@ -633,6 +644,143 @@ const VoiceAssistant = () => {
       }));
     } catch { }
   };
+  // ▶️ Start wake listeners (requires mic permission; we auto-arm after first use)
+  const startWakeListeners = async () => {
+    if (wakeEnabledRef.current || isOpen) return; // only when closed
+    try {
+      // Reuse existing stream if present, else create a light one
+      if (!wakeStreamRef.current) {
+        wakeStreamRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+            sampleRate: 48000
+          }
+        });
+      }
+
+      if (!wakeACtxRef.current) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        wakeACtxRef.current = new AC();
+      }
+
+      // Analyser
+      const an = wakeACtxRef.current.createAnalyser();
+      an.fftSize = 2048;
+      an.smoothingTimeConstant = 0.6;
+      const src = wakeACtxRef.current.createMediaStreamSource(wakeStreamRef.current);
+      src.connect(an);
+
+      wakeAnalyserRef.current = an;
+      wakeFreqBufRef.current = new Uint8Array(an.frequencyBinCount);
+      wakeTimeBufRef.current = new Uint8Array(an.fftSize);
+
+      // Hotword (SpeechRecognition) – best-effort
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition && !srRef.current) {
+          const sr = new SpeechRecognition();
+          sr.lang = "en-US";
+          sr.continuous = true;
+          sr.interimResults = true;
+
+          sr.onresult = (e) => {
+            // Check the latest alt only (faster)
+            const res = e.results[e.results.length - 1];
+            if (!res) return;
+            const txt = (res[0]?.transcript || "").toLowerCase();
+            const now = performance.now();
+            if (!isOpen && now > hotwordCooldownRef.current && /\bhelp\b/.test(txt)) {
+              hotwordCooldownRef.current = now + 2500; // 2.5s cooldown
+              toggleAssistant();
+            }
+          };
+          sr.onend = () => {
+            // Keep it alive while wake is enabled and assistant closed
+            if (!isOpen && wakeEnabledRef.current) {
+              try { sr.start(); } catch { }
+            }
+          };
+          sr.start();
+          srRef.current = sr;
+        }
+      } catch { }
+
+      // Finger-snap detector: fast transient + high-frequency ratio
+      const detect = () => {
+        wakeRAFRef.current = requestAnimationFrame(detect);
+        const an = wakeAnalyserRef.current;
+        if (!an || isOpen) return; // stop triggering while open
+
+        const freq = wakeFreqBufRef.current;
+        const time = wakeTimeBufRef.current;
+        an.getByteFrequencyData(freq);
+        an.getByteTimeDomainData(time);
+
+        // Energy (RMS) over time-domain
+        let sum = 0;
+        for (let i = 0; i < time.length; i++) {
+          const v = (time[i] - 128) / 128; // -1..1
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / time.length); // ~0..1
+
+        // High-frequency energy ratio (above ~2kHz)
+        const binCount = freq.length;                // 1024
+        const nyquist = (wakeACtxRef.current?.sampleRate || 48000) / 2;
+        const cutoffHz = 2000;
+        const cutoffBin = Math.floor((cutoffHz / nyquist) * binCount);
+
+        let hi = 0, tot = 0;
+        for (let i = 0; i < binCount; i++) {
+          tot += freq[i];
+          if (i >= cutoffBin) hi += freq[i];
+        }
+        const hiRatio = tot > 0 ? hi / tot : 0;
+
+        // Simple transient gate
+        const now = performance.now();
+        const isTransient = rms > 0.14 && hiRatio > 0.62; // tweakable thresholds
+        if (!isOpen && isTransient && now > snapCooldownRef.current) {
+          snapCooldownRef.current = now + 1800; // debounce
+          toggleAssistant();
+        }
+      };
+
+      wakeEnabledRef.current = true;
+      wakeRAFRef.current = requestAnimationFrame(detect);
+
+      // Optional: global bridge to manually arm/disarm from DevTools
+      window.AssistantWake = {
+        enable: () => startWakeListeners(),
+        disable: () => stopWakeListeners(),
+        isEnabled: () => wakeEnabledRef.current
+      };
+
+    } catch (err) {
+      // Permission likely not granted; stay silent
+      console.warn("Wake listeners unavailable:", err);
+    }
+  };
+
+  const stopWakeListeners = () => {
+    wakeEnabledRef.current = false;
+    cancelAnimationFrame(wakeRAFRef.current);
+    wakeRAFRef.current = 0;
+    try { srRef.current?.stop(); } catch { }
+    srRef.current = null;
+
+    // Keep stream to preserve permission — but you can stop it if you prefer:
+    // wakeStreamRef.current?.getTracks().forEach(t => t.stop()); wakeStreamRef.current = null;
+
+    try { wakeACtxRef.current?.close(); } catch { }
+    wakeACtxRef.current = null;
+    wakeAnalyserRef.current = null;
+    wakeFreqBufRef.current = null;
+    wakeTimeBufRef.current = null;
+  };
 
   const startWebRTC = async () => {
     if (peerConnectionRef.current || connectionStatus === "connecting") return;
@@ -741,8 +889,8 @@ const VoiceAssistant = () => {
   const toggleAssistant = () => {
     setIsOpen((prev) => {
       const opening = !prev;
-      if (opening) { chooseVoice(); startWebRTC(); }
-      else { cleanupWebRTC(); }
+      if (opening) { stopWakeListeners();chooseVoice(); startWebRTC(); }
+      else { cleanupWebRTC();startWakeListeners(); }
       return !prev;
     });
   };
