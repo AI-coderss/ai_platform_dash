@@ -1148,9 +1148,9 @@ const App = () => {
         <LaptopSection3D />
       </section>
       {/* <TestimonialSection /> */}
-      <div className="section-title" href="#watch_tutorial" id="watch_tutorial">
+      <section className="section-title" href="#watch_tutorial" id="watch_tutorial" style={{ marginTop: '15rem' }}>
         <VideoCarousel />
-      </div>
+      </section>
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
         Take Survey 📝
       </a>
