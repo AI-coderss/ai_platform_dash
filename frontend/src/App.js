@@ -1005,7 +1005,7 @@ const App = () => {
       description: "Generate structured medical notes from consultations",
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
-      helpVideo: "/videos/transcriptionapp.mp4",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/transcriptionapp.mp4",
       agentKey: "transcription",
     },
     {
