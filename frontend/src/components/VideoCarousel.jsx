@@ -29,6 +29,9 @@ const VideoCarousel = () => {
   const canvasRef = useRef(null);   // the particles canvas (now full-bleed width)
   const animRef = useRef(0);
 
+  // Keep the latest openModal function for the bridge
+  const openModalRef = useRef(null);
+
   // Play only the active slide's video; pause others
   const playActiveOnly = (swiper) => {
     if (!swiper) return;
@@ -56,6 +59,7 @@ const VideoCarousel = () => {
       swiper.autoplay?.stop();
     }
   };
+  openModalRef.current = openModal;
 
   const closeModal = () => {
     setModalVideoSrc(null);
@@ -93,7 +97,55 @@ const VideoCarousel = () => {
     if (swiper) playActiveOnly(swiper);
   };
 
-  // Particle/connecting-dots background
+  // === Voice Assistant Bridge ===
+  useEffect(() => {
+    // Helper: play by ID (or label fallback), optionally opening modal
+    const playById = (id, { openModal = false } = {}) => {
+      const swiper = swiperRef.current?.swiper;
+      if (!swiper) return;
+
+      let idx = SLIDES.findIndex(s => s.id === id);
+      if (idx < 0) {
+        const lc = String(id || "").toLowerCase();
+        idx = SLIDES.findIndex(s => s.label.toLowerCase().includes(lc));
+      }
+      if (idx < 0) return;
+
+      // Move to slide and play inline
+      swiper.slideTo(idx);
+      const slide = swiper.slides?.[idx];
+      const v = slide?.querySelector?.("video.vcx-video");
+      if (v) {
+        v.muted = true;
+        v.playsInline = true;
+        v.play().catch(() => {});
+      }
+      swiper.autoplay?.stop();
+
+      if (openModal && openModalRef.current) {
+        openModalRef.current(SLIDES[idx].src);
+      }
+    };
+
+    // Expose an imperative bridge + an event fallback
+    const bridge = {
+      play: (id, opts) => playById(id, opts || {}),
+    };
+    window.TutorialsBridge = bridge;
+
+    const onEvt = (e) => {
+      const { id, openModal } = e.detail || {};
+      bridge.play(id, { openModal });
+    };
+    window.addEventListener("tutorial:play", onEvt);
+
+    return () => {
+      if (window.TutorialsBridge === bridge) delete window.TutorialsBridge;
+      window.removeEventListener("tutorial:play", onEvt);
+    };
+  }, []);
+
+  // Particle/connecting-dots background (unchanged)
   useEffect(() => {
     const canvas = canvasRef.current;
     const host = rootRef.current;
@@ -275,6 +327,7 @@ const VideoCarousel = () => {
 };
 
 export default VideoCarousel;
+
 
 
 

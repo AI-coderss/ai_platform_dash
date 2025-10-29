@@ -79,6 +79,19 @@ const TOOL_SCHEMAS = [
     type: "function", name: "set_chat_visible",
     parameters: { type: "object", additionalProperties: false, properties: { visible: { type: "boolean" } }, required: ["visible"] }
   },
+  {
+    type: "function",
+    name: "tutorial_play",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: { type: "string", enum: ["doctorai", "transcription", "medreport", "ivf"] },
+        open_modal: { type: "boolean" } // optional: true = open in lightbox
+      },
+      required: ["id"]
+    }
+  }
 ];
 
 /* =====================================================================================
@@ -590,6 +603,19 @@ const VoiceAssistant = () => {
       else window.dispatchEvent(new Event("chatbot:close"));
       return;
     }
+    if (name === "tutorial_play") {
+      const id = String(args?.id || "").trim();
+      const openModal = !!args?.open_modal;
+
+      try { window.agentNavigate?.("watch_tutorial"); } catch { }
+      if (window.TutorialsBridge?.play) {
+        try { window.TutorialsBridge.play(id, { openModal }); } catch { }
+      } else {
+        window.dispatchEvent(new CustomEvent("tutorial:play", { detail: { id, openModal } }));
+      }
+      return;
+    }
+
   };
 
   const sendSessionUpdate = () => {

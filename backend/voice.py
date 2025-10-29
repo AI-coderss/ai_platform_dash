@@ -205,8 +205,23 @@ TOOLS = [
   "name": "chat_close",
   "description": "Close (hide) the on-page chatbot if it is open.",
   "parameters": { "type": "object", "additionalProperties": False, "properties": {} }
+},
+{
+    "type": "function",
+    "name": "tutorial_play",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "id": {
+                "type": "string",
+                "enum": ["doctorai", "transcription", "medreport", "ivf"]
+            },
+            "open_modal": {"type": "boolean"}
+        },
+        "required": ["id"]
+    }
 }
-
 
 ]
 
