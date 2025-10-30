@@ -24,7 +24,7 @@ import Aquarium from "./components/Aquarium";
 /* import TestimonialSection from "./components/TestimonialSection"; */
 import VideoCarousel from "./components/VideoCarousel";
 import RadialNav from "./components/RadialNav";
-import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck,FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd} from "react-icons/fa";
+import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck, FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd } from "react-icons/fa";
 
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
@@ -40,32 +40,32 @@ const audioMap = {
   6: "/assets/audio/patient_assistant.mp3",
 };
 // convenient scroller
-  const jump = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+const jump = (id) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
-  // product links from your app list
-  const urls = {
-    doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
-    transcript: "https://medicaltranscription-version2-tests.onrender.com",
-    analyst: "/videos/unddev.mp4",
-    report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-    ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
-    patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
-    survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
-  };
+// product links from your app list
+const urls = {
+  doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
+  transcript: "https://medicaltranscription-version2-tests.onrender.com",
+  analyst: "/videos/unddev.mp4",
+  report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
+  ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
+  patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
+  survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
+};
 const navItems = [
-    { id: "home",     label: "Home",               icon: <FaHome />,         onSelect: () => jump("hero") },
-    { id: "doctor",   label: "Doctor Assistant",   icon: <FaUserMd />,       href: urls.doctor },
-    { id: "scribe",   label: "Transcription",      icon: <FaMicrophoneAlt />,href: urls.transcript },
-    { id: "analyst",  label: "Data Analyst",       icon: <FaChartBar />,     href: urls.analyst },
-    { id: "report",   label: "Report Enhancer",    icon: <FaFileMedical />,  href: urls.report },
-    { id: "ivf",      label: "IVF Assistant",      icon: <FaBaby />,         href: urls.ivf },
-    { id: "patient",  label: "Patient Assistant",  icon: <FaHeadset />,      href: urls.patient },
-    { id: "survey",   label: "Survey",             icon: <FaClipboardCheck />,href: urls.survey },
-    // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
-  ];
+  { id: "home", label: "Home", icon: <FaHome />, onSelect: () => jump("hero") },
+  { id: "doctor", label: "Doctor Assistant", icon: <FaUserMd />, href: urls.doctor },
+  { id: "scribe", label: "Transcription", icon: <FaMicrophoneAlt />, href: urls.transcript },
+  { id: "analyst", label: "Data Analyst", icon: <FaChartBar />, href: urls.analyst },
+  { id: "report", label: "Report Enhancer", icon: <FaFileMedical />, href: urls.report },
+  { id: "ivf", label: "IVF Assistant", icon: <FaBaby />, href: urls.ivf },
+  { id: "patient", label: "Patient Assistant", icon: <FaHeadset />, href: urls.patient },
+  { id: "survey", label: "Survey", icon: <FaClipboardCheck />, href: urls.survey },
+  // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
+];
 /* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
   const [open, setOpen] = useState(false);
@@ -90,7 +90,7 @@ const NavBar = ({ theme, onToggleTheme }) => {
           <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
           <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
           <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
-          
+
         </div>
 
         <div className="topnav-actions">
@@ -167,11 +167,11 @@ const NavBar = ({ theme, onToggleTheme }) => {
 
       <div className="topnav-mobile">
         <a href="#hero" onClick={(e) => handleNav(e, "hero")} data-agent-id="nav.about">About</a>
-          <a href="#products" onClick={(e) => handleNav(e, "products")} data-agent-id="nav.products">Products</a>
-          <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
-          <a href="#policy" onClick={(e) => handleNav(e, "policy")} data-agent-id="nav.policy">Our Policy</a>
-          <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
-          <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
+        <a href="#products" onClick={(e) => handleNav(e, "products")} data-agent-id="nav.products">Products</a>
+        <a href="#watch_tutorial" onClick={(e) => handleNav(e, "watch_tutorial")} data-agent-id="nav.watch_tutorial">Watch Tutorial</a>
+        <a href="#policy" onClick={(e) => handleNav(e, "policy")} data-agent-id="nav.policy">Our Policy</a>
+        <a href="#contact" onClick={(e) => handleNav(e, "contact")} data-agent-id="nav.contact">Contact</a>
+        <a href="#footer" onClick={(e) => handleNav(e, "footer")} data-agent-id="nav.footer">Footer</a>
       </div>
     </nav>
   );
@@ -208,17 +208,17 @@ const HeroLogoParticles = ({ theme }) => {
 
   const draggingRef = useRef(false);
   const dragMovedRef = useRef(false);
-  const lastMouseRef = useRef({x:0,y:0});
+  const lastMouseRef = useRef({ x: 0, y: 0 });
 
   const flashRef = useRef({ t: 0, active: false });
 
   // morph → bounce → disperse
-  const bounceRef = useRef({ active:false, started:false, t:0, duration:2.5 });
+  const bounceRef = useRef({ active: false, started: false, t: 0, duration: 2.5 });
   const disperseQueuedRef = useRef(false);
 
   const raycaster = useRef(new THREE.Raycaster()).current;
   const mouseNDC = useRef(new THREE.Vector2()).current;
-  const zPlane = useRef(new THREE.Plane(new THREE.Vector3(0,0,1), 0)).current;
+  const zPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)).current;
 
   const getVar = (name, fallback) => {
     const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -226,31 +226,31 @@ const HeroLogoParticles = ({ theme }) => {
   };
   const getThemeColors = () => {
     const primary = getVar("--brand-primary", theme === "dark" ? "#7aa2ff" : "#4f46e5");
-    const accent  = getVar("--brand-accent",  theme === "dark" ? "#8be9fd" : "#06b6d4");
+    const accent = getVar("--brand-accent", theme === "dark" ? "#8be9fd" : "#06b6d4");
     return { primary, accent };
   };
 
   // ====== GSAP SplitType animation for hero title (updated) ======
-useEffect(() => {
-  // Split into lines + words + chars so browser respects line wrapping
-  const split = new SplitType(".hero-title", { types: "lines, words, chars" });
+  useEffect(() => {
+    // Split into lines + words + chars so browser respects line wrapping
+    const split = new SplitType(".hero-title", { types: "lines, words, chars" });
 
-  // Animate each char, but keep words/lines together
-  const tween = gsap.from(split.chars, {
-    x: 150,
-    opacity: 0,
-    duration: 0.7,
-    ease: "power4",
-    stagger: 0.04,
-    repeat: -1,
-    repeatDelay: 2,
-  });
+    // Animate each char, but keep words/lines together
+    const tween = gsap.from(split.chars, {
+      x: 150,
+      opacity: 0,
+      duration: 0.7,
+      ease: "power4",
+      stagger: 0.04,
+      repeat: -1,
+      repeatDelay: 2,
+    });
 
-  return () => {
-    tween.kill();
-    split.revert();
-  };
-}, []);
+    return () => {
+      tween.kill();
+      split.revert();
+    };
+  }, []);
 
   /* ------------ Soft studio environment (PMREM) for glass refraction ----------- */
   const buildSoftEnv = (renderer) => {
@@ -259,8 +259,8 @@ useEffect(() => {
     const mat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
       uniforms: {
-        top:    { value: new THREE.Color(0xf5f7fb) },
-        mid:    { value: new THREE.Color(0xdfe4ee) },
+        top: { value: new THREE.Color(0xf5f7fb) },
+        mid: { value: new THREE.Color(0xdfe4ee) },
         bottom: { value: new THREE.Color(0xbfc7d8) },
       },
       vertexShader: `
@@ -339,7 +339,7 @@ useEffect(() => {
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0,0,W,H);
+    ctx.clearRect(0, 0, W, H);
     ctx.drawImage(img, 0, 0, W, H);
 
     const { data } = ctx.getImageData(0, 0, W, H);
@@ -351,8 +351,8 @@ useEffect(() => {
         const i = (y * W + x) * 4;
         const a = data[i + 3];
         if (a > 40) {
-          const r = data[i] / 255, g = data[i+1]/255, b = data[i+2]/255;
-          pts.push([x - W/2, -(y - H/2), (Math.random()-0.5)*6]);
+          const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+          pts.push([x - W / 2, -(y - H / 2), (Math.random() - 0.5) * 6]);
           cols.push([r, g, b]);
         }
       }
@@ -376,12 +376,12 @@ useEffect(() => {
     const tPositions = new Float32Array(pts.length * 3);
     const tColors = new Float32Array(pts.length * 3);
     for (let i = 0; i < pts.length; i++) {
-      tPositions[i*3]     = pts[i][0] * scale;
-      tPositions[i*3 + 1] = pts[i][1] * scale;
-      tPositions[i*3 + 2] = pts[i][2] * 0.8;
-      tColors[i*3]     = cols[i][0];
-      tColors[i*3 + 1] = cols[i][1];
-      tColors[i*3 + 2] = cols[i][2];
+      tPositions[i * 3] = pts[i][0] * scale;
+      tPositions[i * 3 + 1] = pts[i][1] * scale;
+      tPositions[i * 3 + 2] = pts[i][2] * 0.8;
+      tColors[i * 3] = cols[i][0];
+      tColors[i * 3 + 1] = cols[i][1];
+      tColors[i * 3 + 2] = cols[i][2];
     }
     return { tPositions, tColors, count: pts.length };
   };
@@ -443,7 +443,7 @@ useEffect(() => {
 
     // subtle white edges so the cube reads clearly (no colored borders)
     const edgeGeom = new THREE.EdgesGeometry(new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE), 1);
-    const edgeMat  = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
     const edgeLines = new THREE.LineSegments(edgeGeom, edgeMat);
     cube.add(edgeLines);
 
@@ -476,12 +476,12 @@ useEffect(() => {
       z = THREE.MathUtils.clamp(z, -half, half);
 
       positions[ix] = base[ix] = x;
-      positions[ix+1] = base[ix+1] = y;
-      positions[ix+2] = base[ix+2] = z;
-      velocities[ix] = velocities[ix+1] = velocities[ix+2] = 0;
+      positions[ix + 1] = base[ix + 1] = y;
+      positions[ix + 2] = base[ix + 2] = z;
+      velocities[ix] = velocities[ix + 1] = velocities[ix + 2] = 0;
       speeds[i] = 0.24 + Math.random() * 0.8;
       sizes[i] = Math.random() * 0.6 + 1.2;
-      colors[ix] = colors[ix+1] = colors[ix+2] = 1.0;
+      colors[ix] = colors[ix + 1] = colors[ix + 2] = 1.0;
     }
 
     const posRefCurrent = positions;
@@ -548,14 +548,14 @@ useEffect(() => {
 
       const colAttr = colorRef.current;
       for (let i = 0; i < count; i++) {
-        colAttr[i*3]     = tColors[i*3];
-        colAttr[i*3 + 1] = tColors[i*3 + 1];
-        colAttr[i*3 + 2] = tColors[i*3 + 2];
+        colAttr[i * 3] = tColors[i * 3];
+        colAttr[i * 3 + 1] = tColors[i * 3 + 1];
+        colAttr[i * 3 + 2] = tColors[i * 3 + 2];
       }
       const tint = new THREE.Color(primary);
       for (let i = count; i < colors.length / 3; i++) {
-        const ix = i*3;
-        colors[ix]     = tint.r * 0.8;
+        const ix = i * 3;
+        colors[ix] = tint.r * 0.8;
         colors[ix + 1] = tint.g * 0.8;
         colors[ix + 2] = tint.b * 0.8;
       }
@@ -582,14 +582,14 @@ useEffect(() => {
       const pos = posRef.current;
       const vel = velRef.current;
 
-      for (let i = 0; i < pos.length/3; i++) {
-        const ix = i*3;
-        const dx = pos[ix] - hit.x, dy = pos[ix+1] - hit.y, dz = pos[ix+2] - hit.z;
-        const d = Math.sqrt(dx*dx + dy*dy + dz*dz) + 0.0001;
+      for (let i = 0; i < pos.length / 3; i++) {
+        const ix = i * 3;
+        const dx = pos[ix] - hit.x, dy = pos[ix + 1] - hit.y, dz = pos[ix + 2] - hit.z;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.0001;
         const s = (strength / d) * 0.5;
-        vel[ix]     += (dx/d) * s + (Math.random()-0.5)*0.35;
-        vel[ix + 1] += (dy/d) * s + (Math.random()-0.5)*0.35;
-        vel[ix + 2] += (dz/d) * 0.25;
+        vel[ix] += (dx / d) * s + (Math.random() - 0.5) * 0.35;
+        vel[ix + 1] += (dy / d) * s + (Math.random() - 0.5) * 0.35;
+        vel[ix + 2] += (dz / d) * 0.25;
       }
     };
 
@@ -655,11 +655,11 @@ useEffect(() => {
       const N = Math.min(500, tCount);
       let acc = 0;
       for (let i = 0; i < N; i++) {
-        const ix = i*3;
+        const ix = i * 3;
         const dx = pos[ix] - targets[ix];
-        const dy = pos[ix+1] - targets[ix+1];
-        const dz = pos[ix+2] - targets[ix+2];
-        acc += dx*dx + dy*dy + dz*dz;
+        const dy = pos[ix + 1] - targets[ix + 1];
+        const dz = pos[ix + 2] - targets[ix + 2];
+        acc += dx * dx + dy * dy + dz * dz;
       }
       return Math.sqrt(acc / N);
     };
@@ -686,7 +686,7 @@ useEffect(() => {
           const tau = bounceRef.current.t;
           const bounceY = A * Math.exp(-damping * tau) * Math.sin(w * tau);
           g.position.y = bounceY;
-          const pulse = 1 + 0.02 * Math.exp(-damping * tau) * Math.sin(w * tau + Math.PI/3);
+          const pulse = 1 + 0.02 * Math.exp(-damping * tau) * Math.sin(w * tau + Math.PI / 3);
           g.scale.setScalar(pulse);
 
           if (bounceRef.current.t >= bounceRef.current.duration && !disperseQueuedRef.current) {
@@ -694,18 +694,18 @@ useEffect(() => {
             const vel = velRef.current;
             const pos = posRef.current;
             for (let i = 0; i < pos.length / 3; i++) {
-              const ix = i*3;
-              const n = new THREE.Vector3(pos[ix], pos[ix+1], pos[ix+2]).normalize();
-              vel[ix]     += n.x * (1.2 + Math.random()*0.6);
-              vel[ix + 1] += n.y * (1.2 + Math.random()*0.6);
-              vel[ix + 2] += n.z * (0.8 + Math.random()*0.4);
+              const ix = i * 3;
+              const n = new THREE.Vector3(pos[ix], pos[ix + 1], pos[ix + 2]).normalize();
+              vel[ix] += n.x * (1.2 + Math.random() * 0.6);
+              vel[ix + 1] += n.y * (1.2 + Math.random() * 0.6);
+              vel[ix + 2] += n.z * (0.8 + Math.random() * 0.4);
             }
             lockRef.current = false;
           }
           if (disperseQueuedRef.current && bounceRef.current.t >= bounceRef.current.duration + 0.2) {
             bounceRef.current.active = false;
             g.position.y = 0;
-            g.scale.set(1,1,1);
+            g.scale.set(1, 1, 1);
           }
         } else {
           g.position.y = Math.sin(t * 0.6) * 1.0;
@@ -727,8 +727,8 @@ useEffect(() => {
       const tCount = targetCountRef.current;
 
       const hoverPull = hoverRef.current ? 0.10 : 0.0;
-      const lockPull  = lockRef.current ? 0.22 : 0.0;
-      const relax     = lockRef.current ? 0.02 : 0.012;
+      const lockPull = lockRef.current ? 0.22 : 0.0;
+      const relax = lockRef.current ? 0.02 : 0.012;
 
       if (lockRef.current && !bounceRef.current.started && targets && tCount > 0) {
         const err = morphError();
@@ -741,41 +741,41 @@ useEffect(() => {
 
       const halfCube = (CUBE_SIZE / 2) - 4;
       for (let i = 0; i < pos.length / 3; i++) {
-        const ix = i*3;
+        const ix = i * 3;
 
         // organic drift
-        pos[ix]     *= 1.0 + Math.sin(t * 0.12 * spd[i] + i) * drift;
+        pos[ix] *= 1.0 + Math.sin(t * 0.12 * spd[i] + i) * drift;
         pos[ix + 1] *= 1.0 + Math.cos(t * 0.10 * spd[i] + i * 0.7) * drift;
         pos[ix + 2] *= 1.0 + Math.sin(t * 0.08 * spd[i] + i * 0.2) * drift;
 
         if (targets && i < tCount && (hoverPull + lockPull) > 0) {
-          const tx = targets[ix], ty = targets[ix+1], tz = targets[ix+2];
+          const tx = targets[ix], ty = targets[ix + 1], tz = targets[ix + 2];
           const pull = hoverPull + lockPull;
-          pos[ix]     += (tx - pos[ix]) * pull;
+          pos[ix] += (tx - pos[ix]) * pull;
           pos[ix + 1] += (ty - pos[ix + 1]) * pull;
           pos[ix + 2] += (tz - pos[ix + 2]) * pull * 0.95;
         } else {
           const haloPull = lockRef.current ? 0.035 : 0.012;
-          pos[ix]     += (base[ix] - pos[ix]) * haloPull;
+          pos[ix] += (base[ix] - pos[ix]) * haloPull;
           pos[ix + 1] += (base[ix + 1] - pos[ix + 1]) * haloPull;
           pos[ix + 2] += (base[ix + 2] - pos[ix + 2]) * haloPull;
         }
 
         // integrate velocities
-        pos[ix]     += vel[ix] *  dt;
+        pos[ix] += vel[ix] * dt;
         pos[ix + 1] += vel[ix + 1] * dt;
         pos[ix + 2] += vel[ix + 2] * dt;
-        vel[ix]     *= damping;
+        vel[ix] *= damping;
         vel[ix + 1] *= damping;
         vel[ix + 2] *= damping;
 
         // soft collision with cube walls
-        if (pos[ix] >  halfCube) { pos[ix] =  halfCube; vel[ix] *= -0.65; }
+        if (pos[ix] > halfCube) { pos[ix] = halfCube; vel[ix] *= -0.65; }
         if (pos[ix] < -halfCube) { pos[ix] = -halfCube; vel[ix] *= -0.65; }
-        if (pos[ix+1] >  halfCube) { pos[ix+1] =  halfCube; vel[ix+1] *= -0.65; }
-        if (pos[ix+1] < -halfCube) { pos[ix+1] = -halfCube; vel[ix+1] *= -0.65; }
-        if (pos[ix+2] >  halfCube) { pos[ix+2] =  halfCube; vel[ix+2] *= -0.65; }
-        if (pos[ix+2] < -halfCube) { pos[ix+2] = -halfCube; vel[ix+2] *= -0.65; }
+        if (pos[ix + 1] > halfCube) { pos[ix + 1] = halfCube; vel[ix + 1] *= -0.65; }
+        if (pos[ix + 1] < -halfCube) { pos[ix + 1] = -halfCube; vel[ix + 1] *= -0.65; }
+        if (pos[ix + 2] > halfCube) { pos[ix + 2] = halfCube; vel[ix + 2] *= -0.65; }
+        if (pos[ix + 2] < -halfCube) { pos[ix + 2] = -halfCube; vel[ix + 2] *= -0.65; }
       }
       geomPos.needsUpdate = true;
       // flash pulse
@@ -826,8 +826,8 @@ useEffect(() => {
     if (colors && pointsRef.current.geometry?.attributes?.color) {
       const tint = new THREE.Color(primary);
       for (let i = count; i < colors.length / 3; i++) {
-        const ix = i*3;
-        colors[ix]     = tint.r * 0.8;
+        const ix = i * 3;
+        colors[ix] = tint.r * 0.8;
         colors[ix + 1] = tint.g * 0.8;
         colors[ix + 2] = tint.b * 0.8;
       }
@@ -890,10 +890,10 @@ const AppCard = ({ app, onPlay }) => {
       audioEl.muted = false;
       audioEl.playsInline = true;
       const p = audioEl.play();
-      if (p && typeof p.then === "function") p.catch(() => {});
+      if (p && typeof p.then === "function") p.catch(() => { });
     } else if (!isActive && audioEl) {
       audioEl.pause();
-      try { audioEl.currentTime = 0; } catch(e) {}
+      try { audioEl.currentTime = 0; } catch (e) { }
     }
   }, [isActive, app.id]);
 
@@ -976,6 +976,15 @@ const Footer = () => (
 /* -------------------------------- App ------------------------------- */
 const App = () => {
   const [videoUrl, setVideoUrl] = useState(null);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  // ✅ guard against React 18 double-mount + unmount races
+  const appMountedRef = React.useRef(false);
+  React.useEffect(() => {
+    appMountedRef.current = true;
+    return () => {
+      appMountedRef.current = false;
+    };
+  }, []);
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
     return saved === "dark" ? "dark" : "light";
@@ -989,16 +998,34 @@ const App = () => {
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  // ========= SAFE VIDEO OPEN/CLOSE =========
+  const openHelpVideo = (src) => {
+    if (!src) return;
+    // some of your links are iframe URLs, some are direct .mp4
+    // we just store it and open the modal — actual <video> is below
+    setVideoUrl(src);
+    setIsVideoOpen(true);
+  };
+
+  const closeHelpVideo = () => {
+    // defer close one tick so React finishes commit
+    setTimeout(() => {
+      if (!appMountedRef.current) return;
+      setIsVideoOpen(false);
+      // clear src so browser releases the buffer
+      setVideoUrl(null);
+    }, 0);
+  };
 
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
-  
+
   const apps = [
     {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://ai-doctor-assistant-app-dev.onrender.com",
-      helpVideo: "/videos/doctorai.mp4",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/doctorai.mp4",
       agentKey: "doctor",
     },
     {
@@ -1014,7 +1041,7 @@ const App = () => {
       description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
       link: "/videos/unddev.mp4",
-      helpVideo: "/videos/unddev.mp4",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
       agentKey: "analyst",
     },
     {
@@ -1022,7 +1049,7 @@ const App = () => {
       description: "Enhance the quality of medical reports using AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-      helpVideo: "/videos/medreport.mp4",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/medreport.mp4",
       agentKey: "report",
     },
     {
@@ -1030,7 +1057,7 @@ const App = () => {
       description: "Designed to assist IVF fellowships at DSAH using RAG technology",
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
-      helpVideo: "/videos/ivf.mp4",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/ivf.mp4",
       agentKey: "ivf",
     },
     {
@@ -1038,7 +1065,7 @@ const App = () => {
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
-      helpVideo: "/videos/unddev.mp4",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
       agentKey: "patient",
     },
     // Survey card shown via floating button
@@ -1070,8 +1097,8 @@ const App = () => {
       if (s === "chat") {
         try {
           window.ChatBot?.open?.();
-        } catch {}
-        try { document.querySelector(".chatbot-root")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch {}
+        } catch { }
+        try { document.querySelector(".chatbot-root")?.scrollIntoView({ behavior: "smooth", block: "center" }); } catch { }
         return;
       }
     };
@@ -1082,8 +1109,8 @@ const App = () => {
     // Chat ask bridge: agent can send a message to the on-site chatbot
     window.ChatBotBridge = {
       sendMessage: (text) => {
-        try { window.ChatBot?.open?.(); } catch {}
-        try { window.ChatBot?.sendMessage?.(text); return; } catch {}
+        try { window.ChatBot?.open?.(); } catch { }
+        try { window.ChatBot?.sendMessage?.(text); return; } catch { }
         window.dispatchEvent(new CustomEvent("chatbot:send", { detail: { text } }));
       }
     };
@@ -1098,8 +1125,8 @@ const App = () => {
     return () => {
       window.removeEventListener("agent:navigate", onAgentNavigate);
       window.removeEventListener("agent:chat.ask", onAgentChatAsk);
-      try { delete window.agentNavigate; } catch {}
-      try { delete window.ChatBotBridge; } catch {}
+      try { delete window.agentNavigate; } catch { }
+      try { delete window.ChatBotBridge; } catch { }
     };
   }, []);
 
@@ -1127,20 +1154,49 @@ const App = () => {
       <HeroLogoParticles theme={theme} />
 
       {/* Video modal */}
-      {videoUrl && (
-        <div className="video-modal">
-          <div className="video-wrapper">
-            <button className="close-video" onClick={() => setVideoUrl(null)}>✖</button>
-            <iframe src={videoUrl} title="Help Video" allow="autoplay; encrypted-media" allowFullScreen />
+      {isVideoOpen && (
+        <div className="video-modal" onClick={closeHelpVideo}>
+          <div className="video-wrapper" onClick={(e) => e.stopPropagation()}>
+            <button className="close-video" onClick={closeHelpVideo} aria-label="Close video">
+              ✖
+            </button>
+
+            {/* if it’s an mp4 → play it with <video> */}
+            {videoUrl && videoUrl.endsWith(".mp4") ? (
+              <video
+                key={videoUrl}                 // force reload when src changes
+                className="video-modal-player" // we will style it below
+                src={videoUrl}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                onError={(e) => {
+                  // fallback to iframe if this host can’t be played as <video>
+                  const iframe = document.getElementById("video-fallback-frame");
+                  if (iframe) {
+                    iframe.src = videoUrl;
+                  }
+                }}
+              />
+            ) : (
+              // fallback: YouTube / render.com / form URLs
+              <iframe
+                id="video-fallback-frame"
+                src={videoUrl}
+                title="Help Video"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            )}
           </div>
         </div>
       )}
-
       {/* Products */}
       <section id="products" className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={setVideoUrl} />))}
+          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={openHelpVideo} />))}
         </div>
       </section>
       <CardCarousel />
@@ -1158,22 +1214,22 @@ const App = () => {
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
-      
+
       <VoiceAssistant />
-     <RadialNav
-  lift={140}
-  items={[
-    { id: "about",    label: "About",    icon: <FaHome />,            targetId: "hero" },
-    { id: "products", label: "Products", icon: <FaThLarge />,         targetId: "products" },
-    { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />,      targetId: "watch_tutorial" },
-    { id: "policy",   label: "Policy",   icon: <FaShieldAlt />,       targetId: "policy" },
-    { id: "contact",  label: "Contact",  icon: <FaEnvelopeOpenText />,targetId: "contact" },
-    
-  ]}
-/>
+      <RadialNav
+        lift={140}
+        items={[
+          { id: "about", label: "About", icon: <FaHome />, targetId: "hero" },
+          { id: "products", label: "Products", icon: <FaThLarge />, targetId: "products" },
+          { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />, targetId: "watch_tutorial" },
+          { id: "policy", label: "Policy", icon: <FaShieldAlt />, targetId: "policy" },
+          { id: "contact", label: "Contact", icon: <FaEnvelopeOpenText />, targetId: "contact" },
+
+        ]}
+      />
 
       <ChatBot />
-      <Aquarium/>
+      <Aquarium />
       <Footer />
     </div>
   );
