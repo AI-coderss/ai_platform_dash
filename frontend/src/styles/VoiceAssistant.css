@@ -472,3 +472,105 @@
 .voice-sidebar canvas {
   max-width: none !important;
 }
+/* Mic button states */
+.mic-btn {
+  position: relative;             /* needed for the slash stripe */
+  background: #0475ee;            /* default (connected but we add explicit states below) */
+  height: 60px;
+  width: 60px;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  padding: 1rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.12s ease;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.mic-btn:active { transform: scale(0.98); }
+
+/* ✅ Active (mic ON) — green */
+.mic-btn.active {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 8px 18px rgba(0,0,0,.18), 0 0 16px rgba(34,197,94,.65), inset 0 0 0 1px rgba(255,255,255,.22);
+}
+
+/* ✅ Inactive (mic OFF) — red with diagonal slash */
+/* Mic OFF — bright glowing red */
+/* ✅ MIC BUTTON — IDLE (OFF) STATE: Bright red with white slash */
+.mic-btn.inactive {
+  background: linear-gradient(135deg, #ff0000, #ff3333);
+  box-shadow:
+    0 0 15px rgba(255, 0, 0, 0.9),
+    0 0 30px rgba(255, 0, 0, 0.7),
+    0 0 50px rgba(255, 50, 50, 0.6),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  animation: micGlow 1.4s ease-in-out infinite alternate;
+  color: #fff;
+}
+
+/* 🔥 White diagonal slash across red mic */
+.mic-btn.inactive::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 4px;
+  background: #ffffff;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 1;
+}
+
+/* ✅ ACTIVE STATE (GREEN) — unchanged */
+.mic-btn.active {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow:
+    0 0 15px rgba(34, 197, 94, 0.9),
+    0 0 30px rgba(34, 197, 94, 0.6),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  animation: none;
+  color: #fff;
+}
+
+/* ❌ REMOVE ALL GREY STATES — no grey when disabled or idle */
+.mic-btn.disabled,
+.mic-btn:disabled {
+  background: linear-gradient(135deg, #ff0000, #ff3333);
+  box-shadow:
+    0 0 15px rgba(255, 0, 0, 0.9),
+    0 0 30px rgba(255, 0, 0, 0.7),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  color: #fff;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* ✨ Red glow animation */
+@keyframes micGlow {
+  0% {
+    box-shadow:
+      0 0 10px rgba(255, 0, 0, 0.8),
+      0 0 20px rgba(255, 0, 0, 0.5),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  }
+  100% {
+    box-shadow:
+      0 0 20px rgba(255, 0, 0, 1),
+      0 0 40px rgba(255, 50, 50, 0.8),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  }
+}
+
+/* Status text tweak to match states */
+.status {
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  color: #333;
+}
+.status.connected { color: #16a34a; }
+.status.connecting { color: #f59e0b; }
+.status.error { color: #ef4444; }

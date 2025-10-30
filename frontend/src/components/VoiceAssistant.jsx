@@ -7,7 +7,8 @@
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
-import { FaMicrophoneAlt } from "react-icons/fa";
+import { FaMicrophoneAlt, FaMicrophoneSlash } from "react-icons/fa";
+
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave";
 import "../styles/VoiceAssistant.css";
@@ -794,12 +795,17 @@ const VoiceAssistant = () => {
 
             <div className="voice-controls">
               <button
-                className={`mic-btn ${isMicActive ? "active" : ""}`}
+                className={`mic-btn ${isMicActive ? "active" : "inactive"} ${connectionStatus !== "connected" ? "disabled" : ""}`}
                 onClick={toggleMic}
                 disabled={connectionStatus !== "connected"}
+                aria-pressed={isMicActive}
+                aria-label={isMicActive ? "Mute microphone" : "Unmute microphone"}
+                title={isMicActive ? "Mic on — click to mute" : "Mic off — click to unmute"}
               >
-                <FaMicrophoneAlt />
+                {isMicActive ? <FaMicrophoneAlt /> : <FaMicrophoneSlash />}
               </button>
+              <span className={`status ${connectionStatus}`}>{isMicActive ? "listening" : "mic off"}</span>
+
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
           </motion.div>
