@@ -544,7 +544,7 @@
 
 /* Status text tweak to match states */
 .status {
-  font-size: 0.6rem;
+  font-size: 0.8rem;
   text-transform: capitalize;
   color: #333;
 }
