@@ -13,32 +13,26 @@ const DEFAULT_VIDEOS = [
 export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [userStarted, setUserStarted] = useState(false); // user clicked play at least once
+  const [userStarted, setUserStarted] = useState(false);
+  const [isClosed, setIsClosed] = useState(false); // 👈 NEW
   const videoRef = useRef(null);
-  const swapTokenRef = useRef(0); // prevents races during rapid switches
+  const swapTokenRef = useRef(0);
 
   const currentVideo = videos[index];
 
-  /* ---------------- core: safe source swap (no “play() interrupted” warnings) --------------- */
   const setSourceSafely = useCallback(async (el, newSrc, resume) => {
     const token = ++swapTokenRef.current;
-
-    // 1) Pause first to avoid “play() interrupted because load() was called”
     try { await el.pause(); } catch {}
-
-    // 2) Let pause settle in the event loop
     await new Promise((r) => requestAnimationFrame(r));
     if (token !== swapTokenRef.current) return;
 
-    // 3) Change src only if different
     if (el.src !== newSrc) {
       el.src = newSrc;
       el.load();
     }
 
-    // 4) Wait for playable data before attempting resume
     await new Promise((resolve) => {
-      if (el.readyState >= 2) return resolve(); // HAVE_CURRENT_DATA+
+      if (el.readyState >= 2) return resolve();
       const onReady = () => {
         el.removeEventListener("loadeddata", onReady);
         el.removeEventListener("canplay", onReady);
@@ -50,11 +44,8 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
 
     if (token !== swapTokenRef.current) return;
 
-    // 5) Resume only if requested
     if (resume) {
-      el.play().catch(() => {
-        // If blocked by autoplay policy, we just keep overlay visible
-      });
+      el.play().catch(() => {});
     }
   }, []);
 
@@ -68,7 +59,9 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
     setSourceSafely(el, videos[newIndex].src, shouldResume);
     setIndex(newIndex);
 
-    if (!shouldResume) setIsPlaying(false); // ensure overlay shows when not resuming
+    if (!shouldResume) setIsPlaying(false);
+    // if it was closed before, reopen when user selects a video
+    setIsClosed(false);
   }, [setSourceSafely, userStarted, videos]);
 
   const nextVideo = () => changeVideo((index + 1) % videos.length);
@@ -78,10 +71,23 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
     const el = videoRef.current;
     if (!el) return;
     setUserStarted(true);
-    try { await el.play(); } catch { /* keep overlay visible if blocked */ }
+    setIsClosed(false); // in case closed before
+    try { await el.play(); } catch {}
   };
 
-  /* ----------------------------------- events ----------------------------------- */
+  // 👇 NEW: close handler
+  const handleClose = () => {
+    const el = videoRef.current;
+    if (el) {
+      try {
+        el.pause();
+        el.currentTime = 0; // reset
+      } catch {}
+    }
+    setIsPlaying(false);
+    setIsClosed(true); // hide overlay controls
+  };
+
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
@@ -100,20 +106,8 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
     };
   }, []);
 
-  /* --------------------------- function-calling bridge --------------------------- *
-   * Control from a voice agent or elsewhere:
-   *   window.TutorialsBridge.play("doctorai" | "Doctor AI")
-   *   window.TutorialsBridge.pause()
-   *   window.TutorialsBridge.next()
-   *   window.TutorialsBridge.prev()
-   *   window.TutorialsBridge.seek(seconds)       // relative +/- seconds
-   *   window.TutorialsBridge.volume(value01)     // 0..1
-   * Also listens to a DOM event:
-   *   window.dispatchEvent(new CustomEvent("tutorial:play", { detail: { id: "doctorai" } }))
-   */
+  // bridge (kept exactly, just add close)
   useEffect(() => {
-    const el = videoRef.current;
-
     const findIndexByIdOrLabel = (needle) => {
       if (needle == null) return -1;
       const lc = String(needle).toLowerCase();
@@ -124,14 +118,14 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
     };
 
     const bridge = {
-      play: (idOrLabel, opts = {}) => {
+      play: (idOrLabel) => {
         const idx = findIndexByIdOrLabel(idOrLabel);
         if (idx < 0) return;
-        setUserStarted(true);                 // allow resume behavior
-        changeVideo(idx);                     // switch
-        // try to play (if autoplay blocks, overlay remains)
+        setUserStarted(true);
+        changeVideo(idx);
         const vid = videoRef.current;
         if (vid) vid.play().catch(() => {});
+        setIsClosed(false);
       },
       pause: () => {
         const vid = videoRef.current;
@@ -152,13 +146,13 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
         if (!vid) return;
         const v = Math.max(0, Math.min(1, Number(val01)));
         if (!Number.isNaN(v)) vid.volume = v;
-      }
+      },
+      // 👇 NEW: allow agent to close it
+      close: () => handleClose(),
     };
 
-    // expose bridge
     window.TutorialsBridge = bridge;
 
-    // optional event alias like your original
     const onEvt = (e) => {
       const { id } = (e && e.detail) || {};
       if (id != null) bridge.play(id);
@@ -166,14 +160,13 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
     window.addEventListener("tutorial:play", onEvt);
 
     return () => {
-      // clean up only if we are the current bridge
       if (window.TutorialsBridge === bridge) delete window.TutorialsBridge;
       window.removeEventListener("tutorial:play", onEvt);
     };
   }, [videos, changeVideo, nextVideo, prevVideo]);
 
   return (
-    <div className={`vc-root ${isPlaying ? "is-playing" : ""}`}>
+    <div className={`vc-root ${isPlaying ? "is-playing" : ""} ${isClosed ? "is-closed" : ""}`}>
       <div className="vc-player">
         <button className="vc-nav prev" onClick={prevVideo} aria-label="Previous">‹</button>
 
@@ -185,11 +178,19 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
             preload="metadata"
             playsInline
           />
-          {!isPlaying && (
+          {/* Play overlay — only when not closed and not playing */}
+          {!isPlaying && !isClosed && (
             <button className="vc-overlay-play" onClick={handleOverlayPlay} aria-label="Play">
               <svg viewBox="0 0 80 80" aria-hidden="true">
                 <path d="M40 0a40 40 0 1040 40A40 40 0 0040 0zM26 61.56V18.44L64 40z" />
               </svg>
+            </button>
+          )}
+
+          {/* 👇 NEW CLOSE BUTTON */}
+          {!isClosed && (
+            <button className="vc-close" onClick={handleClose} aria-label="Close">
+              ✕
             </button>
           )}
         </div>
@@ -212,6 +213,7 @@ export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
     </div>
   );
 }
+
 
 
 

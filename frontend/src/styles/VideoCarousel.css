@@ -125,3 +125,41 @@
   .vc-player { grid-template-columns: 44px 1fr 44px; }
   .vc-nav { width: 44px; height: 44px; font-size: 26px; }
 }
+.vc-root.is-closed .vc-video {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vc-video-wrap {
+  position: relative;
+}
+
+.vc-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 1.3rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 4;
+  transition: background 0.15s ease;
+}
+
+[data-theme="dark"] .vc-close {
+  background: rgba(255,255,255,0.12);
+}
+
+.vc-close:hover {
+  background: rgba(0,0,0,0.8);
+}
+
+[data-theme="dark"] .vc-close:hover {
+  background: rgba(255,255,255,0.3);
+}
