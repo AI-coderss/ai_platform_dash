@@ -499,6 +499,7 @@
 /* ✅ Inactive (mic OFF) — red with diagonal slash */
 /* Mic OFF — bright glowing red */
 /* ✅ MIC BUTTON — IDLE (OFF) STATE: Bright red with white slash */
+/* ✅ MIC BUTTON — IDLE (OFF) STATE: Bright red with bold white slash */
 .mic-btn.inactive {
   background: linear-gradient(135deg, #ff0000, #ff3333);
   box-shadow:
@@ -508,35 +509,40 @@
     inset 0 0 0 2px rgba(255, 255, 255, 0.4);
   animation: micGlow 1.4s ease-in-out infinite alternate;
   color: #fff;
+  font-size: 3.5rem; /* 🔥 Increase icon size */
+  position: relative;
+  display :flex;
+  justify-content: center;
+  align-items: center
 }
 
-/* 🔥 White diagonal slash across red mic */
+/* ⚪ Bold diagonal white slash */
 .mic-btn.inactive::before {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 42px;
-  height: 4px;
+  width: 38px;     /* 🔺 wider */
+  height: 6px;     /* 🔺 thicker slash */
   background: #ffffff;
   transform: translate(-50%, -50%) rotate(45deg);
-  border-radius: 2px;
+  border-radius: 3px;
   pointer-events: none;
   opacity: 1;
 }
 
-/* ✅ ACTIVE STATE (GREEN) — unchanged */
+/* ✅ ACTIVE STATE (ON) — green */
 .mic-btn.active {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   box-shadow:
     0 0 15px rgba(34, 197, 94, 0.9),
     0 0 30px rgba(34, 197, 94, 0.6),
     inset 0 0 0 2px rgba(255, 255, 255, 0.3);
-  animation: none;
   color: #fff;
+  font-size: 1.8rem; /* match icon size when active */
 }
 
-/* ❌ REMOVE ALL GREY STATES — no grey when disabled or idle */
+/* ✅ Always red, even if disabled */
 .mic-btn.disabled,
 .mic-btn:disabled {
   background: linear-gradient(135deg, #ff0000, #ff3333);
@@ -549,7 +555,7 @@
   cursor: not-allowed;
 }
 
-/* ✨ Red glow animation */
+/* 🔥 Red pulsing glow animation */
 @keyframes micGlow {
   0% {
     box-shadow:
@@ -564,6 +570,7 @@
       inset 0 0 0 2px rgba(255, 255, 255, 0.4);
   }
 }
+
 
 /* Status text tweak to match states */
 .status {
