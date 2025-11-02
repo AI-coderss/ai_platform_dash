@@ -1,152 +1,253 @@
-/* TestimonialSection styles
-   - No shaders
-   - Uses your design tokens
-   - Unique tsm-* classes to avoid conflicts */
-
-/* Wrapper (page-safe, uses background token) */
-.tsm-wrapper {
-  position: relative;
-  z-index: 1;
-  padding: 48px 20px;
-  display: flex;
-  justify-content: center;
-  background: var(--bg-primary);
-  font-family: var(--font-family);
+/* --- Share link --- */
+.tsm-share-wrap {
+  margin-top: 1.25rem;
 }
-
-/* Glass container */
-.tsm-container {
-  width: 100%;
-  max-width: 56rem;
-  padding: 20px;
-  border-radius: 20px;
-
-  background: var(--bg-glass);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-normal);
-}
-
-.tsm-container:hover { box-shadow: var(--shadow-card-hover); }
-
-/* Grid */
-.tsm-grid {
-  display: grid;
-  gap: 2.5rem;
-  align-items: center;
-}
-
-@media (min-width: 768px) {
-  .tsm-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
-  }
-}
-
-/* Image stack (perspective for 3D rotateY) */
-.tsm-image-container {
-  position: relative;
-  width: 100%;
-  height: 24rem;
-  perspective: 1000px;
-}
-
-@media (max-width: 640px) {
-  .tsm-image-container { height: 16rem; }
-}
-
-/* Images created dynamically (same class applied) */
-.tsm-image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-
-  border-radius: 18px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-  transform-style: preserve-3d;
-  will-change: transform, opacity;
-}
-
-/* Content card (neutral glass, pulls from tokens) */
-.tsm-content {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 1.75rem 2rem;
-
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-normal);
-}
-
-.tsm-content:hover { box-shadow: var(--shadow-card-hover); }
-
-/* Typography */
-.tsm-name {
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 0.25rem 0;
-}
-
-.tsm-designation {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  margin: 0 0 1.5rem 0;
-}
-
-.tsm-quote {
-  font-size: 1.05rem;
-  line-height: 1.8;
-  color: var(--text-accent);
-  margin: 0;
-}
-
-/* Word animation spans */
-.tsm-word { display: inline-block; }
-
-/* Controls (anchor tags, not <button>) */
-.tsm-arrows {
-  display: flex;
-  gap: 0.9rem;
-  margin-top: 1.5rem;
-}
-
-.tsm-nav {
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 10px;
+.tsm-share {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
   text-decoration: none;
-
   background: var(--bg-glass);
   border: 1px solid var(--border-color);
+  color: var(--text-primary);
   box-shadow: var(--shadow-button);
   transition: var(--transition-normal);
 }
-
-.tsm-nav svg {
-  width: 1.15rem;
-  height: 1.15rem;
-  fill: var(--text-primary);
-  transition: var(--transition-normal);
+.tsm-share:hover {
+  transform: translateY(-1px) scale(1.03);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: transparent;
 }
 
-.tsm-nav:hover {
-  transform: translateY(-1px) scale(1.05);
+/* --- Modal & overlay --- */
+.tsm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.28);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 80;
+}
+
+.tsm-modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  max-height: 86vh;
+  overflow: auto;
+  z-index: 90;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem 1.25rem 1.1rem;
+}
+
+.tsm-modal-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.tsm-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  text-decoration: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  background: transparent;
+  transition: var(--transition-normal);
+  border: 1px solid transparent;
+}
+.tsm-modal-close:hover {
+  color: var(--btn-text);
   background: var(--btn-bg);
   border-color: transparent;
 }
 
-.tsm-nav:hover svg { fill: var(--btn-text); }
+/* --- Form --- */
+.tsm-form {
+  display: grid;
+  gap: 0.9rem;
+}
 
-/* Dark theme inherits from your tokens automatically */
-[data-theme="dark"] .tsm-wrapper { background: var(--bg-primary); }
+.tsm-field { display: grid; gap: 0.4rem; }
+
+.tsm-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.tsm-input,
+.tsm-textarea,
+.tsm-file {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  padding: 0.65rem 0.75rem;
+  outline: none;
+  transition: var(--transition-normal);
+  box-shadow: var(--shadow-sm, 0 4px 10px rgba(0,0,0,.06));
+}
+
+.tsm-textarea { resize: vertical; }
+
+.tsm-input:focus,
+.tsm-textarea:focus {
+  border-color: transparent;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md, 0 10px 24px rgba(0,0,0,.10));
+}
+
+.tsm-error {
+  color: #e11d48; /* rose-600 */
+  font-size: 0.8rem;
+}
+
+.tsm-preview {
+  margin-top: 0.5rem;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+/* --- Actions --- */
+.tsm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.tsm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  transition: var(--transition-normal);
+  box-shadow: var(--shadow-button);
+}
+
+.tsm-btn:hover {
+  transform: translateY(-1px) scale(1.03);
+}
+
+.tsm-btn-primary {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: transparent;
+}
+
+.tsm-btn-secondary:hover {
+  background: var(--bg-card);
+}
+/* Center the Share button */
+.tsm-share-wrap.tsm-share-center {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+/* Make the Share button look like a primary CTA and animate */
+.tsm-share.tsm-share-animated {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: transparent;
+  font-weight: 600;
+  padding: 0.8rem 1.15rem;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  animation: tsmPulse 2.4s ease-in-out infinite;
+}
+
+.tsm-share.tsm-share-animated:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+
+/* Soft pulse */
+@keyframes tsmPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,0,0,0.10); }
+  50%  { box-shadow: 0 10px 24px rgba(0,0,0,0.14); }
+  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.10); }
+}
+/* --- Share button: no shadow, no animation, centered with spacing --- */
+.tsm-share-wrap.tsm-share-center {
+  display: flex;
+  justify-content: center;
+  margin: 24px auto 32px;   /* space above & below the button */
+}
+
+.tsm-share,
+.tsm-share.tsm-share-animated {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: transparent;
+  font-weight: 600;
+  padding: 0.8rem 1.15rem;
+  border-radius: 12px;
+
+  /* remove any “shadowy” look */
+  box-shadow: none !important;
+  animation: none !important;
+  filter: none !important;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* optional: subtle hover lift without shadow */
+.tsm-share:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* --- Section breathing room (bottom) --- */
+.tsm-wrapper {
+  padding-bottom: clamp(56px, 7vh, 96px);   /* extra room at the very bottom */
+}
+
+/* also give the card a bit more bottom padding if needed */
+.tsm-container {
+  padding-bottom: 28px;
+}
+
+/* add a touch more space above the nav arrows to separate from the button */
+.tsm-arrows {
+  margin-top: 2rem; /* was 1.5rem */
+}
+
+/* --- Guard against global SVG rules (fixes giant black chevron) --- */
+.tsm-arrows svg {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  fill: var(--text-primary) !important;
+  display: inline-block;
+  transform: none !important;
+}
+
+/* create an isolated stacking context to avoid weird bleed-through effects */
+.tsm-wrapper,
+.tsm-container,
+.tsm-content {
+  isolation: isolate;
+}

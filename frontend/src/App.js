@@ -21,7 +21,7 @@ import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
 import Aquarium from "./components/Aquarium";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
-/* import TestimonialSection from "./components/TestimonialSection"; */
+ import TestimonialSection from "./components/TestimonialSection";
 import VideoCarousel from "./components/VideoCarousel";
 import RadialNav from "./components/RadialNav";
 import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck, FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd } from "react-icons/fa";
@@ -1210,7 +1210,7 @@ const App = () => {
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
         Take Survey 📝
       </a>
-
+       <TestimonialSection />
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>

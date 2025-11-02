@@ -3,17 +3,19 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable jsx-a11y/heading-has-content */
 // src/components/TestimonialSection.jsx
-import React, { useEffect, useRef } from "react";
+/* eslint-disable no-unused-vars */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable jsx-a11y/heading-has-content */
+// src/components/TestimonialSection.jsx
+/* eslint-disable no-unused-vars */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable jsx-a11y/heading-has-content */
+// src/components/TestimonialSection.jsx
+import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import "../styles/TestimonialSection.css";
-
-/**
- * TestimonialSection (no shaders)
- * - Fully glassmorphic using your tokens
- * - Unique classes (tsm-*)
- * - Anchor tags for nav controls (no <button>)
- * - Image DOM is created/managed exactly like your original JS (GSAP animates <img> nodes)
- */
 
 export default function TestimonialSection() {
   const imageContainerRef = useRef(null);
@@ -25,37 +27,24 @@ export default function TestimonialSection() {
   const autoplayRef = useRef(null);
   const activeIndexRef = useRef(0);
 
-  // Same data you shared
-  const testimonials = useRef([
-    {
-      quote:
-        "Honestly, having used the website for the first time, I do find that its design is modern and beautiful. With its AI tools, it makes things much easier and explains everything clearly. Thank you for the effort",
-      name: "Eng.Nawaf Yakoub",
-      designation: "IT Specialist",
-      src: "/images/testimonials/nawaf.jpeg",
-    },
-    {
-      quote:
-        "This place exceeded all expectations! The atmosphere is inviting, and the staff truly goes above and beyond to ensure a fantastic visit. I'll keep returning for more dining experience.",
-      name: "Joe Charlescraft",
-      designation: "Frequent Visitor",
-      src: "https://images.unsplash.com/photo-1628749528992-f5702133b686?q=80&w=1368&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-      quote:
-        "Shining Yam is a hidden gem! From the moment I walked in, I knew I was in for a treat. The impeccable service and overall attention to detail created a memorable experience. I highly recommend it!",
-      name: "Martina Edelweist",
-      designation: "Satisfied Customer",
-      src: "https://images.unsplash.com/photo-1524267213992-b76e8577d046?q=80&w=1368&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-  ]);
+  // Start empty; users add testimonials via modal
+  const testimonials = useRef([]);
+
+  // Modal + form state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    designation: "",
+    quote: "",
+    imageDataUrl: "",
+  });
+  const [errors, setErrors] = useState({});
 
   const calculateGap = (width) => {
     const minWidth = 1024;
     const maxWidth = 1456;
     const minGap = 60;
     const maxGap = 86;
-
     if (width <= minWidth) return minGap;
     if (width >= maxWidth) return Math.max(minGap, maxGap + 0.06018 * (width - maxWidth));
     return minGap + (maxGap - minGap) * ((width - minWidth) / (maxWidth - minWidth));
@@ -78,18 +67,17 @@ export default function TestimonialSection() {
     const quoteEl = quoteRef.current;
     if (!imageContainer || !nameEl || !desigEl || !quoteEl) return;
 
-    // update index
     const len = testimonials.current.length;
-    const oldIndex = activeIndexRef.current;
+    if (len === 0) return;
+
     activeIndexRef.current = (activeIndexRef.current + direction + len) % len;
 
-    // sizing
     const containerWidth = imageContainer.offsetWidth || 0;
     const containerHeight = imageContainer.offsetHeight || 1;
     const gap = calculateGap(containerWidth);
     const maxStickUp = gap * 0.8;
 
-    // ensure <img> nodes exist (mirror original DOM approach)
+    // Ensure <img> nodes exist
     testimonials.current.forEach((t, index) => {
       let img = imageContainer.querySelector(`[data-index="${index}"]`);
       if (!img) {
@@ -102,7 +90,7 @@ export default function TestimonialSection() {
       }
     });
 
-    // animate images (mirror original math)
+    // Animate images
     testimonials.current.forEach((_, index) => {
       const img = imageContainer.querySelector(`[data-index="${index}"]`);
       if (!img) return;
@@ -110,7 +98,6 @@ export default function TestimonialSection() {
       const offset = (index - activeIndexRef.current + len) % len;
       const zIndex = len - Math.abs(offset);
       const scale = index === activeIndexRef.current ? 1 : 0.85;
-      const opacity = 1; // keep parity with your original
 
       let translateX, translateY, rotateY;
       if (offset === 0) {
@@ -129,7 +116,7 @@ export default function TestimonialSection() {
 
       gsap.to(img, {
         zIndex,
-        opacity,
+        opacity: 1,
         scale,
         x: translateX,
         y: translateY,
@@ -139,15 +126,16 @@ export default function TestimonialSection() {
       });
     });
 
-    // animate text
+    // Animate text
+    const t = testimonials.current[activeIndexRef.current];
     gsap.to([nameEl, desigEl], {
       opacity: 0,
       y: -20,
       duration: 0.3,
       ease: "power2.in",
       onComplete: () => {
-        nameEl.textContent = testimonials.current[activeIndexRef.current].name;
-        desigEl.textContent = testimonials.current[activeIndexRef.current].designation;
+        nameEl.textContent = t.name;
+        desigEl.textContent = t.designation;
         gsap.to([nameEl, desigEl], {
           opacity: 1,
           y: 0,
@@ -157,17 +145,17 @@ export default function TestimonialSection() {
       },
     });
 
-    gsap.to(quoteEl, {
+    gsap.to(quoteRef.current, {
       opacity: 0,
       y: -20,
       duration: 0.3,
       ease: "power2.in",
       onComplete: () => {
-        quoteEl.innerHTML = testimonials.current[activeIndexRef.current].quote
+        quoteRef.current.innerHTML = t.quote
           .split(" ")
           .map((w) => `<span class="tsm-word">${w}</span>`)
           .join(" ");
-        gsap.to(quoteEl, {
+        gsap.to(quoteRef.current, {
           opacity: 1,
           y: 0,
           duration: 0.3,
@@ -179,31 +167,39 @@ export default function TestimonialSection() {
   };
 
   useEffect(() => {
-    // Initial text & DOM build then first layout
-    if (nameRef.current) nameRef.current.textContent = testimonials.current[0].name;
-    if (designationRef.current) designationRef.current.textContent = testimonials.current[0].designation;
-    if (quoteRef.current) {
-      quoteRef.current.innerHTML = testimonials.current[0].quote
-        .split(" ")
-        .map((w) => `<span class="tsm-word">${w}</span>`)
-        .join(" ");
+    const len = testimonials.current.length;
+
+    if (len === 0) {
+      // Zero-state: no placeholder copy — keep fields empty and no autoplay
+      if (nameRef.current) nameRef.current.textContent = "";
+      if (designationRef.current) designationRef.current.textContent = "";
+      if (quoteRef.current) quoteRef.current.innerHTML = "";
+    } else {
+      if (nameRef.current) nameRef.current.textContent = testimonials.current[0].name;
+      if (designationRef.current) designationRef.current.textContent = testimonials.current[0].designation;
+      if (quoteRef.current) {
+        quoteRef.current.innerHTML = testimonials.current[0].quote
+          .split(" ")
+          .map((w) => `<span class="tsm-word">${w}</span>`)
+          .join(" ");
+        animateWords();
+      }
+      updateTestimonial(0);
+      if (len > 1) {
+        autoplayRef.current = setInterval(() => updateTestimonial(1), 5000);
+      }
     }
-    // Build images and set initial positions
-    updateTestimonial(0);
 
-    // Autoplay
-    autoplayRef.current = setInterval(() => updateTestimonial(1), 5000);
-
-    // Resize recalculates layout (no text animation)
     const onResize = () => {
-      // call with direction 0 to recompute transforms without changing index
-      const current = activeIndexRef.current;
-      activeIndexRef.current = (current - 1 + testimonials.current.length) % testimonials.current.length;
-      updateTestimonial(1);
+      if (testimonials.current.length > 0) {
+        const current = activeIndexRef.current;
+        activeIndexRef.current =
+          (current - 1 + testimonials.current.length) % testimonials.current.length;
+        updateTestimonial(1);
+      }
     };
     window.addEventListener("resize", onResize);
 
-    // Clean-up
     return () => {
       window.removeEventListener("resize", onResize);
       if (autoplayRef.current) clearInterval(autoplayRef.current);
@@ -213,6 +209,7 @@ export default function TestimonialSection() {
 
   const handlePrev = (e) => {
     e.preventDefault();
+    if (testimonials.current.length === 0) return;
     if (autoplayRef.current) {
       clearInterval(autoplayRef.current);
       autoplayRef.current = null;
@@ -222,11 +219,76 @@ export default function TestimonialSection() {
 
   const handleNext = (e) => {
     e.preventDefault();
+    if (testimonials.current.length === 0) return;
     if (autoplayRef.current) {
       clearInterval(autoplayRef.current);
       autoplayRef.current = null;
     }
     updateTestimonial(1);
+  };
+
+  // Modal handlers
+  const openModal = (e) => {
+    e.preventDefault();
+    if (autoplayRef.current) {
+      clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+    setIsModalOpen(true);
+  };
+
+  const closeModal = (e) => {
+    e?.preventDefault?.();
+    setIsModalOpen(false);
+    if (!autoplayRef.current && testimonials.current.length > 1) {
+      autoplayRef.current = setInterval(() => updateTestimonial(1), 5000);
+    }
+  };
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((d) => ({ ...d, [name]: value }));
+  };
+
+  const onFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setFormData((d) => ({ ...d, imageDataUrl: reader.result }));
+    reader.readAsDataURL(file);
+  };
+
+  const validate = () => {
+    const err = {};
+    if (!formData.name.trim()) err.name = "Required";
+    if (!formData.designation.trim()) err.designation = "Required";
+    if (!formData.quote.trim()) err.quote = "Required";
+    if (!formData.imageDataUrl) err.image = "Image required";
+    setErrors(err);
+    return Object.keys(err).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    testimonials.current.push({
+      quote: formData.quote,
+      name: formData.name,
+      designation: formData.designation,
+      src: formData.imageDataUrl,
+    });
+
+    activeIndexRef.current = testimonials.current.length - 1;
+
+    setIsModalOpen(false);
+    setFormData({ name: "", designation: "", quote: "", imageDataUrl: "" });
+
+    updateTestimonial(0);
+
+    if (!autoplayRef.current && testimonials.current.length > 1) {
+      autoplayRef.current = setInterval(() => updateTestimonial(1), 5000);
+    }
   };
 
   return (
@@ -242,6 +304,18 @@ export default function TestimonialSection() {
               <h3 className="tsm-name" ref={nameRef} />
               <p className="tsm-designation" ref={designationRef} />
               <p className="tsm-quote" ref={quoteRef} />
+            </div>
+
+            {/* Centered Share Experience (anchor) */}
+            <div className="tsm-share-wrap tsm-share-center">
+              <a
+                href="#"
+                className="tsm-share tsm-share-animated"
+                onClick={openModal}
+                aria-label="Share your experience"
+              >
+                Share your experience
+              </a>
             </div>
 
             <nav className="tsm-arrows" aria-label="testimonial navigation">
@@ -271,6 +345,87 @@ export default function TestimonialSection() {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <>
+          <div className="tsm-overlay" onClick={closeModal} />
+          <div className="tsm-modal" role="dialog" aria-modal="true" aria-label="Share your experience">
+            <a href="#" className="tsm-modal-close" onClick={closeModal} aria-label="Close">×</a>
+            <h3 className="tsm-modal-title">Share your experience</h3>
+
+            <form className="tsm-form" onSubmit={handleSubmit}>
+              <div className="tsm-field">
+                <label className="tsm-label" htmlFor="tsm-name">Name</label>
+                <input
+                  id="tsm-name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={onChange}
+                  required
+                  aria-required="true"
+                  className="tsm-input"
+                />
+                {errors.name && <span className="tsm-error">{errors.name}</span>}
+              </div>
+
+              <div className="tsm-field">
+                <label className="tsm-label" htmlFor="tsm-designation">Title</label>
+                <input
+                  id="tsm-designation"
+                  name="designation"
+                  type="text"
+                  value={formData.designation}
+                  onChange={onChange}
+                  required
+                  aria-required="true"
+                  className="tsm-input"
+                />
+                {errors.designation && <span className="tsm-error">{errors.designation}</span>}
+              </div>
+
+              <div className="tsm-field">
+                <label className="tsm-label" htmlFor="tsm-quote">Testimonial</label>
+                <textarea
+                  id="tsm-quote"
+                  name="quote"
+                  rows="4"
+                  value={formData.quote}
+                  onChange={onChange}
+                  required
+                  aria-required="true"
+                  className="tsm-textarea"
+                />
+                {errors.quote && <span className="tsm-error">{errors.quote}</span>}
+              </div>
+
+              <div className="tsm-field">
+                <label className="tsm-label" htmlFor="tsm-image">Photo (required)</label>
+                <input
+                  id="tsm-image"
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={onFileChange}
+                  required
+                  aria-required="true"
+                  className="tsm-file"
+                />
+                {errors.image && <span className="tsm-error">{errors.image}</span>}
+                {formData.imageDataUrl && (
+                  <img className="tsm-preview" src={formData.imageDataUrl} alt="Preview" />
+                )}
+              </div>
+
+              <div className="tsm-actions">
+                <a href="#" className="tsm-btn tsm-btn-secondary" onClick={closeModal}>Cancel</a>
+                <a href="#" className="tsm-btn tsm-btn-primary" onClick={handleSubmit}>Submit</a>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
     </section>
   );
 }
