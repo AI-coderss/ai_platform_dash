@@ -282,10 +282,20 @@ TOOLS = [
         },
         "required": ["id"]
     }
+},
+{
+    "type": "function",
+    "name": "assistant_close",
+    "description": "Close/hide the on-screen voice assistant and end the session.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {}
+    }
 }
 ]
 
-
+    
 @app.route("/api/rtc-connect", methods=["POST"])
 def connect_rtc():
     try:

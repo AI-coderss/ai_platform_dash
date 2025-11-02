@@ -117,6 +117,11 @@ const TOOL_SCHEMAS = [
       required: ["id"]
     }
   },
+  {
+    type: "function",
+    name: "assistant_close",
+    parameters: { type: "object", additionalProperties: false, properties: {} }
+  },
 ];
 
 /* =====================================================================================
@@ -655,6 +660,11 @@ const VoiceAssistant = () => {
       }
       return;
     }
+    if (name === "assistant_close") {
+      closeAssistantNow();
+      return;
+    }
+
   };
 
   const sendSessionUpdate = () => {
@@ -792,6 +802,11 @@ const VoiceAssistant = () => {
       setIsMicActive(next);
       try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch { }
     }
+  };
+  // ⬇️ add this small helper
+  const closeAssistantNow = () => {
+    setIsOpen(false);
+    cleanupWebRTC();
   };
 
   return (
