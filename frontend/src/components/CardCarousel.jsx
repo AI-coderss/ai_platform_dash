@@ -162,7 +162,7 @@ export default function CardCarousel() {
     const root = rootRef.current;
     if (!root) return;
     root.querySelectorAll("audio").forEach((a) => {
-      try { a.pause(); a.currentTime = 0; } catch {}
+      try { a.pause(); a.currentTime = 0; } catch { }
     });
   };
   const closePopup = () => { stopAllAudio(); setOpenId(null); setPlaying(true); };
@@ -208,7 +208,69 @@ export default function CardCarousel() {
       window.removeEventListener("touchmove", tmv);
     };
   }, []); // attach once
+  // ⬇️ place near other hooks inside CardCarousel()
+  useEffect(() => {
+    // id aliases so voice prompts like "ivf" still work
+    const ALIASES = {
+      ivf: "ivf_assistant",
+      "ivf assistant": "ivf_assistant",
+      "ai doctor": "ai_doctor",
+      "doctor ai": "ai_doctor",
+      "medical transcription": "transcription",
+      transcription: "transcription",
+      "data analyst": "bi_dashboard",
+      "bi dashboard": "bi_dashboard",
+      "report enhancement": "report_enhance",
+      "patient assistant": "patient_avatar",
+      patient: "patient_avatar",
+    };
 
+    const normalizeId = (raw) => {
+      if (!raw) return null;
+      const k = String(raw).toLowerCase().trim();
+      return APPS.find(a => a.id === k)?.id || ALIASES[k] || null;
+    };
+
+    // Open popup (and optionally autoplay)
+    const openAndMaybePlay = (id, { autoplay = true } = {}) => {
+      const norm = normalizeId(id);
+      if (!norm) return;
+
+      const idx = APPS.findIndex(a => a.id === norm);
+      if (idx < 0) return;
+
+      // open popup using your existing helper
+      openPopup(norm, idx);
+
+      // autoplay after popup is in DOM
+      if (autoplay) {
+        setTimeout(() => {
+          const audio = document.querySelector(".cardslider-popup audio");
+          if (audio) {
+            audio.play().catch(() => {/* graceful: user gesture may be required */ });
+          }
+        }, 60);
+      }
+    };
+
+    // Global bridge (used by VoiceAssistant handleToolCall)
+    window.CardConsoleBridge = {
+      open: (id, opts) => openAndMaybePlay(id, { autoplay: false, ...(opts || {}) }),
+      play: (id, opts) => openAndMaybePlay(id, { autoplay: true, ...(opts || {}) }),
+    };
+
+    // Also listen for custom events if the bridge isn't used directly
+    const onCardPlay = (e) => {
+      const { id, autoplay = true } = e.detail || {};
+      openAndMaybePlay(id, { autoplay });
+    };
+    window.addEventListener("card:play", onCardPlay);
+
+    return () => {
+      delete window.CardConsoleBridge;
+      window.removeEventListener("card:play", onCardPlay);
+    };
+  }, [openPopup]);
   // ===== connecting-dots background (keeps your black look)
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -322,36 +384,36 @@ export default function CardCarousel() {
   const popupNode =
     openIdx >= 0
       ? createPortal(
-          <div
-            ref={popupRef}
-            className={`cardslider-popup ${drag.current.active ? "dragging" : ""}`}
-            style={{ left: `${popupPos.x}px`, top: `${popupPos.y}px` }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`popup-title-${APPS[openIdx].id}`}
-            onMouseDown={(e) => onDragStart(e.clientX, e.clientY)}
-            onTouchStart={(e) => {
-              const t = e.touches?.[0];
-              if (t) onDragStart(t.clientX, t.clientY);
-            }}
-          >
-            <div className="popup-header">
-              <h2 id={`popup-title-${APPS[openIdx].id}`}>{APPS[openIdx].title}</h2>
-              <button className="popup-close" onClick={closePopup} aria-label="Close popup">
-                Close
-              </button>
+        <div
+          ref={popupRef}
+          className={`cardslider-popup ${drag.current.active ? "dragging" : ""}`}
+          style={{ left: `${popupPos.x}px`, top: `${popupPos.y}px` }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`popup-title-${APPS[openIdx].id}`}
+          onMouseDown={(e) => onDragStart(e.clientX, e.clientY)}
+          onTouchStart={(e) => {
+            const t = e.touches?.[0];
+            if (t) onDragStart(t.clientX, t.clientY);
+          }}
+        >
+          <div className="popup-header">
+            <h2 id={`popup-title-${APPS[openIdx].id}`}>{APPS[openIdx].title}</h2>
+            <button className="popup-close" onClick={closePopup} aria-label="Close popup">
+              Close
+            </button>
+          </div>
+
+          <p className="popup-body">{APPS[openIdx].body}</p>
+
+          {audioSrc && (
+            <div className="popup-audio">
+              <AudioPlayer key={APPS[openIdx].id} src={audioSrc} title={`Listen: ${APPS[openIdx].title}`} />
             </div>
-
-            <p className="popup-body">{APPS[openIdx].body}</p>
-
-            {audioSrc && (
-              <div className="popup-audio">
-                <AudioPlayer key={APPS[openIdx].id} src={audioSrc} title={`Listen: ${APPS[openIdx].title}`} />
-              </div>
-            )}
-          </div>,
-          document.body
-        )
+          )}
+        </div>,
+        document.body
+      )
       : null;
 
   return (

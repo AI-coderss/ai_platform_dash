@@ -24,6 +24,7 @@ const localStreamRef = React.createRef();
 const ALLOWED_SECTIONS = new Set([
   "home", "products", "policy", "watch_tutorial", "contact", "footer",
   "chat", "doctor", "transcription", "analyst", "report", "ivf", "patient", "survey",
+  "card_console",
 ]);
 const ALLOWED_CONTROL_IDS = new Set([
   "nav.about", "nav.products", "nav.policy", "nav.watch_tutorial", "nav.contact", "nav.footer",
@@ -92,7 +93,30 @@ const TOOL_SCHEMAS = [
       },
       required: ["id"]
     }
-  }
+  },
+  {
+    type: "function",
+    name: "card_play",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: {
+          type: "string",
+          enum: [
+            "ai_doctor",
+            "transcription",
+            "bi_dashboard",
+            "report_enhance",
+            "ivf_assistant",
+            "patient_avatar",
+          ]
+        },
+        autoplay: { type: "boolean" } // default true
+      },
+      required: ["id"]
+    }
+  },
 ];
 
 /* =====================================================================================
@@ -616,7 +640,21 @@ const VoiceAssistant = () => {
       }
       return;
     }
+    if (name === "card_play") {
+      const id = String(args?.id || "").trim();
+      const autoplay = args?.autoplay !== false; // default true
 
+      // Navigate to the console first
+      try { window.agentNavigate?.("card_console"); } catch { }
+
+      // Then open & play via bridge or event
+      if (window.CardConsoleBridge?.play) {
+        try { window.CardConsoleBridge.play(id, { autoplay }); } catch { }
+      } else {
+        window.dispatchEvent(new CustomEvent("card:play", { detail: { id, autoplay } }));
+      }
+      return;
+    }
   };
 
   const sendSessionUpdate = () => {

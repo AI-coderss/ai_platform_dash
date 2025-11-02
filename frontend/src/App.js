@@ -1199,7 +1199,9 @@ const App = () => {
           {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={openHelpVideo} />))}
         </div>
       </section>
-      <CardCarousel />
+      <section id="card_console" className="card_console">
+        <CardCarousel />
+      </section>
       <section id="policy" className="policy-section">
         <LaptopSection3D />
       </section>

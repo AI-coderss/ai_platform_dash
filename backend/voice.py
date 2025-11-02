@@ -255,6 +255,34 @@ TOOLS = [
             "required": ["id"],
         },
     },
+    {
+    "type": "function",
+    "name": "card_play",
+    "description": "Open the Card Console for a specific application and (optionally) autoplay the info audio.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "id": {
+                "type": "string",
+                "enum": [
+                    "ai_doctor",
+                    "transcription",
+                    "bi_dashboard",
+                    "report_enhance",
+                    "ivf_assistant",
+                    "patient_avatar",
+                ],
+                "description": "Stable card ids in the Card Console UI."
+            },
+            "autoplay": {
+                "type": "boolean",
+                "description": "If true (default), starts audio automatically after opening the card."
+            }
+        },
+        "required": ["id"]
+    }
+}
 ]
 
 
