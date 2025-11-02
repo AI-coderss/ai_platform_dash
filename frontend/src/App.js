@@ -21,7 +21,7 @@ import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
 import Aquarium from "./components/Aquarium";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
- import TestimonialSection from "./components/TestimonialSection";
+import TestimonialSection from "./components/TestimonialSection";
 import VideoCarousel from "./components/VideoCarousel";
 import RadialNav from "./components/RadialNav";
 import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck, FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd } from "react-icons/fa";
@@ -29,7 +29,8 @@ import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaCli
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
 import SplitType from "split-type";
-
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(ScrollTrigger);
 /* ---------------------- AUDIO MAP (unchanged) ---------------------- */
 const audioMap = {
   1: "/assets/audio/ai_doctor.mp3",
@@ -977,6 +978,7 @@ const Footer = () => (
 const App = () => {
   const [videoUrl, setVideoUrl] = useState(null);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const productsRef = React.useRef(null);
   // ✅ guard against React 18 double-mount + unmount races
   const appMountedRef = React.useRef(false);
   React.useEffect(() => {
@@ -1016,7 +1018,44 @@ const App = () => {
       setVideoUrl(null);
     }, 0);
   };
+  useEffect(() => {
+    // Respect accessibility
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    const ctx = gsap.context(() => {
+      const cards = gsap.utils.toArray(".products-section .animated-card");
+
+      // Initial state (also mirrored in CSS for no-FOUC)
+      gsap.set(cards, { opacity: 0, y: 24, scale: 0.98 });
+
+      // Batch for smooth "stacked" reveal as you scroll
+      ScrollTrigger.batch(cards, {
+        start: "top 85%",
+        // as cards enter the viewport, reveal in a gentle stagger
+        onEnter: (batch) =>
+          gsap.to(batch, {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.9,
+            ease: "power3.out",
+            stagger: { each: 0.16, from: "start" },
+          }),
+        // when scrolling back up, hide them again for a reversible flow
+        onLeaveBack: (batch) =>
+          gsap.to(batch, {
+            opacity: 0,
+            y: 24,
+            scale: 0.98,
+            duration: 0.5,
+            ease: "power2.out",
+            stagger: { each: 0.10, from: "end" },
+          }),
+      });
+    }, productsRef);
+
+    return () => ctx.revert();
+  }, []);
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
 
   const apps = [
@@ -1193,7 +1232,7 @@ const App = () => {
         </div>
       )}
       {/* Products */}
-      <section id="products" className="products-section">
+      <section id="products" ref={productsRef} className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
           {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={openHelpVideo} />))}
@@ -1212,7 +1251,7 @@ const App = () => {
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
         Take Survey 📝
       </a>
-       <TestimonialSection />
+      <TestimonialSection />
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>

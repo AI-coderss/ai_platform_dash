@@ -171,6 +171,17 @@ section { scroll-margin-top: 90px; }
 /* =========================================================
    TOP NAVIGATION (NEW)
    ========================================================= */
+:root {
+  --flow-duration: 1.15s;
+  --flow-ease: cubic-bezier(.165,.84,.44,1);
+  --flow-stagger: 0.32s;
+}
+
+@keyframes cardFlowIn {
+  0%   { opacity: 0; transform: translateY(24px) scale(0.98); filter: blur(4px); }
+  60%  { opacity: 1; transform: translateY(0) scale(1);       filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1);       filter: blur(0); }
+}
 
 .topnav {
   position: sticky;
@@ -1599,5 +1610,47 @@ button:hover { box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4); }
   .video-wrapper {
     width: 100%;
     border-radius: 0.75rem;
+  }
+}
+/* ===== GSAP scroll-in prep for product cards ===== */
+.products-section .animated-card {
+  /* Disable the default CSS keyframe on these */
+  animation: none !important;
+
+  /* Initial state matches gsap.set(...) so there is no FOUC */
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  will-change: transform, opacity;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .products-section .animated-card {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+/* Enable keyframe animation when parent has .products-section */
+.products-section .animated-card {
+  animation: cardFlowIn var(--flow-duration) var(--flow-ease) both;
+}
+
+/* Stagger: slow, one-by-one */
+.products-section .animated-card:nth-child(1)  { animation-delay: calc(var(--flow-stagger) * 0); }
+.products-section .animated-card:nth-child(2)  { animation-delay: calc(var(--flow-stagger) * 1); }
+.products-section .animated-card:nth-child(3)  { animation-delay: calc(var(--flow-stagger) * 2); }
+.products-section .animated-card:nth-child(4)  { animation-delay: calc(var(--flow-stagger) * 3); }
+.products-section .animated-card:nth-child(5)  { animation-delay: calc(var(--flow-stagger) * 4); }
+.products-section .animated-card:nth-child(6)  { animation-delay: calc(var(--flow-stagger) * 5); }
+.products-section .animated-card:nth-child(7)  { animation-delay: calc(var(--flow-stagger) * 6); }
+.products-section .animated-card:nth-child(8)  { animation-delay: calc(var(--flow-stagger) * 7); }
+.products-section .animated-card:nth-child(9)  { animation-delay: calc(var(--flow-stagger) * 8); }
+.products-section .animated-card:nth-child(10) { animation-delay: calc(var(--flow-stagger) * 9); }
+.products-section .animated-card:nth-child(11) { animation-delay: calc(var(--flow-stagger) * 10); }
+.products-section .animated-card:nth-child(12) { animation-delay: calc(var(--flow-stagger) * 11); }
+
+@media (prefers-reduced-motion: reduce) {
+  .products-section .animated-card {
+    animation: none !important;
   }
 }
