@@ -229,6 +229,7 @@
 /* also give the card a bit more bottom padding if needed */
 .tsm-container {
   padding-bottom: 28px;
+  z-index: 123233;
 }
 
 /* add a touch more space above the nav arrows to separate from the button */
@@ -251,3 +252,232 @@
 .tsm-content {
   isolation: isolate;
 }
+
+/* Existing styles above… keep them. */
+
+/* Center CTA & spacing */
+.tsm-share-wrap.tsm-share-center {
+  display: flex;
+  justify-content: center;
+  margin: 24px auto 32px;
+}
+.tsm-share.tsm-share-cta {
+  font-weight: 600;
+  padding: 0.9rem 1.25rem;
+  border-radius: 12px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.tsm-share.tsm-share-cta:hover { transform: translateY(-1px) scale(1.02); }
+
+/* Overlay like screenshot (dim + slight blur) */
+.tsm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 25, 40, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 80;
+}
+
+/* Modal container — crisp white card with soft shadow and rounded corners */
+.tsm-modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  max-width: 680px;             /* width close to screenshot */
+  max-height: 86vh;
+  overflow: auto;
+  z-index: 90;
+
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  padding: 22px 22px 16px;
+}
+
+/* Title with subtle gradient text (uses your tokens; safe fallbacks) */
+.tsm-modal-title {
+  margin: 4px 0 14px 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    var(--accent-grad-start, var(--btn-grad-start, #16b2ff)) 0%,
+    var(--accent-grad-end,   var(--btn-grad-end,   #a86afe)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Close X (top-right) */
+.tsm-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: background .15s ease, color .15s ease;
+}
+.tsm-modal-close:hover {
+  color: var(--btn-text);
+  background: var(--btn-bg);
+}
+
+/* Form layout & “large” sizing to match screenshot */
+.tsm-form.tsm-form-lg { display: grid; gap: 14px; }
+.tsm-field { display: grid; gap: 6px; }
+
+.tsm-label {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Inputs styled like screenshot: airy, rounded, subtle border, big height */
+.tsm-input,
+.tsm-textarea,
+.tsm-input.tsm-input-lg {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-glass, #fff);
+  color: var(--text-primary, #111827);
+  padding: 0.85rem 0.9rem;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}
+.tsm-textarea.tsm-input-lg { min-height: 132px; }
+
+.tsm-input:focus,
+.tsm-textarea:focus {
+  border-color: transparent;
+  background: var(--bg-card, #fff);
+  box-shadow:
+    0 0 0 2px rgba(59,130,246, .14),
+    0 1px 0 rgba(0,0,0,.02);
+}
+
+/* Fancy required error */
+.tsm-error {
+  color: #e11d48; /* rose-600 */
+  font-size: .8rem;
+}
+
+/* Custom Upload control */
+.tsm-file-input { display: none; }
+
+.tsm-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: var(--btn-bg);
+  border: 1px solid var(--border-color, #e5e7eb);
+  color: white;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+  width: fit-content;
+}
+.tsm-upload-btn:hover {
+  background: var(--btn-bg);
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+.tsm-upload-btn svg {
+  width: 1.1rem; height: 1.1rem;
+  fill: var(--text-primary);
+}
+
+/* Small image preview */
+.tsm-upload-preview {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+}
+.tsm-upload-preview img {
+  width: 44px; height: 44px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Actions row like screenshot */
+.tsm-actions.tsm-actions-lg {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Ghost secondary (Cancel) */
+.tsm-btn.tsm-btn-ghost {
+  text-decoration: none;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-glass, #fff);
+  color: var(--text-primary);
+  transition: background .15s ease, transform .15s ease;
+}
+.tsm-btn.tsm-btn-ghost:hover { background: var(--bg-card, #fff); transform: translateY(-1px); }
+
+/* Gradient primary (Submit) — uses your tokens with safe fallbacks */
+.tsm-btn.tsm-btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  text-decoration: none;
+  border-radius: 12px;
+  padding: 0.78rem 1.1rem;
+  color: var(--btn-text, #fff);
+   background: var(--btn-bg);
+  border: 1px solid transparent;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.tsm-btn.tsm-btn-primary svg { width: 1.05rem; height: 1.05rem; fill: currentColor; }
+
+.tsm-btn-gradient {
+  background: linear-gradient(
+    90deg,
+    var(--btn-grad-start, var(--btn-bg, #16b2ff)) 0%,
+    var(--btn-grad-end,   #a86afe) 100%
+  );
+  box-shadow: 0 10px 22px rgba(0,0,0,.10);
+}
+.tsm-btn.tsm-btn-primary:hover { transform: translateY(-1px); }
+
+/* More air at bottom of whole section */
+.tsm-wrapper { padding-bottom: clamp(56px, 7vh, 96px); }
+
+/* space above nav arrows from CTA */
+.tsm-arrows { margin-top: 2rem; }
+
+/* lock arrow icon sizes against global SVG rules */
+.tsm-arrows svg {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  fill: var(--text-primary) !important;
+  display: inline-block;
+  transform: none !important;
+}
+
+/* create isolated stacking contexts to avoid bleed */
+.tsm-wrapper,
+.tsm-container,
+.tsm-content { isolation: isolate; }

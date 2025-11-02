@@ -1,8 +1,4 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable jsx-a11y/anchor-is-valid */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable jsx-a11y/heading-has-content */
-// src/components/TestimonialSection.jsx
+
 /* eslint-disable no-unused-vars */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -27,10 +23,10 @@ export default function TestimonialSection() {
   const autoplayRef = useRef(null);
   const activeIndexRef = useRef(0);
 
-  // Start empty; users add testimonials via modal
+  // start empty (users add entries)
   const testimonials = useRef([]);
 
-  // Modal + form state
+  // modal + form state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -41,23 +37,14 @@ export default function TestimonialSection() {
   const [errors, setErrors] = useState({});
 
   const calculateGap = (width) => {
-    const minWidth = 1024;
-    const maxWidth = 1456;
-    const minGap = 60;
-    const maxGap = 86;
+    const minWidth = 1024, maxWidth = 1456, minGap = 60, maxGap = 86;
     if (width <= minWidth) return minGap;
     if (width >= maxWidth) return Math.max(minGap, maxGap + 0.06018 * (width - maxWidth));
     return minGap + (maxGap - minGap) * ((width - minWidth) / (maxWidth - minWidth));
   };
 
   const animateWords = () => {
-    gsap.from(".tsm-word", {
-      opacity: 0,
-      y: 10,
-      stagger: 0.02,
-      duration: 0.2,
-      ease: "power2.out",
-    });
+    gsap.from(".tsm-word", { opacity: 0, y: 10, stagger: 0.02, duration: 0.2, ease: "power2.out" });
   };
 
   const updateTestimonial = (direction) => {
@@ -77,7 +64,7 @@ export default function TestimonialSection() {
     const gap = calculateGap(containerWidth);
     const maxStickUp = gap * 0.8;
 
-    // Ensure <img> nodes exist
+    // ensure <img> nodes exist
     testimonials.current.forEach((t, index) => {
       let img = imageContainer.querySelector(`[data-index="${index}"]`);
       if (!img) {
@@ -90,7 +77,7 @@ export default function TestimonialSection() {
       }
     });
 
-    // Animate images
+    // animate images
     testimonials.current.forEach((_, index) => {
       const img = imageContainer.querySelector(`[data-index="${index}"]`);
       if (!img) return;
@@ -101,76 +88,42 @@ export default function TestimonialSection() {
 
       let translateX, translateY, rotateY;
       if (offset === 0) {
-        translateX = "0%";
-        translateY = "0%";
-        rotateY = 0;
+        translateX = "0%"; translateY = "0%"; rotateY = 0;
       } else if (offset === 1 || offset === -2) {
-        translateX = "20%";
-        translateY = `-${(maxStickUp / containerHeight) * 100}%`;
-        rotateY = -15;
+        translateX = "20%"; translateY = `-${(maxStickUp / containerHeight) * 100}%`; rotateY = -15;
       } else {
-        translateX = "-20%";
-        translateY = `-${(maxStickUp / containerHeight) * 100}%`;
-        rotateY = 15;
+        translateX = "-20%"; translateY = `-${(maxStickUp / containerHeight) * 100}%`; rotateY = 15;
       }
 
       gsap.to(img, {
-        zIndex,
-        opacity: 1,
-        scale,
-        x: translateX,
-        y: translateY,
-        rotateY,
-        duration: 0.8,
-        ease: "power3.out",
+        zIndex, opacity: 1, scale, x: translateX, y: translateY, rotateY,
+        duration: 0.8, ease: "power3.out",
       });
     });
 
-    // Animate text
     const t = testimonials.current[activeIndexRef.current];
+
     gsap.to([nameEl, desigEl], {
-      opacity: 0,
-      y: -20,
-      duration: 0.3,
-      ease: "power2.in",
+      opacity: 0, y: -20, duration: 0.3, ease: "power2.in",
       onComplete: () => {
         nameEl.textContent = t.name;
         desigEl.textContent = t.designation;
-        gsap.to([nameEl, desigEl], {
-          opacity: 1,
-          y: 0,
-          duration: 0.3,
-          ease: "power2.out",
-        });
+        gsap.to([nameEl, desigEl], { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" });
       },
     });
 
-    gsap.to(quoteRef.current, {
-      opacity: 0,
-      y: -20,
-      duration: 0.3,
-      ease: "power2.in",
+    gsap.to(quoteEl, {
+      opacity: 0, y: -20, duration: 0.3, ease: "power2.in",
       onComplete: () => {
-        quoteRef.current.innerHTML = t.quote
-          .split(" ")
-          .map((w) => `<span class="tsm-word">${w}</span>`)
-          .join(" ");
-        gsap.to(quoteRef.current, {
-          opacity: 1,
-          y: 0,
-          duration: 0.3,
-          ease: "power2.out",
-          onComplete: animateWords,
-        });
+        quoteEl.innerHTML = t.quote.split(" ").map((w) => `<span class="tsm-word">${w}</span>`).join(" ");
+        gsap.to(quoteEl, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out", onComplete: animateWords });
       },
     });
   };
 
   useEffect(() => {
     const len = testimonials.current.length;
-
     if (len === 0) {
-      // Zero-state: no placeholder copy — keep fields empty and no autoplay
       if (nameRef.current) nameRef.current.textContent = "";
       if (designationRef.current) designationRef.current.textContent = "";
       if (quoteRef.current) quoteRef.current.innerHTML = "";
@@ -178,23 +131,18 @@ export default function TestimonialSection() {
       if (nameRef.current) nameRef.current.textContent = testimonials.current[0].name;
       if (designationRef.current) designationRef.current.textContent = testimonials.current[0].designation;
       if (quoteRef.current) {
-        quoteRef.current.innerHTML = testimonials.current[0].quote
-          .split(" ")
-          .map((w) => `<span class="tsm-word">${w}</span>`)
-          .join(" ");
+        quoteRef.current.innerHTML = testimonials.current[0].quote.split(" ")
+          .map((w) => `<span class="tsm-word">${w}</span>`).join(" ");
         animateWords();
       }
       updateTestimonial(0);
-      if (len > 1) {
-        autoplayRef.current = setInterval(() => updateTestimonial(1), 5000);
-      }
+      if (len > 1) autoplayRef.current = setInterval(() => updateTestimonial(1), 5000);
     }
 
     const onResize = () => {
       if (testimonials.current.length > 0) {
         const current = activeIndexRef.current;
-        activeIndexRef.current =
-          (current - 1 + testimonials.current.length) % testimonials.current.length;
+        activeIndexRef.current = (current - 1 + testimonials.current.length) % testimonials.current.length;
         updateTestimonial(1);
       }
     };
@@ -210,33 +158,23 @@ export default function TestimonialSection() {
   const handlePrev = (e) => {
     e.preventDefault();
     if (testimonials.current.length === 0) return;
-    if (autoplayRef.current) {
-      clearInterval(autoplayRef.current);
-      autoplayRef.current = null;
-    }
+    if (autoplayRef.current) { clearInterval(autoplayRef.current); autoplayRef.current = null; }
     updateTestimonial(-1);
   };
 
   const handleNext = (e) => {
     e.preventDefault();
     if (testimonials.current.length === 0) return;
-    if (autoplayRef.current) {
-      clearInterval(autoplayRef.current);
-      autoplayRef.current = null;
-    }
+    if (autoplayRef.current) { clearInterval(autoplayRef.current); autoplayRef.current = null; }
     updateTestimonial(1);
   };
 
-  // Modal handlers
+  // modal handlers
   const openModal = (e) => {
     e.preventDefault();
-    if (autoplayRef.current) {
-      clearInterval(autoplayRef.current);
-      autoplayRef.current = null;
-    }
+    if (autoplayRef.current) { clearInterval(autoplayRef.current); autoplayRef.current = null; }
     setIsModalOpen(true);
   };
-
   const closeModal = (e) => {
     e?.preventDefault?.();
     setIsModalOpen(false);
@@ -280,7 +218,6 @@ export default function TestimonialSection() {
     });
 
     activeIndexRef.current = testimonials.current.length - 1;
-
     setIsModalOpen(false);
     setFormData({ name: "", designation: "", quote: "", imageDataUrl: "" });
 
@@ -295,7 +232,7 @@ export default function TestimonialSection() {
     <section className="tsm-wrapper" aria-label="Testimonials">
       <div className="tsm-container">
         <div className="tsm-grid">
-          {/* Image stack (images are appended dynamically) */}
+          {/* Image stack */}
           <div className="tsm-image-container" ref={imageContainerRef} />
 
           {/* Content card */}
@@ -306,40 +243,24 @@ export default function TestimonialSection() {
               <p className="tsm-quote" ref={quoteRef} />
             </div>
 
-            {/* Centered Share Experience (anchor) */}
+            {/* Centered Share button (CTA) */}
             <div className="tsm-share-wrap tsm-share-center">
               <a
                 href="#"
-                className="tsm-share tsm-share-animated"
+                className="tsm-share tsm-share-cta"
                 onClick={openModal}
                 aria-label="Share your experience"
               >
-                Share your experience
+                Share Your Experience
               </a>
             </div>
 
             <nav className="tsm-arrows" aria-label="testimonial navigation">
-              <a
-                href="#"
-                className="tsm-nav tsm-prev"
-                onClick={handlePrev}
-                ref={prevRef}
-                aria-label="Previous testimonial"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-                </svg>
+              <a href="#" className="tsm-nav tsm-prev" onClick={handlePrev} ref={prevRef} aria-label="Previous testimonial">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
               </a>
-              <a
-                href="#"
-                className="tsm-nav tsm-next"
-                onClick={handleNext}
-                ref={nextRef}
-                aria-label="Next testimonial"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                </svg>
+              <a href="#" className="tsm-nav tsm-next" onClick={handleNext} ref={nextRef} aria-label="Next testimonial">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
               </a>
             </nav>
           </div>
@@ -350,13 +271,15 @@ export default function TestimonialSection() {
       {isModalOpen && (
         <>
           <div className="tsm-overlay" onClick={closeModal} />
+
           <div className="tsm-modal" role="dialog" aria-modal="true" aria-label="Share your experience">
             <a href="#" className="tsm-modal-close" onClick={closeModal} aria-label="Close">×</a>
-            <h3 className="tsm-modal-title">Share your experience</h3>
 
-            <form className="tsm-form" onSubmit={handleSubmit}>
+            <h3 className="tsm-modal-title">Share Your Experience</h3>
+
+            <form className="tsm-form tsm-form-lg" onSubmit={handleSubmit}>
               <div className="tsm-field">
-                <label className="tsm-label" htmlFor="tsm-name">Name</label>
+                <label className="tsm-label" htmlFor="tsm-name">Your Name</label>
                 <input
                   id="tsm-name"
                   name="name"
@@ -365,13 +288,14 @@ export default function TestimonialSection() {
                   onChange={onChange}
                   required
                   aria-required="true"
-                  className="tsm-input"
+                  placeholder="e.g., Dr. Ahmed"
+                  className="tsm-input tsm-input-lg"
                 />
                 {errors.name && <span className="tsm-error">{errors.name}</span>}
               </div>
 
               <div className="tsm-field">
-                <label className="tsm-label" htmlFor="tsm-designation">Title</label>
+                <label className="tsm-label" htmlFor="tsm-designation">Your Role/Title</label>
                 <input
                   id="tsm-designation"
                   name="designation"
@@ -380,28 +304,32 @@ export default function TestimonialSection() {
                   onChange={onChange}
                   required
                   aria-required="true"
-                  className="tsm-input"
+                  placeholder="e.g., General Practitioner"
+                  className="tsm-input tsm-input-lg"
                 />
                 {errors.designation && <span className="tsm-error">{errors.designation}</span>}
               </div>
 
               <div className="tsm-field">
-                <label className="tsm-label" htmlFor="tsm-quote">Testimonial</label>
+                <label className="tsm-label" htmlFor="tsm-quote">Your Testimonial</label>
                 <textarea
                   id="tsm-quote"
                   name="quote"
-                  rows="4"
+                  rows="5"
                   value={formData.quote}
                   onChange={onChange}
                   required
                   aria-required="true"
-                  className="tsm-textarea"
+                  placeholder="Share your experience about the DSAH platform..."
+                  className="tsm-textarea tsm-input-lg"
                 />
                 {errors.quote && <span className="tsm-error">{errors.quote}</span>}
               </div>
 
               <div className="tsm-field">
-                <label className="tsm-label" htmlFor="tsm-image">Photo (required)</label>
+                <label className="tsm-label">Your Photo</label>
+
+                {/* custom upload control */}
                 <input
                   id="tsm-image"
                   name="image"
@@ -410,17 +338,30 @@ export default function TestimonialSection() {
                   onChange={onFileChange}
                   required
                   aria-required="true"
-                  className="tsm-file"
+                  className="tsm-file-input"
                 />
+                <label htmlFor="tsm-image" className="tsm-upload-btn">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14a2 2 0 0 0 2-2v-7h-2v7H5V6h7V4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Zm7-2 6-6h-4V2h-4v10H6l6 6Z"/></svg>
+                  Upload Image
+                </label>
                 {errors.image && <span className="tsm-error">{errors.image}</span>}
+
                 {formData.imageDataUrl && (
-                  <img className="tsm-preview" src={formData.imageDataUrl} alt="Preview" />
+                  <div className="tsm-upload-preview">
+                    <img src={formData.imageDataUrl} alt="Preview" />
+                    <span>Preview</span>
+                  </div>
                 )}
               </div>
 
-              <div className="tsm-actions">
-                <a href="#" className="tsm-btn tsm-btn-secondary" onClick={closeModal}>Cancel</a>
-                <a href="#" className="tsm-btn tsm-btn-primary" onClick={handleSubmit}>Submit</a>
+              <div className="tsm-actions tsm-actions-lg">
+                <a href="#" className="tsm-btn tsm-btn-ghost" onClick={closeModal}>Cancel</a>
+
+                {/* anchor as CTA; form still submits on Enter via onSubmit */}
+                <a href="#" className="tsm-btn tsm-btn-primary tsm-btn-gradient" onClick={handleSubmit}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                  Submit Testimonial
+                </a>
               </div>
             </form>
           </div>
@@ -429,3 +370,4 @@ export default function TestimonialSection() {
     </section>
   );
 }
+
