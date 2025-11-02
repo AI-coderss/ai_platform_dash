@@ -295,7 +295,7 @@ TOOLS = [
 }
 ]
 
-    
+
 @app.route("/api/rtc-connect", methods=["POST"])
 def connect_rtc():
     try:
@@ -320,6 +320,7 @@ def connect_rtc():
                 "or type into the chatbot, use the provided tools strictly with the allowed values."
                 "If the user asks to open or close the chatbot, call set_chat_visible with visible=true or visible=false respectively."
                 "if the user asks you to go the About section, use the navigate_to tool with section='about'. which is the top of the platform."
+                "If the user indicates they want to dismiss the assistant (e.g., “go now”, “go for now”, “thank you for now”, “you can go”, “dismiss”, “close assistant”, “hide”, “bye for now”),call assistant_close with no arguments.Do not ask for confirmation "
                 """When the user asks to show or play a tutorial video (e.g., “show me the Doctor AI tutorial”, 
                     “play the transcription tutorial”), call the function tutorial_play with the proper id:
 
