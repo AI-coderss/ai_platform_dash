@@ -5,7 +5,7 @@ import "../styles/VideoCarousel.css";
 
 const DEFAULT_VIDEOS = [
   { id: "doctorai",      src: "https://storage.googleapis.com/plat_vid_dsah_x123/doctorai.mp4",        label: "Doctor AI" },
-  { id: "transcription", src: "https://storage.googleapis.com/plat_vid_dsah_x123/transcriptionapp.mp4", label: "Transcription App" },
+  { id: "transcription", src: "https://storage.googleapis.com/plat_vid_dsah_x123/medtranscription.mp4", label: "Transcription App" },
   { id: "medreport",     src: "https://storage.googleapis.com/plat_vid_dsah_x123/medreport.mp4",        label: "Medical Reports Platform" },
   { id: "ivf",           src: "https://storage.googleapis.com/plat_vid_dsah_x123/ivf.mp4",              label: "IVF Assistant" },
 ];
