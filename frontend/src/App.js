@@ -25,7 +25,6 @@ import TestimonialSection from "./components/TestimonialSection";
 import VideoCarousel from "./components/VideoCarousel";
 import RadialNav from "./components/RadialNav";
 import { FaHome, FaThLarge, FaPlayCircle, FaShieldAlt, FaEnvelopeOpenText, FaClipboardCheck, FaMicrophoneAlt, FaChartBar, FaFileMedical, FaBaby, FaHeadset, FaUserMd } from "react-icons/fa";
-
 // ⬇️ GSAP + SplitType (added)
 import gsap from "gsap";
 import SplitType from "split-type";
@@ -1246,6 +1245,8 @@ const App = () => {
       </section>
       {/* <TestimonialSection /> */}
       <section className="section-title" href="#watch_tutorial" id="watch_tutorial" style={{ marginTop: '15rem' }}>
+
+  
         <VideoCarousel />
       </section>
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
