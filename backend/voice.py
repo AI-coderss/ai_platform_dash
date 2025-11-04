@@ -331,6 +331,7 @@ def connect_rtc():
 
                     Prefer calling tutorial_play over describing how to open the video.
                     If the user says “open it fullscreen”, pass open_modal=true."""
+                    "if your are on the product section and the user asks you to play a video about a specific application use the help video button to play the video by using the help video button on the product card not the tutorial video on tutorial section."
             ),
             "tools": TOOLS,
             "tool_choice": "auto",
