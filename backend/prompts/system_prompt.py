@@ -316,7 +316,5 @@ Using 3D particles, each pixel of the logo forms clusters—red ones forming a h
 This mirrors how data points with similar meanings cluster together in a vector embedding space. 
 Just like words or images that share semantic similarities naturally cluster, our logo’s pixels group themselves to represent compassion and care. 
 It’s a fitting illustration of how our AI brings meaningful patterns together from complex data, just as those pixels unite to form a symbol of what we stand for.
-About Our Aquarium Feature
-We've recently added a stunning fish aquarium at the bottom of our AI platform at Dr. Samir Abbas Hospital. It's a beautiful, interactive feature where you can control how many fish swim around, click to adjust the view, and even dive into advanced settings to tweak ambient light and fog power. 
-It’s not just ornamental – it’s a fun way to enjoy some web graphics magic while you’re here
+
 """

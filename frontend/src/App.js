@@ -19,7 +19,6 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
-import Aquarium from "./components/Aquarium";
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 import TestimonialSection from "./components/TestimonialSection";
 import VideoCarousel from "./components/VideoCarousel";
@@ -1246,7 +1245,7 @@ const App = () => {
       {/* <TestimonialSection /> */}
       <section className="section-title" href="#watch_tutorial" id="watch_tutorial" style={{ marginTop: '15rem' }}>
 
-  
+      
         <VideoCarousel />
       </section>
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
@@ -1256,7 +1255,6 @@ const App = () => {
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
-
       <VoiceAssistant />
       <RadialNav
         lift={140}
@@ -1269,9 +1267,8 @@ const App = () => {
 
         ]}
       />
-
+      
       <ChatBot />
-      <Aquarium />
       <Footer />
     </div>
   );

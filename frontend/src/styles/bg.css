@@ -1,0 +1,15 @@
+/* src/styles/bg.css */
+/* Style the dynamically-created canvas so it covers the viewport */
+/* src/styles/bg.css */
+
+/* Use only the NEW id to avoid collisions elsewhere */
+/* src/styles/bg.css */
+canvas#BGCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 0;
+  background: transparent !important; /* nuke any global black backgrounds */
+}
