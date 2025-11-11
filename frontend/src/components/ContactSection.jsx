@@ -1,11 +1,13 @@
+/* eslint-disable no-unused-vars */
+// src/components/ContactSection.jsx
 // src/components/ContactSection.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
-// import confetti from "canvas-confetti";                     // ❌ removed
-import { Howl, Howler } from "howler";                         // 🔊 keep
+// import confetti from "canvas-confetti"; // ❌ removed
+import { Howl, Howler } from "howler";               // 🔊 keep
 import "../styles/ContactSection.css";
 import SendButton from "./SendButton";
 
@@ -13,13 +15,23 @@ const ContactSection = () => {
   const canvasRef = useRef(null);
   const formCardRef = useRef(null);
   const formRef = useRef(null);
+
+  // 🔊 Shared sound ref
   const sendSoundRef = useRef(null);
 
-  // 🔥 Fireworks refs/state
+  // 🔥 Fireworks refs/state (no external deps)
   const fireworksCanvasRef = useRef(null);
   const fireworksRAFRef = useRef(null);
   const fireworksActiveRef = useRef(false);
-  const fireworksStartAtRef = useRef(0);
+  const lastBeatIndexRef = useRef(-1);
+  const prevAudioMsRef = useRef(0);
+
+  // Adjustable musical grid (used to quantize fireworks to audio time)
+  // Change BPM to match your loop if needed.
+  const BPM = 120;                          // 🔧 tweak to your track’s tempo
+  const BEAT_MS = 60000 / BPM;              // ms per beat
+  const BEATS_PER_BAR = 4;                  // 4/4
+  const DOWNBEAT_EVERY = BEATS_PER_BAR;     // big burst every bar
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,32 +43,31 @@ const ContactSection = () => {
   // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
 
-  // 🔊 init Howler sound once
+  /* =========================
+     🔊 Init Howler once
+     ========================= */
   useEffect(() => {
+    // Multiple sources for cross-browser support (mp4/m4a/mp3/ogg)
+    // Put your file(s) in /public (e.g., /public/send.mp4)
     sendSoundRef.current = new Howl({
-      src: ["/send.mp3"],
+      src: ["/send.mp4", "/send.m4a", "/send.mp3", "/send.ogg"],
       preload: true,
-      volume: 0.6,
+      volume: 0.7,
+      loop: false,         // we enable loop when fireworks overlay opens
+      html5: false,        // use WebAudio for tighter sync
     });
+
     return () => {
       try { sendSoundRef.current?.unload(); } catch {}
     };
   }, []);
 
-  const playSendSound = () => {
-    const snd = sendSoundRef.current;
-    if (!snd) return;
-    try {
-      if (Howler.state !== "running") {
-        const playOnUnlock = () => {
-          try { snd.play(); } catch {}
-          Howler.off("unlock", playOnUnlock);
-        };
-        Howler.once("unlock", playOnUnlock);
-      } else {
-        snd.play();
-      }
-    } catch {}
+  const ensureAudioUnlocked = (cb) => {
+    if (Howler.state !== "running") {
+      Howler.once("unlock", cb);
+    } else {
+      cb();
+    }
   };
 
   const handleChange = (e) => {
@@ -65,13 +76,12 @@ const ContactSection = () => {
   };
 
   /* =========================
-     ✨ FIREWORKS ENGINE (Canvas)
-     — compact, dependency-free —
+     🎆 FIREWORKS ENGINE (Canvas, quantized to audio time)
      ========================= */
-  const startFireworks = () => {
-    if (!fireworksCanvasRef.current) return;
-
+  const startFireworksSynced = () => {
     const canvas = fireworksCanvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext("2d", { alpha: true });
 
     const resize = () => {
@@ -85,7 +95,6 @@ const ContactSection = () => {
     resize();
     window.addEventListener("resize", resize);
 
-    // Physics + particles
     const GRAVITY = 0.08;
     const AIR = 0.995;
     const COLORS = ["#ffcc00", "#ff3b3b", "#5ad1ff", "#9b59b6", "#2ecc71", "#ff6f91", "#ffd166"];
@@ -95,20 +104,20 @@ const ContactSection = () => {
     const rand = (min, max) => Math.random() * (max - min) + min;
     const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 
-    function spawnRocket() {
-      const x = rand(canvas.clientWidth * 0.15, canvas.clientWidth * 0.85);
+    function spawnRocket(xOverride = null, colorOverride = null) {
+      const x = xOverride ?? rand(canvas.clientWidth * 0.15, canvas.clientWidth * 0.85);
       const y = canvas.clientHeight + 10;
       const vx = rand(-1.2, 1.2);
-      const vy = rand(-7.5, -9.5);
-      const color = pick(COLORS);
+      const vy = rand(-7.8, -9.8);
+      const color = colorOverride ?? pick(COLORS);
       rockets.push({ x, y, vx, vy, color, explodeY: rand(canvas.clientHeight * 0.2, canvas.clientHeight * 0.5) });
     }
 
-    function explode(x, y, baseColor) {
-      const count = 120 + (Math.random() * 40 | 0);
+    function explode(x, y, baseColor, ring = false) {
+      const count = (ring ? 160 : 120) + (Math.random() * 40 | 0);
       for (let i = 0; i < count; i++) {
         const ang = Math.random() * Math.PI * 2;
-        const spd = rand(1.5, 4.5);
+        const spd = ring ? rand(2.8, 4.2) : rand(1.5, 4.5);
         particles.push({
           x, y,
           vx: Math.cos(ang) * spd,
@@ -122,7 +131,6 @@ const ContactSection = () => {
       }
     }
 
-    // Night sky fade (motion trails)
     function clearSoft() {
       ctx.globalCompositeOperation = "destination-out";
       ctx.fillStyle = "rgba(0,0,0,0.25)";
@@ -156,13 +164,12 @@ const ContactSection = () => {
       ctx.restore();
     }
 
-    let lastSpawn = 0;
-    const SPACING = 280; // ms between rockets
+    // 🔗 Audio-driven timeline
+    const snd = sendSoundRef.current;
+    lastBeatIndexRef.current = -1;
+    prevAudioMsRef.current = 0;
 
-    fireworksActiveRef.current = true;
-    fireworksStartAtRef.current = performance.now();
-
-    const loop = (t) => {
+    const loop = () => {
       if (!fireworksActiveRef.current) {
         window.removeEventListener("resize", resize);
         return;
@@ -171,14 +178,44 @@ const ContactSection = () => {
       fireworksRAFRef.current = requestAnimationFrame(loop);
       clearSoft();
 
-      // spawn rockets rhythmically
-      if (!lastSpawn || t - lastSpawn > SPACING) {
+      // 1) Quantize to audio time
+      let audioSec = 0;
+      try { audioSec = snd?.seek() || 0; } catch { audioSec = 0; }
+      const tms = audioSec * 1000;
+
+      // Detect loop wrap-around (seek jumps back to ~0)
+      if (tms < prevAudioMsRef.current) {
+        lastBeatIndexRef.current = -1; // reset so first beat fires again
+      }
+      prevAudioMsRef.current = tms;
+
+      const beatIndex = Math.floor(tms / BEAT_MS);
+
+      // 2) On each new beat, spawn rockets deterministically
+      if (beatIndex !== lastBeatIndexRef.current) {
+        lastBeatIndexRef.current = beatIndex;
+
+        const beatInBar = beatIndex % BEATS_PER_BAR;
+
+        // Base: one rocket per beat
         spawnRocket();
-        if (Math.random() < 0.35) spawnRocket();
-        lastSpawn = t;
+
+        // Downbeat: bigger moment (bar start)
+        if (beatInBar === 0) {
+          const midX = canvas.clientWidth * 0.5;
+          spawnRocket(midX, "#ffffff");
+          spawnRocket(canvas.clientWidth * 0.25);
+          spawnRocket(canvas.clientWidth * 0.75);
+        }
+
+        // Offbeats: add symmetrical pair every 2nd beat
+        if (beatInBar === 2) {
+          spawnRocket(canvas.clientWidth * 0.35);
+          spawnRocket(canvas.clientWidth * 0.65);
+        }
       }
 
-      // update rockets
+      // 3) Update rockets
       for (let i = rockets.length - 1; i >= 0; i--) {
         const r = rockets[i];
         r.x += r.vx;
@@ -188,12 +225,13 @@ const ContactSection = () => {
         drawRocket(r);
 
         if (r.y <= r.explodeY || r.vy >= 0.2) {
-          explode(r.x, r.y, r.color);
+          const ring = (Math.random() < 0.25);
+          explode(r.x, r.y, r.color, ring);
           rockets.splice(i, 1);
         }
       }
 
-      // update particles
+      // 4) Update particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.ttl++;
@@ -205,22 +243,64 @@ const ContactSection = () => {
         drawParticle(p);
         if (p.ttl > p.life) particles.splice(i, 1);
       }
-
-      // auto-stop after 10s
-      if (t - fireworksStartAtRef.current > 10000) {
-        stopFireworks(true);
-      }
     };
 
-    // paint a dark base once
+    // Paint a dark base once
     ctx.fillStyle = "rgba(0,0,0,0.9)";
     ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
     fireworksRAFRef.current = requestAnimationFrame(loop);
   };
 
-  const stopFireworks = (fadeOut = false) => {
+  const showFireworksOverlaySynced = () => {
+    const wrap = fireworksCanvasRef.current?.parentElement;
+    if (!wrap) return;
+
+    fireworksActiveRef.current = true;
+    wrap.classList.add("contact-fireworks--active");
+
+    // Restart audio exactly at t=0 and loop it.
+    const snd = sendSoundRef.current;
+    const startPlayback = () => {
+      try {
+        snd.stop();
+        snd.loop(true);
+        snd.seek(0);
+        snd.play();
+      } catch {}
+      startFireworksSynced(); // start the RAF loop now that audio is running
+    };
+
+    if (snd.state() !== "loaded") {
+      snd.once("load", () => ensureAudioUnlocked(startPlayback));
+      snd.load();
+    } else {
+      ensureAudioUnlocked(startPlayback);
+    }
+  };
+
+  const stopFireworksOverlay = (fadeOut = true) => {
     fireworksActiveRef.current = false;
     if (fireworksRAFRef.current) cancelAnimationFrame(fireworksRAFRef.current);
+
+    // Stop/duck audio gracefully
+    const snd = sendSoundRef.current;
+    try {
+      snd.loop(false);
+      if (snd.playing()) {
+        // Quick fade-out for polish
+        const id = snd._sounds?.[0]?._id;
+        if (typeof snd.fade === "function" && id !== undefined) {
+          snd.fade(snd.volume(), 0, 250, id);
+          snd.once("fade", () => {
+            try { snd.stop(id); snd.volume(0.7, id); } catch {}
+          });
+        } else {
+          snd.stop();
+        }
+      }
+    } catch {}
+
     const wrap = fireworksCanvasRef.current?.parentElement;
     if (!wrap) return;
     if (fadeOut) {
@@ -228,17 +308,10 @@ const ContactSection = () => {
       setTimeout(() => {
         wrap.classList.remove("contact-fireworks--active");
         wrap.classList.remove("contact-fireworks--fadeout");
-      }, 350);
+      }, 320);
     } else {
       wrap.classList.remove("contact-fireworks--active");
     }
-  };
-
-  const showFireworks = () => {
-    const wrap = fireworksCanvasRef.current?.parentElement;
-    if (!wrap) return;
-    wrap.classList.add("contact-fireworks--active");
-    startFireworks();
   };
 
   /* =========================
@@ -246,20 +319,18 @@ const ContactSection = () => {
      ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // 🔊 play the send sound for both manual and AI-triggered submissions
-    playSendSound();
-
     setLoading(true);
+
     try {
       await axios.post(
         "https://ai-platform-dash-mailing-server-services.onrender.com/contact",
         formData
       );
 
-      // 🎆 replace confetti() with fireworks overlay
-      showFireworks();
+      // 🎆 Start synced overlay (this also restarts + loops the audio at t=0)
+      showFireworksOverlaySynced();
 
+      // Reset form
       setFormData({ name: "", email: "", recipient: "", message: "" });
     } catch (err) {
       console.error("❌ Error:", err);
@@ -269,7 +340,9 @@ const ContactSection = () => {
     }
   };
 
-  // 🔥 Voice agent bridge (untouched)
+  /* =========================
+     Voice agent bridge (unchanged)
+     ========================= */
   useEffect(() => {
     const fill = (payload = {}) => {
       setFormData((prev) => ({
@@ -312,7 +385,7 @@ const ContactSection = () => {
   }, [formData.name, formData.email, formData.message]);
 
   /* =========================
-     BACKGROUND GALAXY (unchanged)
+     Background galaxy (unchanged)
      ========================= */
   useEffect(() => {
     const scene = new THREE.Scene();
@@ -403,7 +476,7 @@ const ContactSection = () => {
   }, []);
 
   /* =========================
-     TILT (unchanged)
+     Tilt (unchanged)
      ========================= */
   useEffect(() => {
     const handleTilt = (e) => {
@@ -435,10 +508,15 @@ const ContactSection = () => {
       {/* Background stars */}
       <canvas ref={canvasRef} className="webgl" />
 
-      {/* Fireworks overlay (hidden until submit) */}
-      <div className="contact-fireworks-overlay" onClick={() => stopFireworks(true)}>
+      {/* Fireworks overlay (click × to stop; keeps looping otherwise) */}
+      <div className="contact-fireworks-overlay">
         <canvas ref={fireworksCanvasRef} className="contact-fireworks-canvas" />
-        <button type="button" className="contact-fireworks-close" aria-label="Close fireworks">
+        <button
+          type="button"
+          className="contact-fireworks-close"
+          aria-label="Close fireworks"
+          onClick={() => stopFireworksOverlay(true)}
+        >
           ×
         </button>
       </div>
@@ -497,7 +575,6 @@ const ContactSection = () => {
                 onChange={handleChange}
                 data-agent-id="contact.message"
               />
-              {/* The SendButton may already submit; the sound plays on submit either way */}
               <div data-agent-id="contact.submit">
                 <SendButton />
               </div>
