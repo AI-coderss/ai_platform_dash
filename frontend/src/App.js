@@ -1061,7 +1061,7 @@ const App = () => {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
-      link: "https://ai-doctor-assistant-app-dev.onrender.com",
+      link: "https://dsahdoctoraiassistantbot.onrender.com",
       helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/doctorai.mp4",
       agentKey: "doctor",
     },
