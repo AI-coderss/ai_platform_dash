@@ -11,7 +11,8 @@ const audioMap = {
   3: "/assets/audio/data_analyst.mp3",
   4: "/assets/audio/report_enhancement.mp3",
   5: "/assets/audio/ivf_assistant.mp3",
-  6: "/assets/audio/patient_assistant.mp3",
+  6: "/assets/audio/meeting_assistant.mp3",
+  7: "/assets/audio/patient_assistant.mp3",
 };
 
 const APPS = [
@@ -49,6 +50,13 @@ const APPS = [
     img: "/assets/images/ivf.jpeg",
     body:
       "Interactive protocols, image-guided checklists, and instant Q&A grounded in your training manual.",
+  },
+  {
+    id : "meeting_assistant",
+    title: "AI Meeting Assistant",
+    img: "/assets/images/meeting_assistant.png",
+    body:
+      "Schedule meetings and appointments using natural language processing to streamline your calendar.",
   },
   {
     id: "patient_avatar",
@@ -223,6 +231,8 @@ export default function CardCarousel() {
       "report enhancement": "report_enhance",
       "patient assistant": "patient_avatar",
       patient: "patient_avatar",
+      "meeting assistant": "meeting_assistant",
+      meeting: "meeting_assistant",
     };
 
     const normalizeId = (raw) => {

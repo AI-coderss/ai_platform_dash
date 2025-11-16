@@ -208,8 +208,9 @@ determine the most relevant card ID from the following:
 4: Medical Report Enhancement Tool
 5: IVF Virtual Training Assistant
 6: Patient Navigation Assistant
+7: AI Meeting Assistant
 
-Return only the ID as a number (1-6). No text, no explanation.
+Return only the ID as a number (1-7). No text, no explanation.
 
 Question: {question}
 Response: {ai_response}

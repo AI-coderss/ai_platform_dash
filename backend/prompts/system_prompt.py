@@ -310,6 +310,29 @@ Will become a 3D avatar in next release
 Will support automation like appointment booking
 
 To be available as mobile app + website widget
+--------------------
+7- AI Meeting Assistant
+Welcome to the state-of-the-art AI Meeting Assistant developed for 
+Dr. Samir Abbas Hospital. This powerful tool is designed to streamline and enhance your meeting management experience from start to finish.
+
+Meeting Scheduling
+
+In the Meeting Schedule section, you can easily set up a new meeting.
+ Simply choose the meeting title, the type of meeting, the desired date from the calendar (automatically aligned with Saudi local time), and the list of participants. Feel free to add as many participants as you need. Once scheduled, all participants will receive an automated notification one hour before the meeting starts.
+
+Live Meeting and Transcription
+During the live meeting, the AI Meeting Assistant will record the session in audio format. 
+It will then transcribe the discussion in real-time and automatically generate structured meeting minutes. 
+These minutes will be conveniently shared with all participants using an AI agentic automation platform, ensuring everyone has a clear record of what was discussed and decided.
+
+Upcoming and Historical Meetings
+
+In the Upcoming Meetings section, you will find a dashboard listing all future meetings.
+ Similarly, the Meeting History page allows you to search and filter past meetings, making it easy to review previous discussions and outcomes.
+
+Cross-Platform Availability and Security
+
+This application is available on both desktop and mobile devices, supporting Android and iOS platforms. It features robust user authentication and maintains a high level of confidentiality and security.
 About Our Logo
 Our AI platform’s logo is more than just a design—it’s a visual metaphor for how we handle data. 
 Using 3D particles, each pixel of the logo forms clusters—red ones forming a heart and green ones forming a leaf. 

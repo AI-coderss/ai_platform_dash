@@ -37,6 +37,7 @@ const audioMap = {
   4: "/assets/audio/report_enhancement.mp3",
   5: "/assets/audio/ivf_assistant.mp3",
   6: "/assets/audio/patient_assistant.mp3",
+  7: "/assets/audio/meeting_assistant.mp3",
 };
 // convenient scroller
 const jump = (id) => {
@@ -52,6 +53,7 @@ const urls = {
   report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
   ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
   patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
+  meeting: "https://ai-meeting-assistant-frontend.onrender.com",
   survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
 };
 const navItems = [
@@ -62,6 +64,7 @@ const navItems = [
   { id: "report", label: "Report Enhancer", icon: <FaFileMedical />, href: urls.report },
   { id: "ivf", label: "IVF Assistant", icon: <FaBaby />, href: urls.ivf },
   { id: "patient", label: "Patient Assistant", icon: <FaHeadset />, href: urls.patient },
+  { id: "meeting", label: "Meeting Assistant", icon: <FaHeadset />, href: urls.meeting },
   { id: "survey", label: "Survey", icon: <FaClipboardCheck />, href: urls.survey },
   // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
 ];
@@ -866,6 +869,7 @@ const appKeyFromId = (id) => {
     case 4: return "report";
     case 5: return "ivf";
     case 6: return "patient";
+    case 7: return "meeting";
     default: return `app${id}`;
   }
 };
@@ -1105,7 +1109,15 @@ const App = () => {
       helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
       agentKey: "patient",
     },
-    // Survey card shown via floating button
+    {
+      id: 7, name: "📅 AI Meeting Assistant",
+      description: "Schedule meetings and appointments using Artificial Intelligence", 
+      icon: "/icons/meeting.svg",
+      link: "https://ai-meeting-assistant-frontend.onrender.com/authpage",
+      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/meeting.mp4",
+      agentKey: "meeting",
+    },
+  // Survey card shown via floating button
   ];
 
   // ===== Agent navigation + chatbot bridge =====
@@ -1129,6 +1141,7 @@ const App = () => {
       if (s === "report") { window.open(urls.report, "_blank", "noopener,noreferrer"); return; }
       if (s === "ivf") { window.open(urls.ivf, "_blank", "noopener,noreferrer"); return; }
       if (s === "patient") { window.open(urls.patient, "_blank", "noopener,noreferrer"); return; }
+      if (s === "meeting") { window.open(urls.meeting, "_blank", "noopener,noreferrer"); return; }
       if (s === "survey") { window.open(urls.survey, "_blank", "noopener,noreferrer"); return; }
 
       if (s === "chat") {
