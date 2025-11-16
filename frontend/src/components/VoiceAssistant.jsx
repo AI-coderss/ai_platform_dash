@@ -24,14 +24,16 @@ const localStreamRef = React.createRef();
 const ALLOWED_SECTIONS = new Set([
   "home", "products", "policy", "watch_tutorial", "contact", "footer",
   "chat", "doctor", "transcription", "analyst", "report", "ivf", "patient", "survey",
-  "card_console",
+  "card_console", "meeting",
 ]);
 const ALLOWED_CONTROL_IDS = new Set([
   "nav.about", "nav.products", "nav.policy", "nav.watch_tutorial", "nav.contact", "nav.footer",
   "products.launch:doctor", "products.launch:transcription", "products.launch:analyst", "products.launch:report",
   "products.launch:ivf", "products.launch:patient", "products.launch:survey",
+  "products.launch:meeting",
   "products.help:doctor", "products.help:transcription", "products.help:analyst", "products.help:report",
   "products.help:ivf", "products.help:patient", "products.help:survey",
+  "products.help:meeting",
   "contact.submit",
 ]);
 const TOOL_SCHEMAS = [
@@ -88,7 +90,7 @@ const TOOL_SCHEMAS = [
       type: "object",
       additionalProperties: false,
       properties: {
-        id: { type: "string", enum: ["doctorai", "transcription", "medreport", "ivf"] },
+        id: { type: "string", enum: ["doctorai", "transcription", "medreport", "ivf", "meeting"] },
         open_modal: { type: "boolean" } // optional: true = open in lightbox
       },
       required: ["id"]
@@ -109,6 +111,7 @@ const TOOL_SCHEMAS = [
             "bi_dashboard",
             "report_enhance",
             "ivf_assistant",
+            "meeting_assistant",
             "patient_avatar",
           ]
         },
