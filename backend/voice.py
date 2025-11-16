@@ -271,6 +271,7 @@ TOOLS = [
                     "bi_dashboard",
                     "report_enhance",
                     "ivf_assistant",
+                    "meeting_assistant",
                     "patient_avatar",
                 ],
                 "description": "Stable card ids in the Card Console UI."
@@ -328,6 +329,7 @@ def connect_rtc():
                     - "Transcription App" -> id "transcription"
                     - "Medical Reports Platform" -> id "medreport"
                     - "IVF Assistant" -> id "ivf"
+                    - "Meeting Assistant" -> id "meeting"
 
                     Prefer calling tutorial_play over describing how to open the video.
                     If the user says “open it fullscreen”, pass open_modal=true."""
