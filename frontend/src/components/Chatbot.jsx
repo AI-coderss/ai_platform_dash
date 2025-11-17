@@ -32,6 +32,7 @@ const urls = {
   report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
   ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
   patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
+  meeting: "https://ai-meeting-assistant-frontend.onrender.com/authpage",
   survey:
     "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
 };
@@ -195,7 +196,7 @@ const ChatBot = () => {
 
       // Launch or open app by name
       const appMatch = t.match(
-        /\b(launch|open|start)\b.*\b(doctor assistant|ai doctor assistant|doctor|transcription|scribe|medical transcription|analyst|data analyst|report|report enhancer|medical report enhancement|ivf|ivf assistant|patient|patient assistant)\b/
+        /\b(launch|open|start)\b.*\b(doctor assistant|ai doctor assistant|doctor|transcription|scribe|medical transcription|analyst|data analyst|report|report enhancer|medical report enhancement|ivf|ivf assistant|patient|patient assistant|meeting|meeting assistant)\b/
       );
       if (appMatch) {
         const verb = appMatch[1];
@@ -218,6 +219,8 @@ const ChatBot = () => {
           "ivf assistant": "ivf",
           patient: "patient",
           "patient assistant": "patient",
+          meeting: "meeting",
+          "meeting assistant": "meeting",
         };
         const appKey = appKeyMap[appName];
 
