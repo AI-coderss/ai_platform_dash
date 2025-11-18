@@ -1081,7 +1081,7 @@ const App = () => {
       id: 3, name: "📊 DataMind AI",
       description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
-      link: "https://insight-sphere-329111fd.base44.app/home",
+      link: "https://insight-sphere-329111fd.base44.app/auth",
       helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
       agentKey: "analyst",
     },
