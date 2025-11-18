@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import axios from "axios";
-// import confetti from "canvas-confetti";                     // ❌ removed
-import { Howl, Howler } from "howler";                         // 🔊 keep
+import confetti from "canvas-confetti";
+import { Howl, Howler } from "howler";               // 🔊 NEW
 import "../styles/ContactSection.css";
 import SendButton from "./SendButton";
 
@@ -13,13 +13,7 @@ const ContactSection = () => {
   const canvasRef = useRef(null);
   const formCardRef = useRef(null);
   const formRef = useRef(null);
-  const sendSoundRef = useRef(null);
-
-  // 🔥 Fireworks refs/state
-  const fireworksCanvasRef = useRef(null);
-  const fireworksRAFRef = useRef(null);
-  const fireworksActiveRef = useRef(false);
-  const fireworksStartAtRef = useRef(0);
+  const sendSoundRef = useRef(null);                 // 🔊 NEW
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,6 +27,7 @@ const ContactSection = () => {
 
   // 🔊 init Howler sound once
   useEffect(() => {
+    // Support either filename (mp3 or the provided "mb3") to be safe
     sendSoundRef.current = new Howl({
       src: ["/send.mp3"],
       preload: true,
@@ -47,6 +42,7 @@ const ContactSection = () => {
     const snd = sendSoundRef.current;
     if (!snd) return;
     try {
+      // Handle browsers that require a prior user gesture
       if (Howler.state !== "running") {
         const playOnUnlock = () => {
           try { snd.play(); } catch {}
@@ -64,186 +60,14 @@ const ContactSection = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* =========================
-     ✨ FIREWORKS ENGINE (Canvas)
-     — compact, dependency-free —
-     ========================= */
-  const startFireworks = () => {
-    if (!fireworksCanvasRef.current) return;
-
-    const canvas = fireworksCanvasRef.current;
-    const ctx = canvas.getContext("2d", { alpha: true });
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = canvas.clientWidth | 0;
-      const h = canvas.clientHeight | 0;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    // Physics + particles
-    const GRAVITY = 0.08;
-    const AIR = 0.995;
-    const COLORS = ["#ffcc00", "#ff3b3b", "#5ad1ff", "#9b59b6", "#2ecc71", "#ff6f91", "#ffd166"];
-    const rockets = [];
-    const particles = [];
-
-    const rand = (min, max) => Math.random() * (max - min) + min;
-    const pick = (arr) => arr[(Math.random() * arr.length) | 0];
-
-    function spawnRocket() {
-      const x = rand(canvas.clientWidth * 0.15, canvas.clientWidth * 0.85);
-      const y = canvas.clientHeight + 10;
-      const vx = rand(-1.2, 1.2);
-      const vy = rand(-7.5, -9.5);
-      const color = pick(COLORS);
-      rockets.push({ x, y, vx, vy, color, explodeY: rand(canvas.clientHeight * 0.2, canvas.clientHeight * 0.5) });
-    }
-
-    function explode(x, y, baseColor) {
-      const count = 120 + (Math.random() * 40 | 0);
-      for (let i = 0; i < count; i++) {
-        const ang = Math.random() * Math.PI * 2;
-        const spd = rand(1.5, 4.5);
-        particles.push({
-          x, y,
-          vx: Math.cos(ang) * spd,
-          vy: Math.sin(ang) * spd,
-          life: rand(40, 70),
-          ttl: 0,
-          color: baseColor,
-          size: rand(1.2, 2.2),
-          sparkle: Math.random() < 0.25
-        });
-      }
-    }
-
-    // Night sky fade (motion trails)
-    function clearSoft() {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-      ctx.globalCompositeOperation = "lighter";
-    }
-
-    function drawRocket(r) {
-      ctx.save();
-      ctx.strokeStyle = r.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(r.x, r.y);
-      ctx.lineTo(r.x - r.vx * 2, r.y - r.vy * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawParticle(p) {
-      const alpha = Math.max(0, 1 - p.ttl / p.life);
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-      if (p.sparkle && Math.random() < 0.2) {
-        ctx.globalAlpha = alpha * 0.8;
-        ctx.fillRect(p.x - 0.5, p.y - 0.5, 1, 1);
-      }
-      ctx.restore();
-    }
-
-    let lastSpawn = 0;
-    const SPACING = 280; // ms between rockets
-
-    fireworksActiveRef.current = true;
-    fireworksStartAtRef.current = performance.now();
-
-    const loop = (t) => {
-      if (!fireworksActiveRef.current) {
-        window.removeEventListener("resize", resize);
-        return;
-      }
-
-      fireworksRAFRef.current = requestAnimationFrame(loop);
-      clearSoft();
-
-      // spawn rockets rhythmically
-      if (!lastSpawn || t - lastSpawn > SPACING) {
-        spawnRocket();
-        if (Math.random() < 0.35) spawnRocket();
-        lastSpawn = t;
-      }
-
-      // update rockets
-      for (let i = rockets.length - 1; i >= 0; i--) {
-        const r = rockets[i];
-        r.x += r.vx;
-        r.y += r.vy;
-        r.vy += GRAVITY * 0.35;
-
-        drawRocket(r);
-
-        if (r.y <= r.explodeY || r.vy >= 0.2) {
-          explode(r.x, r.y, r.color);
-          rockets.splice(i, 1);
-        }
-      }
-
-      // update particles
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.ttl++;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += GRAVITY;
-        p.vx *= AIR;
-        p.vy *= AIR;
-        drawParticle(p);
-        if (p.ttl > p.life) particles.splice(i, 1);
-      }
-
-      // auto-stop after 10s
-      if (t - fireworksStartAtRef.current > 10000) {
-        stopFireworks(true);
-      }
-    };
-
-    // paint a dark base once
-    ctx.fillStyle = "rgba(0,0,0,0.9)";
-    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-    fireworksRAFRef.current = requestAnimationFrame(loop);
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
   };
 
-  const stopFireworks = (fadeOut = false) => {
-    fireworksActiveRef.current = false;
-    if (fireworksRAFRef.current) cancelAnimationFrame(fireworksRAFRef.current);
-    const wrap = fireworksCanvasRef.current?.parentElement;
-    if (!wrap) return;
-    if (fadeOut) {
-      wrap.classList.add("contact-fireworks--fadeout");
-      setTimeout(() => {
-        wrap.classList.remove("contact-fireworks--active");
-        wrap.classList.remove("contact-fireworks--fadeout");
-      }, 350);
-    } else {
-      wrap.classList.remove("contact-fireworks--active");
-    }
-  };
-
-  const showFireworks = () => {
-    const wrap = fireworksCanvasRef.current?.parentElement;
-    if (!wrap) return;
-    wrap.classList.add("contact-fireworks--active");
-    startFireworks();
-  };
-
-  /* =========================
-     FORM SUBMIT
-     ========================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -256,10 +80,7 @@ const ContactSection = () => {
         "https://ai-platform-dash-mailing-server-services.onrender.com/contact",
         formData
       );
-
-      // 🎆 replace confetti() with fireworks overlay
-      showFireworks();
-
+      triggerConfetti();
       setFormData({ name: "", email: "", recipient: "", message: "" });
     } catch (err) {
       console.error("❌ Error:", err);
@@ -269,7 +90,7 @@ const ContactSection = () => {
     }
   };
 
-  // 🔥 Voice agent bridge (untouched)
+  // 🔥 Voice agent bridge (unchanged except it still routes through requestSubmit → handleSubmit)
   useEffect(() => {
     const fill = (payload = {}) => {
       setFormData((prev) => ({
@@ -292,6 +113,7 @@ const ContactSection = () => {
       try {
         document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "center" });
       } catch {}
+      // This will trigger handleSubmit → sound plays there
       formRef.current?.requestSubmit?.();
     };
 
@@ -311,9 +133,6 @@ const ContactSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.name, formData.email, formData.message]);
 
-  /* =========================
-     BACKGROUND GALAXY (unchanged)
-     ========================= */
   useEffect(() => {
     const scene = new THREE.Scene();
     const sizes = { width: window.innerWidth, height: window.innerHeight };
@@ -387,24 +206,17 @@ const ContactSection = () => {
     };
     tick();
 
-    const onResize = () => {
+    window.addEventListener("resize", () => {
       sizes.width = window.innerWidth;
       sizes.height = window.innerHeight;
       camera.aspect = sizes.width / sizes.height;
       camera.updateProjectionMatrix();
       renderer.setSize(sizes.width, sizes.height);
-    };
-    window.addEventListener("resize", onResize);
+    });
 
-    return () => {
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-    };
+    return () => renderer.dispose();
   }, []);
 
-  /* =========================
-     TILT (unchanged)
-     ========================= */
   useEffect(() => {
     const handleTilt = (e) => {
       const card = formCardRef.current;
@@ -432,17 +244,7 @@ const ContactSection = () => {
 
   return (
     <section className="contact-section">
-      {/* Background stars */}
       <canvas ref={canvasRef} className="webgl" />
-
-      {/* Fireworks overlay (hidden until submit) */}
-      <div className="contact-fireworks-overlay" onClick={() => stopFireworks(true)}>
-        <canvas ref={fireworksCanvasRef} className="contact-fireworks-canvas" />
-        <button type="button" className="contact-fireworks-close" aria-label="Close fireworks">
-          ×
-        </button>
-      </div>
-
       <div className="contact-content">
         <motion.div
           style={{ display: "inline-block" }}
@@ -510,12 +312,3 @@ const ContactSection = () => {
 };
 
 export default ContactSection;
-
-
-
-
-
-
-
-
-
