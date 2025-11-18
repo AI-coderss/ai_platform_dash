@@ -49,7 +49,7 @@ const jump = (id) => {
 const urls = {
   doctor: "https://ai-doctor-assistant-app-dev.onrender.com",
   transcript: "https://medicaltranscription-version2-tests.onrender.com",
-  analyst: "/videos/unddev.mp4",
+  analyst: "https://insight-sphere-329111fd.base44.app/home",
   report: "https://medical-report-editor-ai-powered-dsah.onrender.com",
   ivf: "https://ivf-virtual-training-assistant-dsah.onrender.com",
   patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
@@ -1078,10 +1078,10 @@ const App = () => {
       agentKey: "transcription",
     },
     {
-      id: 3, name: "📊 AI-Powered Data Analyst",
+      id: 3, name: "📊 DataMind AI",
       description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
-      link: "/videos/unddev.mp4",
+      link: "https://insight-sphere-329111fd.base44.app/home",
       helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
       agentKey: "analyst",
     },
