@@ -1,27 +1,52 @@
 /* src/styles/Dashboard.css */
 
+/* Theme tokens for light & dark */
+:root {
+  --dash-bg: #ffffff;
+  --dash-border: rgba(148, 163, 184, 0.6);
+  --dash-text-main: #0f172a;
+  --dash-text-muted: #6b7280;
+  --dash-card-bg: #f9fafb;
+  --dash-kpi-bg: #f3f4f6;
+}
+
+:root[data-theme="dark"] {
+  --dash-bg: #020617;              /* almost black */
+  --dash-border: rgba(30, 64, 175, 0.8);
+  --dash-text-main: #e5e7eb;
+  --dash-text-muted: #9ca3af;
+  --dash-card-bg: #020617;
+  --dash-kpi-bg: #020617;
+}
+
+/* Fullscreen overlay for centering + drag bounds */
+.dashboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Wide, Power BI–like shell */
 .dashboard-shell {
-  width: min(1220px, 96vw);
+  width: min(1280px, 96vw);
   height: min(720px, 86vh);
   padding: 18px 22px 20px;
-  box-sizing: border-box;
-  border-radius: 24px;
+  border-radius: 22px;
+
+  background: var(--dash-bg);
+  border: 1px solid var(--dash-border);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.7);
 
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Frosted glass, reduced glassmorphism (charts clear) */
-.dashboard-frosted {
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  background: rgba(15, 23, 42, 0.88); /* dark slate */
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
-  color: #f9fafb;
-}
-
-/* Header */
+/* Header & tabs */
 .dashboard-header {
   display: flex;
   align-items: flex-start;
@@ -33,38 +58,39 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-text-main);
 }
 
 .dashboard-subtitle {
   margin: 4px 0 0;
-  font-size: 0.82rem;
-  color: #9ca3af;
+  font-size: 0.8rem;
+  color: var(--dash-text-muted);
 }
 
 .dashboard-close-btn {
-  background: rgba(15, 23, 42, 0.8);
+  background: transparent;
   border-radius: 999px;
-  color: #e5e7eb;
-  border: 1px solid rgba(148, 163, 184, 0.9);
+  color: var(--dash-text-main);
+  border: 1px solid var(--dash-border);
   padding: 4px 10px;
   cursor: pointer;
   font-size: 0.9rem;
   line-height: 1;
   align-self: flex-start;
-  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, transform 0.12s ease,
+    box-shadow 0.15s ease;
 }
 
 .dashboard-close-btn:hover {
-  background: rgba(30, 64, 175, 0.9);
+  background: rgba(148, 163, 184, 0.12);
   transform: translateY(-1px);
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.75);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.7);
 }
 
-/* Tabs */
 .dashboard-tabs {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
   gap: 10px;
 }
@@ -72,91 +98,111 @@
 .dashboard-tabs button {
   padding: 6px 18px;
   border-radius: 999px;
-  border: 0;
+  border: 1px solid var(--dash-border);
   cursor: pointer;
-  font-size: 0.85rem;
-  letter-spacing: 0.03em;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  background: rgba(15, 23, 42, 0.9);
-  color: #e5e7eb;
-  border: 1px solid rgba(55, 65, 81, 0.9);
-  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease,
-    box-shadow 0.15s ease;
+  letter-spacing: 0.08em;
+  background: transparent;
+  color: var(--dash-text-muted);
+  transition: background 0.15s ease, color 0.15s ease,
+    transform 0.12s ease, box-shadow 0.15s ease;
 }
 
 .dashboard-tabs button.active,
 .dashboard-tabs button:hover {
-  background: linear-gradient(135deg, #0ea5e9, #f97316);
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
   color: #f9fafb;
-  box-shadow: 0 10px 25px rgba(8, 47, 73, 0.9);
+  border-color: transparent;
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.55);
   transform: translateY(-1px);
 }
 
-/* Main grid: KPIs + charts like a slide dashboard */
-.dashboard-main-grid {
+/* KPI marquee row */
+.dashboard-kpi-marquee {
   margin-top: 14px;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  row-gap: 12px;
-  height: calc(100% - 14px);
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--dash-kpi-bg);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 8px 4px;
 }
 
-/* KPI row */
-.dashboard-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.dashboard-kpi-track {
+  display: flex;
   gap: 10px;
+  animation: kpi-marquee 25s linear infinite;
+  will-change: transform;
+}
+
+@keyframes kpi-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .kpi-card {
-  background: rgba(15, 23, 42, 0.98);
-  border-radius: 14px;
-  padding: 10px 12px;
+  min-width: 220px;
+  max-width: 260px;
+  background: var(--dash-card-bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
   border: 1px solid rgba(148, 163, 184, 0.6);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.6);
+  flex-shrink: 0;
+
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .kpi-label {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #9ca3af;
+  letter-spacing: 0.08em;
+  color: var(--dash-text-muted);
 }
 
 .kpi-value {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  color: #f9fafb;
+  color: var(--dash-text-main);
 }
 
 .kpi-sub {
-  font-size: 0.72rem;
-  color: #6b7280;
+  font-size: 0.7rem;
+  color: var(--dash-text-muted);
 }
 
-/* Charts grid */
+/* Charts grid: 3 charts (Pie, Line, Column) */
 .dashboard-charts-grid {
+  margin-top: 14px;
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   min-height: 0;
 }
 
 .dashboard-chart-card {
-  background: rgba(15, 23, 42, 0.96);
+  background: var(--dash-card-bg);
   border-radius: 16px;
-  padding: 10px 12px;
-  border: 1px solid rgba(51, 65, 85, 0.9);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.25);
+  padding: 8px 8px 4px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  height: 100%;
+  min-height: 230px;
+  max-height: 320px;
+  overflow: hidden;
 }
 
+/* Stabilize Highcharts inside cards (no crazy expansion) */
 .dashboard-chart-card .highcharts-container,
 .dashboard-chart-card .highcharts-root {
   width: 100% !important;
@@ -168,21 +214,25 @@
     sans-serif !important;
 }
 
-/* Responsive tweaks */
-@media (max-width: 1100px) {
-  .dashboard-kpi-row {
+/* Responsive behaviour */
+@media (max-width: 1200px) {
+  .dashboard-charts-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-shell {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
   }
 
   .dashboard-charts-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-}
 
-@media (max-width: 800px) {
-  .dashboard-shell {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
+  .dashboard-kpi-track {
+    animation-duration: 18s;
   }
 }
