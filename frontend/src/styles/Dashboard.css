@@ -1,37 +1,25 @@
 /* src/styles/Dashboard.css */
 
 /* Theme tokens for light & dark (glassmorphic tints) */
-/* =====================================================================================
-   Cortex AI Dashboard — FULL & FINAL CSS (Updated)
-   - Stable chart expansion (no infinite scaling)
-   - Glassmorphic modal (no black background)
-   - Original dimensions preserved 100%
-===================================================================================== */
-
-/* Theme Tokens */
 :root {
-  --dash-bg: #ffffff;
-  --dash-border: rgba(148, 163, 184, 0.6);
+  --dash-bg: rgba(255, 255, 255, 0.18);
+  --dash-border: rgba(148, 163, 184, 0.65);
   --dash-text-main: #0f172a;
   --dash-text-muted: #6b7280;
-  --dash-card-bg: rgba(249, 250, 251, 0.8);
-  --dash-kpi-bg: rgba(243, 244, 246, 0.75);
-  --dash-glass-highlight: rgba(255, 255, 255, 0.9);
+  --dash-card-bg: rgba(255, 255, 255, 0.16);
+  --dash-kpi-bg: rgba(255, 255, 255, 0.12);
 }
 
 :root[data-theme="dark"] {
-  --dash-bg: #020617;
-  --dash-border: rgba(30, 64, 175, 0.9);
+  --dash-bg: rgba(15, 23, 42, 0.82);      /* deep slate with transparency */
+  --dash-border: rgba(59, 130, 246, 0.7); /* blue accent border */
   --dash-text-main: #e5e7eb;
   --dash-text-muted: #9ca3af;
-  --dash-card-bg: rgba(2, 6, 23, 0.85);
-  --dash-kpi-bg: rgba(15, 23, 42, 0.85);
-  --dash-glass-highlight: rgba(15, 23, 42, 0.98);
+  --dash-card-bg: rgba(15, 23, 42, 0.78);
+  --dash-kpi-bg: rgba(15, 23, 42, 0.72);
 }
 
-/* ===================================================================
-   OVERLAY SHELL
-=================================================================== */
+/* Fullscreen overlay for centering + drag bounds */
 .dashboard-overlay {
   position: fixed;
   inset: 0;
@@ -39,29 +27,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto;
 }
 
-/* POWER BI–LIKE GLASS SHELL */
+/* Wide, Power BI–like shell (glassmorphic) */
 .dashboard-shell {
   width: min(1280px, 96vw);
   height: min(720px, 86vh);
   padding: 18px 22px 20px;
   border-radius: 22px;
 
-  background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.22), transparent),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.18), transparent),
-    var(--dash-glass-highlight);
-  background-blend-mode: overlay;
+  background: var(--dash-bg);
+  border: 1px solid var(--dash-border);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.75);
 
-  border: 1px solid rgba(148, 163, 184, 0.7);
-  box-shadow:
-    0 26px 70px rgba(15, 23, 42, 0.75),
-    0 0 0 1px rgba(255, 255, 255, 0.15);
-
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 
   display: flex;
   flex-direction: column;
@@ -69,331 +49,243 @@
   overflow: hidden;
 }
 
-/* ===================================================================
-   HEADER
-=================================================================== */
+/* Header & tabs */
 .dashboard-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  gap: 16px;
 }
 
 .dashboard-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--dash-text-main);
 }
 
 .dashboard-subtitle {
-  margin: 0;
-  margin-top: 2px;
-  font-size: 0.85rem;
+  margin: 4px 0 0;
+  font-size: 0.8rem;
   color: var(--dash-text-muted);
 }
 
 .dashboard-close-btn {
-  background: transparent;
-  border: 1px solid var(--dash-border);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.9rem;
-  cursor: pointer;
   color: var(--dash-text-main);
-  transition: background 0.15s ease, transform 0.12s ease;
+  border: 1px solid var(--dash-border);
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  align-self: flex-start;
+  transition: background 0.15s ease, transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+
+:root[data-theme="dark"] .dashboard-close-btn {
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--dash-text-main);
 }
 
 .dashboard-close-btn:hover {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.18);
   transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.7);
 }
 
-/* ===================================================================
-   TABS
-=================================================================== */
 .dashboard-tabs {
+  margin-top: 12px;
   display: flex;
   gap: 10px;
-  margin-bottom: 14px;
 }
 
 .dashboard-tabs button {
-  padding: 6px 14px;
-  border-radius: 10px;
+  padding: 6px 18px;
+  border-radius: 999px;
   border: 1px solid var(--dash-border);
-  background: var(--dash-card-bg);
-  color: var(--dash-text-main);
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.2s ease;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--dash-text-muted);
+  transition: background 0.15s ease, color 0.15s ease,
+    transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.dashboard-tabs button.active {
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.35),
-    rgba(14, 165, 233, 0.35)
-  );
-  color: var(--dash-text-main);
-  border-color: rgba(59, 130, 246, 0.65);
+:root[data-theme="dark"] .dashboard-tabs button {
+  background: rgba(15, 23, 42, 0.75);
 }
 
-/* ===================================================================
-   KPI MARQUEE (SCROLLING TOP STRIP)
-=================================================================== */
+.dashboard-tabs button.active,
+.dashboard-tabs button:hover {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  color: #f9fafb;
+  border-color: transparent;
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.55);
+  transform: translateY(-1px);
+}
+
+/* KPI marquee row (glass strip with hover-pause) */
 .dashboard-kpi-marquee {
+  margin-top: 14px;
+  position: relative;
   overflow: hidden;
-  white-space: nowrap;
-  width: 100%;
-  margin-bottom: 18px;
+  border-radius: 16px;
+  background: var(--dash-kpi-bg);
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  padding: 8px 4px;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
 }
 
+/* Scrolling track */
 .dashboard-kpi-track {
-  display: inline-flex;
-  gap: 22px;
-  animation: marqueeScroll 38s linear infinite;
+  display: flex;
+  gap: 10px;
+  animation: kpi-marquee 25s linear infinite;
+  will-change: transform;
+  animation-play-state: running;
 }
 
-@keyframes marqueeScroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+/* Pause marquee on hover */
+.dashboard-kpi-marquee:hover .dashboard-kpi-track {
+  animation-play-state: paused;
 }
 
-/* KPI CARD */
+@keyframes kpi-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 .kpi-card {
+  min-width: 220px;
+  max-width: 260px;
+  background: var(--dash-card-bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(248, 250, 252, 0.45);
+  flex-shrink: 0;
+
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+
   display: flex;
   flex-direction: column;
-  min-width: 220px;
-  padding: 10px 14px;
-  border-radius: 16px;
+  gap: 3px;
+}
 
-  background: var(--dash-kpi-bg);
-  border: 1px solid var(--dash-border);
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
-
-  white-space: normal;
+:root[data-theme="dark"] .kpi-card {
+  border-color: rgba(148, 163, 184, 0.55);
 }
 
 .kpi-label {
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--dash-text-muted);
 }
 
 .kpi-value {
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.05rem;
+  font-weight: 600;
   color: var(--dash-text-main);
 }
 
 .kpi-sub {
-  font-size: 0.75rem;
-  color: var(--dash-text-muted);
-  margin-bottom: 4px;
-}
-
-.kpi-target {
-  font-size: 0.73rem;
-  opacity: 0.8;
+  font-size: 0.7rem;
   color: var(--dash-text-muted);
 }
 
-.kpi-status.good {
-  color: #0d9488;
-  font-size: 0.75rem;
-}
-
-.kpi-status.bad {
-  color: #dc2626;
-  font-size: 0.75rem;
-}
-
-.kpi-status.unknown {
-  color: #9ca3af;
-  font-size: 0.75rem;
-}
-
-/* ===================================================================
-   USAGE RANGE SWITCHER
-=================================================================== */
+/* Usage time-range switcher */
 .dashboard-range-switcher {
+  margin-top: 10px;
   display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .dashboard-range-switcher button {
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--dash-border);
-  background: var(--dash-card-bg);
-  color: var(--dash-text-main);
-  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--dash-text-muted);
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease,
+    box-shadow 0.15s ease, border-color 0.15s ease;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
 }
 
-.dashboard-range-switcher button.active {
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.35),
-    rgba(14, 165, 233, 0.35)
-  );
-  border-color: rgba(59, 130, 246, 0.7);
+:root[data-theme="dark"] .dashboard-range-switcher button {
+  background: rgba(15, 23, 42, 0.8);
 }
 
-/* ===================================================================
-   CHART GRID
-=================================================================== */
+.dashboard-range-switcher button.active,
+.dashboard-range-switcher button:hover {
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  color: #f9fafb;
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Charts grid: 3 charts (Pie, Line, Column or Area, Column, Pie) */
 .dashboard-charts-grid {
+  margin-top: 14px;
   flex: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  overflow-y: auto;
-  padding-right: 4px;
+  gap: 12px;
+  min-height: 0;
 }
 
-/* CHART CARD */
 .dashboard-chart-card {
   background: var(--dash-card-bg);
   border-radius: 16px;
-  border: 1px solid var(--dash-border);
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.25);
-  padding: 8px;
+  border: 1px solid rgba(248, 250, 252, 0.5);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.35);
+  padding: 8px 8px 4px;
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 230px;
-  max-height: 320px;
+  min-height: 250px;
+  max-height: 360px;
   overflow: hidden;
-  cursor: zoom-in;
-  position: relative;
+
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
 }
 
-/* Expand hint */
-.dashboard-chart-card::after {
-  content: "Click to expand";
-  position: absolute;
-  right: 10px;
-  top: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  color: var(--dash-text-muted);
-  background: rgba(15, 23, 42, 0.05);
-  border: 1px solid var(--dash-border);
-  opacity: 0;
-  transition: 0.18s ease;
+:root[data-theme="dark"] .dashboard-chart-card {
+  border-color: rgba(148, 163, 184, 0.55);
 }
 
-.dashboard-chart-card:hover::after {
-  opacity: 1;
-}
-
-/* Stabilize Highcharts inside cards */
+/* Stabilize Highcharts inside cards (no crazy expansion) */
 .dashboard-chart-card .highcharts-container,
 .dashboard-chart-card .highcharts-root {
   width: 100% !important;
   height: 100% !important;
 }
 
-/* ===================================================================
-   EXPANDED CHART MODAL
-=================================================================== */
-
-/* Glassmorphic backdrop (NO MORE BLACK) */
-.dashboard-chart-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dashboard-chart-card .highcharts-root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif !important;
 }
 
-/* Modal shell */
-.dashboard-chart-modal {
-  width: min(1000px, 92vw);
-  height: min(620px, 82vh);
-  border-radius: 20px;
-
-  background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.28), transparent),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.22), transparent),
-    var(--dash-glass-highlight);
-  background-blend-mode: overlay;
-
-  border: 1px solid rgba(148, 163, 184, 0.8);
-  box-shadow:
-    0 30px 80px rgba(15, 23, 42, 0.9),
-    0 0 0 1px rgba(148, 163, 184, 0.55);
-
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Modal header */
-.dashboard-chart-modal-header {
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--dash-text-main);
-  border-bottom: 1px solid var(--dash-border);
-  font-size: 0.95rem;
-}
-
-.dashboard-chart-modal-close {
-  background: transparent;
-  border: 1px solid var(--dash-border);
-  border-radius: 999px;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: var(--dash-text-main);
-  transition: background 0.15s ease, transform 0.12s ease;
-}
-
-.dashboard-chart-modal-close:hover {
-  background: rgba(148, 163, 184, 0.25);
-  transform: translateY(-1px);
-}
-
-/* Modal body */
-.dashboard-chart-modal-body {
-  flex: 1;
-  padding: 10px 12px;
-  display: flex;
-}
-
-.dashboard-chart-modal-inner {
-  flex: 1;
-  border-radius: 16px;
-  background: var(--dash-card-bg);
-  border: 1px solid var(--dash-border);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Stabilizes expanded chart */
-.dashboard-chart-modal-highcharts,
-.dashboard-chart-modal-body .highcharts-container,
-.dashboard-chart-modal-body .highcharts-root {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* ===================================================================
-   RESPONSIVE
-=================================================================== */
+/* Responsive behaviour */
 @media (max-width: 1200px) {
   .dashboard-charts-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -411,9 +303,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .dashboard-chart-modal {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
+  .dashboard-kpi-track {
+    animation-duration: 18s;
   }
 }
+
