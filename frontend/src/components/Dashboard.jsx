@@ -2,6 +2,7 @@
 // src/components/Dashboard.jsx
 // src/components/Dashboard.jsx
 // src/components/Dashboard.jsx
+// src/components/Dashboard.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Highcharts from "highcharts";
@@ -10,8 +11,7 @@ import "../styles/Dashboard.css";
 
 /* =====================================================================================
    Real Web Vitals hook using the official `web-vitals` library.
-   This collects live metrics from the user's browser session.
-   Later, you can POST each metric to your backend for aggregation if you want.
+   This collects live metrics in the browser.
 ===================================================================================== */
 const useWebVitals = () => {
   const [metrics, setMetrics] = useState([]);
@@ -19,18 +19,15 @@ const useWebVitals = () => {
   useEffect(() => {
     let cancelled = false;
 
-    // Guard for SSR (if you ever server-render)
     if (typeof window === "undefined") return;
 
     import("web-vitals")
       .then(({ getCLS, getFID, getLCP, getFCP, getTTFB }) => {
         const handler = (metric) => {
           if (cancelled) return;
-          // metric: { name, value, rating, delta, id, ... }
           setMetrics((prev) => [...prev, metric]);
         };
 
-        // These are all real browser performance metrics
         getCLS(handler);
         getFID(handler);
         getLCP(handler);
@@ -50,7 +47,7 @@ const useWebVitals = () => {
 };
 
 /* =====================================================================================
-   Time ranges for Usage tab (Usage stays mock for now – you’ll replace later with API).
+   Usage ranges (still mock data for now – only visualization changes later)
 ===================================================================================== */
 const USAGE_RANGES = [
   { key: "7d", label: "Last 7 days", days: 7 },
@@ -63,17 +60,21 @@ const USAGE_RANGES = [
 const Dashboard = () => {
   const [visible, setVisible] = useState(false);
   const [tab, setTab] = useState("webvitals"); // "webvitals" | "usage"
-
-  // Usage stays mock for now (time-series you will later replace with real analytics)
   const [usageData, setUsageData] = useState([]);
   const [usageRange, setUsageRange] = useState("7d");
 
-  // 🔴 REAL Web Vitals data
+  // Real web vitals
   const metrics = useWebVitals();
 
-  // === Centered overlay & drag constraints (Framer Motion) ===
+  // For Framer Motion draggable bounds
   const overlayRef = useRef(null);
 
+  // For chart expansion modal
+  const [expandedChart, setExpandedChart] = useState(null);
+
+  /* -----------------------------------------------------------------------------
+     Listen to global event from Voice Assistant: window.dispatchEvent("dashboard:toggle")
+  ----------------------------------------------------------------------------- */
   useEffect(() => {
     const toggleHandler = () => setVisible((prev) => !prev);
     window.addEventListener("dashboard:toggle", toggleHandler);
@@ -81,17 +82,16 @@ const Dashboard = () => {
   }, []);
 
   /* -----------------------------------------------------------------------------
-     Mock usage data (only for platform usage charts)
-     You will later swap this out and feed usageData from your backend.
+     Mock usage data generator (will be replaced by real API later)
   ----------------------------------------------------------------------------- */
   useEffect(() => {
     const today = new Date();
-    const days = 730; // ~2 years of daily points
+    const days = 730; // ~2 years
     const series = [];
 
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today.getTime() - i * 86400000);
-      const age = days - 1 - i; // 0 = oldest
+      const age = days - 1 - i;
 
       const base = 120;
       const trendFactor = 0.8 + (age / (days - 1)) * 0.7; // 0.8 → 1.5
@@ -111,8 +111,7 @@ const Dashboard = () => {
   }, []);
 
   /* -----------------------------------------------------------------------------
-     Aggregate Web Vitals metrics (REAL values from web-vitals).
-     We group by metric.name (LCP, FID, CLS, FCP, TTFB) and calc average.
+     Aggregate Web Vitals metrics (real values from web-vitals)
   ----------------------------------------------------------------------------- */
   const aggregatedVitals = useMemo(() => {
     if (!metrics.length) return [];
@@ -139,7 +138,7 @@ const Dashboard = () => {
     aggregatedVitals.find((m) => m.name === name)?.value ?? null;
 
   /* -----------------------------------------------------------------------------
-     Usage window + KPIs (still mock, based on usageData)
+     Usage window & KPIs (still mock, based on usageData)
   ----------------------------------------------------------------------------- */
   const usageWindow = useMemo(() => {
     if (!usageData.length) return [];
@@ -178,46 +177,123 @@ const Dashboard = () => {
   }, [usageWindow]);
 
   /* -----------------------------------------------------------------------------
-     KPI cards: Web Vitals (from real metrics) vs Usage (mock).
+     KPI cards with targets and warning system (especially for Web Vitals).
+     Logic: for "lower is better" metrics:
+       - actual <= target  → good (on target)
+       - actual > target   → bad (needs attention)
   ----------------------------------------------------------------------------- */
-  const webVitalsKpis = useMemo(() => {
-    const lcp = getVital("LCP");
-    const fid = getVital("FID");
-    const cls = getVital("CLS");
-    const fcp = getVital("FCP");
-    const ttfb = getVital("TTFB");
+  const makeVitalKpi = (cfg, actual) => {
+    let valueText = "--";
+    if (actual != null) {
+      valueText =
+        cfg.unit === "ms" ? `${actual.toFixed(0)} ms` : actual.toFixed(3);
+    }
 
-    return [
-      {
-        label: "Largest Contentful Paint",
-        value: lcp != null ? `${lcp.toFixed(0)} ms` : "--",
-        sub: "Target < 2500 ms",
-      },
-      {
-        label: "First Input Delay",
-        value: fid != null ? `${fid.toFixed(0)} ms` : "--",
-        sub: "Target < 100 ms",
-      },
-      {
-        label: "Cumulative Layout Shift",
-        value: cls != null ? cls.toFixed(3) : "--",
-        sub: "Target < 0.10",
-      },
-      {
-        label: "First Contentful Paint",
-        value: fcp != null ? `${fcp.toFixed(0)} ms` : "--",
-        sub: "Perceived load speed",
-      },
-      {
-        label: "Time to First Byte",
-        value: ttfb != null ? `${ttfb.toFixed(0)} ms` : "--",
-        sub: "Server responsiveness",
-      },
-    ];
-  }, [aggregatedVitals]);
+    const targetText =
+      cfg.unit === "ms"
+        ? `Target < ${cfg.target} ms`
+        : `Target < ${cfg.target}`;
 
-  const usageKpiItems = useMemo(() => {
-    return [
+    let statusLabel = "No data yet";
+    let statusLevel = "unknown";
+
+    if (actual != null) {
+      if (cfg.direction === "lower") {
+        if (actual <= cfg.target) {
+          // target is low, actual below/at target → positive
+          statusLabel = "On target (good)";
+          statusLevel = "good";
+        } else {
+          // actual above low target → negative
+          statusLabel = "Above target (needs attention)";
+          statusLevel = "bad";
+        }
+      } else {
+        // For completeness (higher-is-better), not used for vitals now
+        if (actual >= cfg.target) {
+          statusLabel = "On target (good)";
+          statusLevel = "good";
+        } else {
+          statusLabel = "Below target (needs attention)";
+          statusLevel = "bad";
+        }
+      }
+    }
+
+    return {
+      label: cfg.label,
+      value: valueText,
+      sub: cfg.sub,
+      targetText,
+      statusLabel,
+      statusLevel,
+    };
+  };
+
+  const lcp = getVital("LCP");
+  const fid = getVital("FID");
+  const cls = getVital("CLS");
+  const fcp = getVital("FCP");
+  const ttfb = getVital("TTFB");
+
+  const webVitalsKpis = useMemo(
+    () => [
+      makeVitalKpi(
+        {
+          label: "Largest Contentful Paint",
+          target: 2500,
+          unit: "ms",
+          direction: "lower",
+          sub: "Desirable < 2500 ms",
+        },
+        lcp
+      ),
+      makeVitalKpi(
+        {
+          label: "First Input Delay",
+          target: 100,
+          unit: "ms",
+          direction: "lower",
+          sub: "Desirable < 100 ms",
+        },
+        fid
+      ),
+      makeVitalKpi(
+        {
+          label: "Cumulative Layout Shift",
+          target: 0.10,
+          unit: "ratio",
+          direction: "lower",
+          sub: "Desirable < 0.10",
+        },
+        cls
+      ),
+      makeVitalKpi(
+        {
+          label: "First Contentful Paint",
+          target: 1800,
+          unit: "ms",
+          direction: "lower",
+          sub: "Perceived load speed",
+        },
+        fcp
+      ),
+      makeVitalKpi(
+        {
+          label: "Time to First Byte",
+          target: 800,
+          unit: "ms",
+          direction: "lower",
+          sub: "Server responsiveness",
+        },
+        ttfb
+      ),
+    ],
+    [lcp, fid, cls, fcp, ttfb]
+  );
+
+  const usageKpiItems = useMemo(
+    () => [
       {
         label: `Total Visits (${usageRangeLabel})`,
         value: usageKpis.total.toString(),
@@ -250,13 +326,14 @@ const Dashboard = () => {
           : "0",
         sub: "Lowest in range",
       },
-    ];
-  }, [usageKpis, usageWindow, usageRangeLabel]);
+    ],
+    [usageKpis, usageWindow, usageRangeLabel]
+  );
 
   const activeKpis = tab === "webvitals" ? webVitalsKpis : usageKpiItems;
 
   /* -----------------------------------------------------------------------------
-     Web Vitals chart configs – ALL fed from REAL metrics.
+     Chart configs – Web Vitals (real) + Usage (mock)
   ----------------------------------------------------------------------------- */
   const vitalNames = ["LCP", "FID", "FCP", "TTFB"];
   const vitalValues = vitalNames.map((name) => getVital(name) || 0);
@@ -267,10 +344,7 @@ const Dashboard = () => {
       backgroundColor: "transparent",
       animation: true,
     },
-    title: {
-      text: "Web Vitals Composition",
-      style: { color: "var(--dash-text-main)" },
-    },
+    title: { text: "Web Vitals Composition" },
     series: [
       {
         name: "Value",
@@ -294,25 +368,15 @@ const Dashboard = () => {
       backgroundColor: "transparent",
       animation: true,
     },
-    title: {
-      text: "Stability & Interactivity Snapshot",
-      style: { color: "var(--dash-text-main)" },
-    },
+    title: { text: "Stability & Interactivity Snapshot" },
     xAxis: {
       categories: vitalNames,
-      labels: { style: { color: "var(--dash-text-muted)" } },
     },
     yAxis: {
-      title: { text: "Value", style: { color: "var(--dash-text-muted)" } },
-      labels: { style: { color: "var(--dash-text-muted)" } },
+      title: { text: "Value" },
       gridLineColor: "rgba(148,163,184,0.28)",
     },
-    series: [
-      {
-        name: "Metric",
-        data: vitalValues,
-      },
-    ],
+    series: [{ name: "Metric", data: vitalValues }],
     legend: { enabled: false },
     credits: { enabled: false },
     tooltip: { valueDecimals: 2 },
@@ -330,36 +394,22 @@ const Dashboard = () => {
       backgroundColor: "transparent",
       animation: true,
     },
-    title: {
-      text: "Core Web Vitals (Real-Time)",
-      style: { color: "var(--dash-text-main)" },
-    },
+    title: { text: "Core Web Vitals (Real-Time)" },
     xAxis: {
       categories: vitalNames,
-      labels: { style: { color: "var(--dash-text-muted)" } },
     },
     yAxis: {
-      title: { text: "Value", style: { color: "var(--dash-text-muted)" } },
-      labels: { style: { color: "var(--dash-text-muted)" } },
+      title: { text: "Value" },
       gridLineColor: "rgba(148,163,184,0.28)",
     },
-    series: [
-      {
-        name: "Metric",
-        data: vitalValues,
-      },
-    ],
+    series: [{ name: "Metric", data: vitalValues }],
     plotOptions: {
       series: {
         animation: { duration: 800 },
         borderRadius: 3,
         dataLabels: {
           enabled: true,
-          style: {
-            color: "var(--dash-text-main)",
-            textOutline: "none",
-            fontSize: "10px",
-          },
+          style: { textOutline: "none", fontSize: "10px" },
         },
       },
     },
@@ -368,9 +418,7 @@ const Dashboard = () => {
     tooltip: { valueDecimals: 2 },
   };
 
-  /* -----------------------------------------------------------------------------
-     Usage charts (still mock – you’ll plug real analytics later).
-  ----------------------------------------------------------------------------- */
+  // Usage charts (still mock)
   const usageCategories = usageWindow.map((d) => d.day);
   const usageDailyValues = usageWindow.map((d) => d.visits);
   let runningTotal = 0;
@@ -389,23 +437,13 @@ const Dashboard = () => {
       spacingBottom: 5,
       spacingLeft: 5,
     },
-    title: {
-      text: `Usage Timeline (${usageRangeLabel})`,
-      style: { color: "var(--dash-text-main)" },
-    },
+    title: { text: `Usage Timeline (${usageRangeLabel})` },
     xAxis: {
       categories: usageCategories,
       tickInterval: Math.max(1, Math.floor(usageCategories.length / 8)),
-      labels: {
-        style: { color: "var(--dash-text-muted)", fontSize: "10px" },
-      },
     },
     yAxis: {
-      title: {
-        text: "Daily Visits",
-        style: { color: "var(--dash-text-muted)" },
-      },
-      labels: { style: { color: "var(--dash-text-muted)" } },
+      title: { text: "Daily Visits" },
       gridLineColor: "rgba(148,163,184,0.28)",
     },
     tooltip: {
@@ -420,9 +458,7 @@ const Dashboard = () => {
     plotOptions: {
       area: {
         fillOpacity: 0.35,
-        marker: {
-          radius: 3,
-        },
+        marker: { radius: 3 },
         lineWidth: 2,
       },
       series: {
@@ -430,16 +466,8 @@ const Dashboard = () => {
       },
     },
     series: [
-      {
-        type: "area",
-        name: "Daily Visits",
-        data: usageDailyValues,
-      },
-      {
-        type: "line",
-        name: "Cumulative Visits",
-        data: usageCumulativeValues,
-      },
+      { type: "area", name: "Daily Visits", data: usageDailyValues },
+      { type: "line", name: "Cumulative Visits", data: usageCumulativeValues },
     ],
   };
 
@@ -449,40 +477,24 @@ const Dashboard = () => {
       backgroundColor: "transparent",
       animation: true,
     },
-    title: {
-      text: "Visits Distribution",
-      style: { color: "var(--dash-text-main)" },
-    },
+    title: { text: "Visits Distribution" },
     xAxis: {
       categories: usageCategories,
       tickInterval: Math.max(1, Math.floor(usageCategories.length / 12)),
-      labels: {
-        style: { color: "var(--dash-text-muted)", fontSize: "10px" },
-        rotation: -30,
-      },
+      labels: { rotation: -30 },
     },
     yAxis: {
-      title: { text: "Visits", style: { color: "var(--dash-text-muted)" } },
-      labels: { style: { color: "var(--dash-text-muted)" } },
+      title: { text: "Visits" },
       gridLineColor: "rgba(148,163,184,0.28)",
     },
-    series: [
-      {
-        name: "Visits",
-        data: usageDailyValues,
-      },
-    ],
+    series: [{ name: "Visits", data: usageDailyValues }],
     plotOptions: {
       series: {
         animation: { duration: 800 },
         borderRadius: 3,
         dataLabels: {
           enabled: usageCategories.length <= 14,
-          style: {
-            color: "var(--dash-text-main)",
-            textOutline: "none",
-            fontSize: "9px",
-          },
+          style: { textOutline: "none", fontSize: "9px" },
         },
       },
     },
@@ -497,10 +509,7 @@ const Dashboard = () => {
       backgroundColor: "transparent",
       animation: true,
     },
-    title: {
-      text: "App Usage Split (Mock)",
-      style: { color: "var(--dash-text-main)" },
-    },
+    title: { text: "App Usage Split (Mock)" },
     series: [
       {
         name: "Visits",
@@ -514,12 +523,22 @@ const Dashboard = () => {
         ],
       },
     ],
-    tooltip: {
-      pointFormat: "<b>{point.percentage:.1f}%</b>",
-    },
+    tooltip: { pointFormat: "<b>{point.percentage:.1f}%</b>" },
     legend: { enabled: true },
     credits: { enabled: false },
   };
+
+  /* -----------------------------------------------------------------------------
+     Handlers for chart expansion (click any chart → full view popout)
+  ----------------------------------------------------------------------------- */
+  const handleExpandChart = (title, options) => {
+    setExpandedChart({
+      title: title || options?.title?.text || "Chart",
+      options,
+    });
+  };
+
+  const closeExpandedChart = () => setExpandedChart(null);
 
   return (
     <AnimatePresence>
@@ -536,7 +555,7 @@ const Dashboard = () => {
             exit={{ opacity: 0, scale: 0.9, y: 40 }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
           >
-            {/* Header & Tabs */}
+            {/* Header & tabs */}
             <div className="dashboard-header">
               <div>
                 <h3>AI Platform Performance Dashboard</h3>
@@ -571,7 +590,7 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* KPI Marquee */}
+            {/* KPI marquee with targets + status */}
             <div className="dashboard-kpi-marquee">
               <div className="dashboard-kpi-track">
                 {[...activeKpis, ...activeKpis].map((k, idx) => (
@@ -579,12 +598,25 @@ const Dashboard = () => {
                     <div className="kpi-label">{k.label}</div>
                     <div className="kpi-value">{k.value}</div>
                     <div className="kpi-sub">{k.sub}</div>
+
+                    {k.targetText && (
+                      <div className="kpi-target">{k.targetText}</div>
+                    )}
+                    {k.statusLabel && (
+                      <div
+                        className={`kpi-status ${
+                          k.statusLevel ? k.statusLevel : ""
+                        }`}
+                      >
+                        {k.statusLabel}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Usage time-range switcher (only on Usage tab) */}
+            {/* Range switcher – Usage tab */}
             {tab === "usage" && (
               <div className="dashboard-range-switcher">
                 {USAGE_RANGES.map((r) => (
@@ -600,23 +632,44 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Charts grid */}
+            {/* Charts grid (click to expand) */}
             <div className="dashboard-charts-grid">
               {tab === "webvitals" && (
                 <>
-                  <div className="dashboard-chart-card">
+                  <div
+                    className="dashboard-chart-card"
+                    onClick={() =>
+                      handleExpandChart("Web Vitals Composition", vitalsPie)
+                    }
+                  >
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={vitalsPie}
                     />
                   </div>
-                  <div className="dashboard-chart-card">
+                  <div
+                    className="dashboard-chart-card"
+                    onClick={() =>
+                      handleExpandChart(
+                        "Stability & Interactivity Snapshot",
+                        vitalsLine
+                      )
+                    }
+                  >
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={vitalsLine}
                     />
                   </div>
-                  <div className="dashboard-chart-card">
+                  <div
+                    className="dashboard-chart-card"
+                    onClick={() =>
+                      handleExpandChart(
+                        "Core Web Vitals (Real-Time)",
+                        vitalsColumn
+                      )
+                    }
+                  >
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={vitalsColumn}
@@ -627,19 +680,37 @@ const Dashboard = () => {
 
               {tab === "usage" && (
                 <>
-                  <div className="dashboard-chart-card">
+                  <div
+                    className="dashboard-chart-card"
+                    onClick={() =>
+                      handleExpandChart(
+                        `Usage Timeline (${usageRangeLabel})`,
+                        usageArea
+                      )
+                    }
+                  >
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={usageArea}
                     />
                   </div>
-                  <div className="dashboard-chart-card">
+                  <div
+                    className="dashboard-chart-card"
+                    onClick={() =>
+                      handleExpandChart("Visits Distribution", usageColumn)
+                    }
+                  >
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={usageColumn}
                     />
                   </div>
-                  <div className="dashboard-chart-card">
+                  <div
+                    className="dashboard-chart-card"
+                    onClick={() =>
+                      handleExpandChart("App Usage Split", usagePie)
+                    }
+                  >
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={usagePie}
@@ -649,6 +720,45 @@ const Dashboard = () => {
               )}
             </div>
           </motion.div>
+
+          {/* Chart expansion modal */}
+          <AnimatePresence>
+            {expandedChart && (
+              <motion.div
+                className="dashboard-chart-modal-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeExpandedChart}
+              >
+                <motion.div
+                  className="dashboard-chart-modal"
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="dashboard-chart-modal-header">
+                    <span>{expandedChart.title}</span>
+                    <button
+                      type="button"
+                      className="dashboard-chart-modal-close"
+                      onClick={closeExpandedChart}
+                    >
+                      ✖
+                    </button>
+                  </div>
+                  <div className="dashboard-chart-modal-body">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={expandedChart.options}
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>
