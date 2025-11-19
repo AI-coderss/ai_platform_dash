@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+// src/components/Dashboard.jsx
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "../styles/Dashboard.css";
 
-// 🔹 Web Vitals hook (can be swapped to an API later)
+// === Web Vitals hook (can be replaced with API later) ===
 const useWebVitals = () => {
   const [metrics, setMetrics] = useState([]);
 
@@ -17,7 +23,7 @@ const useWebVitals = () => {
           if (cancelled) return;
           setMetrics((prev) => [
             ...prev,
-            { name, value: Number(value).toFixed(2) },
+            { name, value: Number(value) },
           ]);
         };
 
@@ -41,11 +47,11 @@ const useWebVitals = () => {
 
 const Dashboard = () => {
   const [visible, setVisible] = useState(false);
-  const [tab, setTab] = useState("webvitals");
+  const [tab, setTab] = useState("webvitals"); // "webvitals" | "usage"
   const [usageData, setUsageData] = useState([]);
   const metrics = useWebVitals();
 
-  // 🔹 Framer Motion drag constraints (same pattern as VoiceAssistant)
+  // === Drag constraints (same pattern as VoiceAssistant) ===
   const dragConstraintsRef = useRef(null);
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
@@ -53,54 +59,114 @@ const Dashboard = () => {
     }
   }, []);
 
-  // 🔹 Listen to global event fired from VoiceAssistant tool call
+  // === Listen to global toggle event from VoiceAssistant ===
   useEffect(() => {
-    const toggleHandler = () => {
-      setVisible((prev) => !prev);
-    };
+    const toggleHandler = () => setVisible((prev) => !prev);
     window.addEventListener("dashboard:toggle", toggleHandler);
     return () => window.removeEventListener("dashboard:toggle", toggleHandler);
   }, []);
 
-  // 🔹 Mock usage data – to be replaced with real analytics API later
+  // === Mock usage data – replace with analytics API later ===
   useEffect(() => {
-    // TODO: Replace this with a real /api/usage or analytics backend call.
     const now = new Date();
     const dummy = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(now.getTime() - i * 86400000);
       return {
         day: d.toLocaleDateString(),
-        visits: Math.floor(Math.random() * 200) + 50,
+        visits: Math.floor(Math.random() * 350) + 80,
       };
     }).reverse();
     setUsageData(dummy);
   }, []);
 
-  // === Highcharts configs ===
-  const vitalsChart = {
+  // === Aggregate Web Vitals for KPI + charts ===
+  const aggregatedVitals = useMemo(() => {
+    if (!metrics.length) return [];
+    const map = new Map();
+    metrics.forEach(({ name, value }) => {
+      if (!map.has(name)) {
+        map.set(name, { name, total: 0, count: 0 });
+      }
+      const entry = map.get(name);
+      entry.total += value;
+      entry.count += 1;
+    });
+    return Array.from(map.values()).map((entry) => ({
+      name: entry.name,
+      value: entry.total / entry.count,
+    }));
+  }, [metrics]);
+
+  const getVital = (name) =>
+    aggregatedVitals.find((m) => m.name === name)?.value ?? null;
+
+  // === Usage KPIs ===
+  const usageKpis = useMemo(() => {
+    if (!usageData.length) {
+      return {
+        total: 0,
+        avg: 0,
+        peak: 0,
+        peakDay: "-",
+      };
+    }
+    const total = usageData.reduce((s, d) => s + d.visits, 0);
+    const avg = total / usageData.length;
+    let peak = 0;
+    let peakDay = "-";
+    usageData.forEach((d) => {
+      if (d.visits > peak) {
+        peak = d.visits;
+        peakDay = d.day;
+      }
+    });
+    return {
+      total,
+      avg,
+      peak,
+      peakDay,
+    };
+  }, [usageData]);
+
+  // === Highcharts configs (animated) ===
+
+  const vitalsChartColumns = {
     chart: {
-      type: "bar",
+      type: "column",
       backgroundColor: "transparent",
+      animation: true,
     },
     title: {
-      text: "Web Vitals (Core Performance Metrics)",
-      style: { color: "#ffffff" },
+      text: "Core Web Vitals Snapshot",
+      style: { color: "#e5e7eb" },
     },
     xAxis: {
-      categories: metrics.map((m) => m.name),
-      labels: { style: { color: "#ffffff" } },
+      categories: aggregatedVitals.map((m) => m.name),
+      labels: { style: { color: "#9ca3af" } },
     },
     yAxis: {
-      title: { text: "Value" },
-      labels: { style: { color: "#ffffff" } },
+      title: { text: "Value", style: { color: "#9ca3af" } },
+      labels: { style: { color: "#9ca3af" } },
+      gridLineColor: "rgba(148,163,184,0.25)",
     },
     series: [
       {
         name: "Metric Value",
-        data: metrics.map((m) => parseFloat(m.value)),
-        color: "#00b7ff",
+        data: aggregatedVitals.map((m) =>
+          m.name === "CLS" ? Number(m.value.toFixed(3)) : Number(m.value.toFixed(0))
+        ),
       },
     ],
+    plotOptions: {
+      series: {
+        animation: { duration: 800 },
+        borderRadius: 3,
+        dataLabels: {
+          enabled: true,
+          style: { color: "#e5e7eb", textOutline: "none", fontSize: "10px" },
+        },
+      },
+    },
     legend: { enabled: false },
     credits: { enabled: false },
     tooltip: {
@@ -109,30 +175,81 @@ const Dashboard = () => {
     },
   };
 
-  const usageChart = {
+  const vitalsChartLine = {
     chart: {
       type: "line",
       backgroundColor: "transparent",
+      animation: true,
     },
     title: {
-      text: "Platform Usage Statistics (Last 7 Days)",
-      style: { color: "#ffffff" },
+      text: "Stability vs. Interactivity",
+      style: { color: "#e5e7eb" },
     },
     xAxis: {
-      categories: usageData.map((d) => d.day),
-      labels: { style: { color: "#ffffff" } },
+      categories: ["CLS", "FID", "LCP", "TTFB"],
+      labels: { style: { color: "#9ca3af" } },
     },
     yAxis: {
-      title: { text: "Visits" },
-      labels: { style: { color: "#ffffff" } },
+      title: { text: "Relative Value", style: { color: "#9ca3af" } },
+      labels: { style: { color: "#9ca3af" } },
+      gridLineColor: "rgba(148,163,184,0.25)",
     },
     series: [
       {
-        name: "Daily Visits",
-        data: usageData.map((d) => d.visits),
-        color: "#ff6b00",
+        name: "Value",
+        data: [
+          getVital("CLS") ?? 0,
+          getVital("FID") ?? 0,
+          getVital("LCP") ?? 0,
+          getVital("TTFB") ?? 0,
+        ].map((v) => Number(v.toFixed ? v.toFixed(2) : v)),
       },
     ],
+    plotOptions: {
+      series: {
+        animation: { duration: 800 },
+        marker: { radius: 4 },
+      },
+    },
+    legend: { enabled: false },
+    credits: { enabled: false },
+    tooltip: {
+      shared: true,
+      valueDecimals: 2,
+    },
+  };
+
+  const usageChartLine = {
+    chart: {
+      type: "line",
+      backgroundColor: "transparent",
+      animation: true,
+    },
+    title: {
+      text: "Daily Visits (Last 7 Days)",
+      style: { color: "#e5e7eb" },
+    },
+    xAxis: {
+      categories: usageData.map((d) => d.day),
+      labels: { style: { color: "#9ca3af" } },
+    },
+    yAxis: {
+      title: { text: "Visits", style: { color: "#9ca3af" } },
+      labels: { style: { color: "#9ca3af" } },
+      gridLineColor: "rgba(148,163,184,0.25)",
+    },
+    series: [
+      {
+        name: "Visits",
+        data: usageData.map((d) => d.visits),
+      },
+    ],
+    plotOptions: {
+      series: {
+        animation: { duration: 800 },
+        marker: { radius: 4 },
+      },
+    },
     legend: { enabled: false },
     credits: { enabled: false },
     tooltip: {
@@ -140,31 +257,155 @@ const Dashboard = () => {
     },
   };
 
+  const usageChartColumn = {
+    chart: {
+      type: "column",
+      backgroundColor: "transparent",
+      animation: true,
+    },
+    title: {
+      text: "Visits Distribution",
+      style: { color: "#e5e7eb" },
+    },
+    xAxis: {
+      categories: usageData.map((d) => d.day),
+      labels: { style: { color: "#9ca3af" }, rotation: -30 },
+    },
+    yAxis: {
+      title: { text: "Visits", style: { color: "#9ca3af" } },
+      labels: { style: { color: "#9ca3af" } },
+      gridLineColor: "rgba(148,163,184,0.25)",
+    },
+    series: [
+      {
+        name: "Visits",
+        data: usageData.map((d) => d.visits),
+      },
+    ],
+    plotOptions: {
+      series: {
+        animation: { duration: 800 },
+        borderRadius: 3,
+        dataLabels: {
+          enabled: true,
+          style: { color: "#e5e7eb", textOutline: "none", fontSize: "10px" },
+        },
+      },
+    },
+    legend: { enabled: false },
+    credits: { enabled: false },
+    tooltip: {
+      shared: true,
+    },
+  };
+
+  // === KPI blocks for each tab ===
+  const renderWebVitalsKpis = () => {
+    const lcp = getVital("LCP");
+    const fid = getVital("FID");
+    const cls = getVital("CLS");
+    const ttfb = getVital("TTFB");
+
+    return (
+      <div className="dashboard-kpi-row">
+        <div className="kpi-card">
+          <div className="kpi-label">Largest Contentful Paint</div>
+          <div className="kpi-value">
+            {lcp != null ? `${lcp.toFixed(0)} ms` : "--"}
+          </div>
+          <div className="kpi-sub">Target &lt; 2500 ms</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">First Input Delay</div>
+          <div className="kpi-value">
+            {fid != null ? `${fid.toFixed(0)} ms` : "--"}
+          </div>
+          <div className="kpi-sub">Target &lt; 100 ms</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Cumulative Layout Shift</div>
+          <div className="kpi-value">
+            {cls != null ? cls.toFixed(3) : "--"}
+          </div>
+          <div className="kpi-sub">Target &lt; 0.10</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Time to First Byte</div>
+          <div className="kpi-value">
+            {ttfb != null ? `${ttfb.toFixed(0)} ms` : "--"}
+          </div>
+          <div className="kpi-sub">Server responsiveness</div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderUsageKpis = () => {
+    return (
+      <div className="dashboard-kpi-row">
+        <div className="kpi-card">
+          <div className="kpi-label">Total Visits (7 days)</div>
+          <div className="kpi-value">{usageKpis.total}</div>
+          <div className="kpi-sub">All apps combined</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Avg Daily Visits</div>
+          <div className="kpi-value">
+            {usageKpis.avg ? usageKpis.avg.toFixed(1) : "0"}
+          </div>
+          <div className="kpi-sub">Last 7 days</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Peak Day Visits</div>
+          <div className="kpi-value">{usageKpis.peak}</div>
+          <div className="kpi-sub">{usageKpis.peakDay}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Usage Trend</div>
+          <div className="kpi-value">
+            {usageKpis.avg && usageKpis.peak
+              ? usageKpis.peak > usageKpis.avg
+                ? "Rising"
+                : "Stable"
+              : "--"}
+          </div>
+          <div className="kpi-sub">vs. 7-day average</div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="dashboard-container glassmorphic"
           key="cortex-dashboard"
+          className="dashboard-shell dashboard-frosted"
           drag
-          dragConstraints={dragConstraintsRef}
           dragElastic={0.2}
-          initial={{ opacity: 0, scale: 0.9, y: 40 }}
+          dragConstraints={dragConstraintsRef}
+          initial={{ opacity: 0, scale: 0.92, y: 40 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 40 }}
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
           style={{
             position: "fixed",
-            top: 120,
-            right: 80,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
             zIndex: 1100,
           }}
         >
           <div className="dashboard-header">
-            <h3>AI Platform Dashboard</h3>
+            <div>
+              <h3>AI Platform Performance Dashboard</h3>
+              <p className="dashboard-subtitle">
+                Real-time quality & usage overview for Cortex AI platform
+              </p>
+            </div>
             <button
-              className="dashboard-close-btn"
               type="button"
+              className="dashboard-close-btn"
               onClick={() => setVisible(false)}
             >
               ✖
@@ -173,28 +414,61 @@ const Dashboard = () => {
 
           <div className="dashboard-tabs">
             <button
-              className={tab === "webvitals" ? "active" : ""}
               type="button"
+              className={tab === "webvitals" ? "active" : ""}
               onClick={() => setTab("webvitals")}
             >
               Web Vitals
             </button>
             <button
-              className={tab === "usage" ? "active" : ""}
               type="button"
+              className={tab === "usage" ? "active" : ""}
               onClick={() => setTab("usage")}
             >
               Platform Usage
             </button>
           </div>
 
-          <div className="dashboard-content">
-            {tab === "webvitals" && (
-              <HighchartsReact highcharts={Highcharts} options={vitalsChart} />
-            )}
-            {tab === "usage" && (
-              <HighchartsReact highcharts={Highcharts} options={usageChart} />
-            )}
+          <div className="dashboard-main-grid">
+            {/* KPI Row */}
+            {tab === "webvitals" ? renderWebVitalsKpis() : renderUsageKpis()}
+
+            {/* Charts Grid */}
+            <div className="dashboard-charts-grid">
+              {tab === "webvitals" && (
+                <>
+                  <div className="dashboard-chart-card">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={vitalsChartColumns}
+                    />
+                  </div>
+                  <div className="dashboard-chart-card">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={vitalsChartLine}
+                    />
+                  </div>
+                </>
+              )}
+
+              {tab === "usage" && (
+                <>
+                  <div className="dashboard-chart-card">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={usageChartLine}
+                    />
+                  </div>
+                  <div className="dashboard-chart-card">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={usageChartColumn}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </motion.div>
       )}
@@ -203,4 +477,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
