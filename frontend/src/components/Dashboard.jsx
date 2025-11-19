@@ -1,31 +1,41 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 // src/components/Dashboard.jsx
 // src/components/Dashboard.jsx
+// src/components/Dashboard.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "../styles/Dashboard.css";
 
-// === Web Vitals hook (can be swapped for API later) ===
+/* =====================================================================================
+   Real Web Vitals hook using the official `web-vitals` library.
+   This collects live metrics from the user's browser session.
+   Later, you can POST each metric to your backend for aggregation if you want.
+===================================================================================== */
 const useWebVitals = () => {
   const [metrics, setMetrics] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
 
+    // Guard for SSR (if you ever server-render)
+    if (typeof window === "undefined") return;
+
     import("web-vitals")
       .then(({ getCLS, getFID, getLCP, getFCP, getTTFB }) => {
-        const collect = (name, value) => {
+        const handler = (metric) => {
           if (cancelled) return;
-          setMetrics((prev) => [...prev, { name, value: Number(value || 0) }]);
+          // metric: { name, value, rating, delta, id, ... }
+          setMetrics((prev) => [...prev, metric]);
         };
 
-        getCLS((m) => collect("CLS", m.value));
-        getFID((m) => collect("FID", m.value));
-        getLCP((m) => collect("LCP", m.value));
-        getFCP((m) => collect("FCP", m.value));
-        getTTFB((m) => collect("TTFB", m.value));
+        // These are all real browser performance metrics
+        getCLS(handler);
+        getFID(handler);
+        getLCP(handler);
+        getFCP(handler);
+        getTTFB(handler);
       })
       .catch((err) => {
         console.warn("web-vitals import failed:", err);
@@ -39,7 +49,9 @@ const useWebVitals = () => {
   return metrics;
 };
 
-// Time ranges for Usage tab
+/* =====================================================================================
+   Time ranges for Usage tab (Usage stays mock for now – you’ll replace later with API).
+===================================================================================== */
 const USAGE_RANGES = [
   { key: "7d", label: "Last 7 days", days: 7 },
   { key: "30d", label: "Last 30 days", days: 30 },
@@ -52,35 +64,39 @@ const Dashboard = () => {
   const [visible, setVisible] = useState(false);
   const [tab, setTab] = useState("webvitals"); // "webvitals" | "usage"
 
-  const [usageData, setUsageData] = useState([]); // full 2-year mock series
-  const [usageRange, setUsageRange] = useState("7d"); // one of USAGE_RANGES keys
+  // Usage stays mock for now (time-series you will later replace with real analytics)
+  const [usageData, setUsageData] = useState([]);
+  const [usageRange, setUsageRange] = useState("7d");
 
+  // 🔴 REAL Web Vitals data
   const metrics = useWebVitals();
 
-  // === Centered overlay & drag constraints ===
+  // === Centered overlay & drag constraints (Framer Motion) ===
   const overlayRef = useRef(null);
 
-  // Listen to voice assistant event
   useEffect(() => {
     const toggleHandler = () => setVisible((prev) => !prev);
     window.addEventListener("dashboard:toggle", toggleHandler);
     return () => window.removeEventListener("dashboard:toggle", toggleHandler);
   }, []);
 
-  // Mock usage data – 2 years of daily points (replace with real analytics later)
+  /* -----------------------------------------------------------------------------
+     Mock usage data (only for platform usage charts)
+     You will later swap this out and feed usageData from your backend.
+  ----------------------------------------------------------------------------- */
   useEffect(() => {
     const today = new Date();
-    const days = 730; // ~2 years
+    const days = 730; // ~2 years of daily points
     const series = [];
 
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today.getTime() - i * 86400000);
-      const age = days - 1 - i; // 0 = oldest, grows toward today
+      const age = days - 1 - i; // 0 = oldest
 
       const base = 120;
       const trendFactor = 0.8 + (age / (days - 1)) * 0.7; // 0.8 → 1.5
-      const seasonal = 0.9 + 0.3 * Math.sin((2 * Math.PI * age) / 30); // monthly ripple
-      const noise = 0.8 + Math.random() * 0.4; // 0.8–1.2
+      const seasonal = 0.9 + 0.3 * Math.sin((2 * Math.PI * age) / 30);
+      const noise = 0.8 + Math.random() * 0.4;
 
       const visits = Math.round(base * trendFactor * seasonal * noise);
 
@@ -94,19 +110,26 @@ const Dashboard = () => {
     setUsageData(series);
   }, []);
 
-  // Aggregate vitals for KPIs & charts
+  /* -----------------------------------------------------------------------------
+     Aggregate Web Vitals metrics (REAL values from web-vitals).
+     We group by metric.name (LCP, FID, CLS, FCP, TTFB) and calc average.
+  ----------------------------------------------------------------------------- */
   const aggregatedVitals = useMemo(() => {
     if (!metrics.length) return [];
-    const map = new Map();
-    metrics.forEach(({ name, value }) => {
-      if (!map.has(name)) {
-        map.set(name, { name, total: 0, count: 0 });
+
+    const byName = new Map();
+    metrics.forEach((m) => {
+      const name = m.name;
+      const value = Number(m.value || 0);
+      if (!byName.has(name)) {
+        byName.set(name, { name, total: 0, count: 0 });
       }
-      const entry = map.get(name);
+      const entry = byName.get(name);
       entry.total += value;
       entry.count += 1;
     });
-    return Array.from(map.values()).map((entry) => ({
+
+    return Array.from(byName.values()).map((entry) => ({
       name: entry.name,
       value: entry.count ? entry.total / entry.count : 0,
     }));
@@ -115,7 +138,9 @@ const Dashboard = () => {
   const getVital = (name) =>
     aggregatedVitals.find((m) => m.name === name)?.value ?? null;
 
-  // === Usage window based on selected range ===
+  /* -----------------------------------------------------------------------------
+     Usage window + KPIs (still mock, based on usageData)
+  ----------------------------------------------------------------------------- */
   const usageWindow = useMemo(() => {
     if (!usageData.length) return [];
     const rangeCfg = USAGE_RANGES.find((r) => r.key === usageRange);
@@ -130,7 +155,6 @@ const Dashboard = () => {
     return r ? r.label : "Last 30 days";
   }, [usageRange]);
 
-  // Usage aggregates for selected window
   const usageKpis = useMemo(() => {
     if (!usageWindow.length) {
       return {
@@ -153,7 +177,9 @@ const Dashboard = () => {
     return { total, avg, peak, peakDay };
   }, [usageWindow]);
 
-  // --- KPI items for marquee ---
+  /* -----------------------------------------------------------------------------
+     KPI cards: Web Vitals (from real metrics) vs Usage (mock).
+  ----------------------------------------------------------------------------- */
   const webVitalsKpis = useMemo(() => {
     const lcp = getVital("LCP");
     const fid = getVital("FID");
@@ -229,8 +255,9 @@ const Dashboard = () => {
 
   const activeKpis = tab === "webvitals" ? webVitalsKpis : usageKpiItems;
 
-  // --- Web Vitals charts configs (Pie, Line, Column) ---
-
+  /* -----------------------------------------------------------------------------
+     Web Vitals chart configs – ALL fed from REAL metrics.
+  ----------------------------------------------------------------------------- */
   const vitalNames = ["LCP", "FID", "FCP", "TTFB"];
   const vitalValues = vitalNames.map((name) => getVital(name) || 0);
 
@@ -268,7 +295,7 @@ const Dashboard = () => {
       animation: true,
     },
     title: {
-      text: "Stability & Interactivity",
+      text: "Stability & Interactivity Snapshot",
       style: { color: "var(--dash-text-main)" },
     },
     xAxis: {
@@ -304,7 +331,7 @@ const Dashboard = () => {
       animation: true,
     },
     title: {
-      text: "Core Web Vitals (Snapshot)",
+      text: "Core Web Vitals (Real-Time)",
       style: { color: "var(--dash-text-main)" },
     },
     xAxis: {
@@ -341,8 +368,9 @@ const Dashboard = () => {
     tooltip: { valueDecimals: 2 },
   };
 
-  // === Usage charts (Usage tab) ===
-
+  /* -----------------------------------------------------------------------------
+     Usage charts (still mock – you’ll plug real analytics later).
+  ----------------------------------------------------------------------------- */
   const usageCategories = usageWindow.map((d) => d.day);
   const usageDailyValues = usageWindow.map((d) => d.visits);
   let runningTotal = 0;
@@ -449,7 +477,7 @@ const Dashboard = () => {
         animation: { duration: 800 },
         borderRadius: 3,
         dataLabels: {
-          enabled: usageCategories.length <= 14, // avoid clutter for long ranges
+          enabled: usageCategories.length <= 14,
           style: {
             color: "var(--dash-text-main)",
             textOutline: "none",
@@ -513,7 +541,8 @@ const Dashboard = () => {
               <div>
                 <h3>AI Platform Performance Dashboard</h3>
                 <p className="dashboard-subtitle">
-                  Web quality & usage insights for Cortex AI applications
+                  Real Web Vitals & platform usage insights for Cortex AI
+                  applications
                 </p>
               </div>
               <button
@@ -571,7 +600,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Charts grid: Pie / Line / Column (or Area / Column on Usage) */}
+            {/* Charts grid */}
             <div className="dashboard-charts-grid">
               {tab === "webvitals" && (
                 <>
@@ -627,6 +656,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
 
 
