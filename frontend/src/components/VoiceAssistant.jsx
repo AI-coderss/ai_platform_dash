@@ -11,6 +11,7 @@ import { FaMicrophoneAlt, FaMicrophoneSlash } from "react-icons/fa";
 
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave";
+import Dashboard from "./Dashboard";
 import "../styles/VoiceAssistant.css";
 import useUiStore from "./store/useUiStore";
 import * as THREE from "three";
@@ -667,6 +668,11 @@ const VoiceAssistant = () => {
       closeAssistantNow();
       return;
     }
+    if (name === "show_dashboard") {
+      window.dispatchEvent(new Event("dashboard:toggle"));
+      return;
+    }
+
 
   };
 
@@ -867,6 +873,7 @@ const VoiceAssistant = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <Dashboard />
     </>
   );
 };

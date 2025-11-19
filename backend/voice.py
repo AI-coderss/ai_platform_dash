@@ -293,7 +293,19 @@ TOOLS = [
         "additionalProperties": False,
         "properties": {}
     }
-}
+},
+# Add this near the bottom of the TOOLS list before assistant_close
+{
+    "type": "function",
+    "name": "show_dashboard",
+    "description": "Open the draggable dashboard displaying Web Vitals and platform usage statistics.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {}
+    },
+},
+
 ]
 
 
