@@ -68,6 +68,54 @@ const navItems = [
   { id: "survey", label: "Survey", icon: <FaClipboardCheck />, href: urls.survey },
   // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
 ];
+/* ------------------ Video Embed URL Parser ------------------ */
+// - storage.googleapis.com → <video>
+// - everything else → iframe as-is
+const getVideoEmbedConfig = (rawUrl) => {
+  if (!rawUrl) return { type: "none", src: null };
+
+  try {
+    const u = new URL(rawUrl);
+
+    // Google Drive
+    if (u.hostname.includes("drive.google.com")) {
+      // Pattern: /file/d/<id>/view
+      const parts = u.pathname.split("/").filter(Boolean); // ["file", "d", "<id>", "view"]
+      const dIndex = parts.indexOf("d");
+      if (dIndex !== -1 && parts[dIndex + 1]) {
+        const fileId = parts[dIndex + 1];
+        return {
+          type: "iframe",
+          src: `https://drive.google.com/file/d/${fileId}/preview`,
+        };
+      }
+
+      // Fallback: open?id=<id>
+      const openId = u.searchParams.get("id");
+      if (openId) {
+        return {
+          type: "iframe",
+          src: `https://drive.google.com/file/d/${openId}/preview`,
+        };
+      }
+
+      // If we somehow can't extract id, just iframe the original URL
+      return { type: "iframe", src: rawUrl };
+    }
+
+    // Google Cloud Storage (your old bucket)
+    if (u.hostname.includes("storage.googleapis.com")) {
+      return { type: "video", src: rawUrl };
+    }
+
+    // Default: iframe
+    return { type: "iframe", src: rawUrl };
+  } catch {
+    // If URL parsing fails, just treat as iframe
+    return { type: "iframe", src: rawUrl };
+  }
+};
+
 /* -------------------- Top Navigation (unchanged) ------------------- */
 const NavBar = ({ theme, onToggleTheme }) => {
   const [open, setOpen] = useState(false);
@@ -1001,6 +1049,7 @@ const App = () => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
   // ========= SAFE VIDEO OPEN/CLOSE =========
   const openHelpVideo = (src) => {
@@ -1058,6 +1107,13 @@ const App = () => {
 
     return () => ctx.revert();
   }, []);
+    const videoConfig = videoUrl
+    ? getVideoEmbedConfig(videoUrl)
+    : { type: "none", src: null };
+
+  // Decide how to render the current video (Drive / mp4 / iframe)
+ 
+
   const surveyUrl = "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah";
 
   const apps = [
@@ -1066,7 +1122,7 @@ const App = () => {
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
       link: "https://dsahdoctoraiassistantbot.onrender.com",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/doctorai.mp4",
+      helpVideo: "./videos/doctorai.mp4",
       agentKey: "doctor",
     },
     {
@@ -1074,7 +1130,7 @@ const App = () => {
       description: "Generate structured medical notes from consultations",
       icon: "/icons/hospital.svg",
       link: "https://medicaltranscription-version2-tests.onrender.com",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/medicaltranscriptionv2.mp4",
+      helpVideo: "./videos/transcriptionapp.mp4",
       agentKey: "transcription",
     },
     {
@@ -1082,7 +1138,7 @@ const App = () => {
       description: "Upload and analyze hospital data instantly, visualize the results",
       icon: "/icons/dashboard.svg",
       link: "https://insight-sphere-329111fd.base44.app/welcome",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
+      helpVideo: "./videos/unddev.mp4",
       agentKey: "analyst",
     },
     {
@@ -1090,7 +1146,7 @@ const App = () => {
       description: "Enhance the quality of medical reports using AI",
       icon: "/icons/report.svg",
       link: "https://medical-report-editor-ai-powered-dsah.onrender.com",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/medreport.mp4",
+      helpVideo: "./videos/medreport.mp4",
       agentKey: "report",
     },
     {
@@ -1098,7 +1154,7 @@ const App = () => {
       description: "Designed to assist IVF fellowships at DSAH using RAG technology",
       icon: "/icons/ivf.svg",
       link: "https://ivf-virtual-training-assistant-dsah.onrender.com",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/ivf.mp4",
+      helpVideo: "./videos/ivf.mp4",
       agentKey: "ivf",
     },
     {
@@ -1106,18 +1162,18 @@ const App = () => {
       description: "Voice assistant for patient navigation and booking",
       icon: "/icons/voice.svg",
       link: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/unddev.mp4",
+      helpVideo: "./videos/unddev.mp4",
       agentKey: "patient",
     },
     {
       id: 7, name: "📅 AI Meeting Assistant",
-      description: "Schedule meetings and appointments using Artificial Intelligence", 
+      description: "Schedule meetings and appointments using Artificial Intelligence",
       icon: "/icons/meeting.svg",
       link: "https://ai-meeting-assistant-frontend.onrender.com/authpage",
-      helpVideo: "https://storage.googleapis.com/plat_vid_dsah_x123/meeting.mp4",
+      helpVideo: "./videos/unddev.mp4",
       agentKey: "meeting",
     },
-  // Survey card shown via floating button
+    // Survey card shown via floating button
   ];
 
   // ===== Agent navigation + chatbot bridge =====
@@ -1204,36 +1260,39 @@ const App = () => {
       <HeroLogoParticles theme={theme} />
 
       {/* Video modal */}
+            {/* Video modal */}
       {isVideoOpen && (
         <div className="video-modal" onClick={closeHelpVideo}>
-          <div className="video-wrapper" onClick={(e) => e.stopPropagation()}>
-            <button className="close-video" onClick={closeHelpVideo} aria-label="Close video">
+          <div
+            className="video-wrapper"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="close-video"
+              onClick={closeHelpVideo}
+              aria-label="Close video"
+            >
               ✖
             </button>
 
-            {/* if it’s an mp4 → play it with <video> */}
-            {videoUrl && videoUrl.endsWith(".mp4") ? (
+            {/* storage.googleapis.com → <video> */}
+            {videoConfig.type === "video" && videoConfig.src && (
               <video
-                key={videoUrl}                 // force reload when src changes
-                className="video-modal-player" // we will style it below
-                src={videoUrl}
+                key={videoConfig.src}
+                className="video-modal-player"
+                src={videoConfig.src}
                 controls
                 autoPlay
                 playsInline
                 preload="metadata"
-                onError={(e) => {
-                  // fallback to iframe if this host can’t be played as <video>
-                  const iframe = document.getElementById("video-fallback-frame");
-                  if (iframe) {
-                    iframe.src = videoUrl;
-                  }
-                }}
               />
-            ) : (
-              // fallback: YouTube / render.com / form URLs
+            )}
+
+            {/* Google Drive + others → iframe */}
+            {videoConfig.type === "iframe" && videoConfig.src && (
               <iframe
                 id="video-fallback-frame"
-                src={videoUrl}
+                src={videoConfig.src}
                 title="Help Video"
                 allow="autoplay; encrypted-media"
                 allowFullScreen
@@ -1258,7 +1317,7 @@ const App = () => {
       {/* <TestimonialSection /> */}
       <section className="section-title" href="#watch_tutorial" id="watch_tutorial" style={{ marginTop: '15rem' }}>
 
-      
+
         <VideoCarousel />
       </section>
       <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
@@ -1280,7 +1339,7 @@ const App = () => {
 
         ]}
       />
-      
+
       <ChatBot />
       <Footer />
     </div>

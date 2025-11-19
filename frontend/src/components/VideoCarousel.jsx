@@ -4,10 +4,10 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import "../styles/VideoCarousel.css";
 
 const DEFAULT_VIDEOS = [
-  { id: "doctorai",      src: "https://storage.googleapis.com/plat_vid_dsah_x123/doctorai.mp4",        label: "Doctor AI" },
-  { id: "transcription", src: "https://storage.googleapis.com/plat_vid_dsah_x123/medicaltranscriptionv2.mp4", label: "Transcription App" },
-  { id: "medreport",     src: "https://storage.googleapis.com/plat_vid_dsah_x123/medreport.mp4",        label: "Medical Reports Platform" },
-  { id: "ivf",           src: "https://storage.googleapis.com/plat_vid_dsah_x123/ivf.mp4",              label: "IVF Assistant" },
+  { id: "doctorai",      src: "./videos/doctorai.mp4",        label: "Doctor AI" },
+  { id: "transcription", src: "./videos/transcriptionapp.mp4", label: "Transcription App" },
+  { id: "medreport",     src: "./videos/medreport.mp4",        label: "Medical Reports Platform" },
+  { id: "ivf",           src: "./videos/ivf.mp4",              label: "IVF Assistant" },
 ];
 
 export default function VideoCarousel({ videos = DEFAULT_VIDEOS }) {
