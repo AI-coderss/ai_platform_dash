@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 // src/components/Dashboard.jsx
+// src/components/Dashboard.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Highcharts from "highcharts";
@@ -38,10 +39,21 @@ const useWebVitals = () => {
   return metrics;
 };
 
+// Time ranges for Usage tab
+const USAGE_RANGES = [
+  { key: "7d", label: "Last 7 days", days: 7 },
+  { key: "30d", label: "Last 30 days", days: 30 },
+  { key: "90d", label: "Last 3 months", days: 90 },
+  { key: "1y", label: "Last 12 months", days: 365 },
+  { key: "2y", label: "Last 2 years", days: 730 },
+];
+
 const Dashboard = () => {
   const [visible, setVisible] = useState(false);
   const [tab, setTab] = useState("webvitals"); // "webvitals" | "usage"
-  const [usageData, setUsageData] = useState([]);
+
+  const [usageData, setUsageData] = useState([]); // full 2-year mock series
+  const [usageRange, setUsageRange] = useState("7d"); // one of USAGE_RANGES keys
 
   const metrics = useWebVitals();
 
@@ -55,17 +67,31 @@ const Dashboard = () => {
     return () => window.removeEventListener("dashboard:toggle", toggleHandler);
   }, []);
 
-  // Mock usage data – replace later with real analytics API
+  // Mock usage data – 2 years of daily points (replace with real analytics later)
   useEffect(() => {
-    const now = new Date();
-    const dummy = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(now.getTime() - i * 86400000);
-      return {
+    const today = new Date();
+    const days = 730; // ~2 years
+    const series = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const age = days - 1 - i; // 0 = oldest, grows toward today
+
+      const base = 120;
+      const trendFactor = 0.8 + (age / (days - 1)) * 0.7; // 0.8 → 1.5
+      const seasonal = 0.9 + 0.3 * Math.sin((2 * Math.PI * age) / 30); // monthly ripple
+      const noise = 0.8 + Math.random() * 0.4; // 0.8–1.2
+
+      const visits = Math.round(base * trendFactor * seasonal * noise);
+
+      series.push({
+        date: d,
         day: d.toLocaleDateString(),
-        visits: Math.floor(Math.random() * 350) + 80,
-      };
-    }).reverse();
-    setUsageData(dummy);
+        visits,
+      });
+    }
+
+    setUsageData(series);
   }, []);
 
   // Aggregate vitals for KPIs & charts
@@ -89,9 +115,24 @@ const Dashboard = () => {
   const getVital = (name) =>
     aggregatedVitals.find((m) => m.name === name)?.value ?? null;
 
-  // Usage aggregates
+  // === Usage window based on selected range ===
+  const usageWindow = useMemo(() => {
+    if (!usageData.length) return [];
+    const rangeCfg = USAGE_RANGES.find((r) => r.key === usageRange);
+    const days = rangeCfg?.days || 30;
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - (days - 1) * 86400000);
+    return usageData.filter((d) => d.date >= cutoff);
+  }, [usageData, usageRange]);
+
+  const usageRangeLabel = useMemo(() => {
+    const r = USAGE_RANGES.find((x) => x.key === usageRange);
+    return r ? r.label : "Last 30 days";
+  }, [usageRange]);
+
+  // Usage aggregates for selected window
   const usageKpis = useMemo(() => {
-    if (!usageData.length) {
+    if (!usageWindow.length) {
       return {
         total: 0,
         avg: 0,
@@ -99,18 +140,18 @@ const Dashboard = () => {
         peakDay: "-",
       };
     }
-    const total = usageData.reduce((s, d) => s + d.visits, 0);
-    const avg = total / usageData.length;
+    const total = usageWindow.reduce((s, d) => s + d.visits, 0);
+    const avg = total / usageWindow.length;
     let peak = 0;
     let peakDay = "-";
-    usageData.forEach((d) => {
+    usageWindow.forEach((d) => {
       if (d.visits > peak) {
         peak = d.visits;
         peakDay = d.day;
       }
     });
     return { total, avg, peak, peakDay };
-  }, [usageData]);
+  }, [usageWindow]);
 
   // --- KPI items for marquee ---
   const webVitalsKpis = useMemo(() => {
@@ -152,14 +193,14 @@ const Dashboard = () => {
   const usageKpiItems = useMemo(() => {
     return [
       {
-        label: "Total Visits (7 days)",
+        label: `Total Visits (${usageRangeLabel})`,
         value: usageKpis.total.toString(),
         sub: "All apps combined",
       },
       {
         label: "Avg Daily Visits",
         value: usageKpis.avg ? usageKpis.avg.toFixed(1) : "0.0",
-        sub: "7-day average",
+        sub: usageRangeLabel,
       },
       {
         label: "Peak Day Visits",
@@ -174,23 +215,22 @@ const Dashboard = () => {
               ? "Rising"
               : "Stable"
             : "--",
-        sub: "vs 7-day average",
+        sub: "vs range average",
       },
       {
         label: "Min Daily Visits",
-        value: usageData.length
-          ? Math.min(...usageData.map((d) => d.visits)).toString()
+        value: usageWindow.length
+          ? Math.min(...usageWindow.map((d) => d.visits)).toString()
           : "0",
-        sub: "Lowest recorded",
+        sub: "Lowest in range",
       },
     ];
-  }, [usageKpis, usageData]);
+  }, [usageKpis, usageWindow, usageRangeLabel]);
 
   const activeKpis = tab === "webvitals" ? webVitalsKpis : usageKpiItems;
 
-  // --- Charts configs (Pie, Line, Column for each tab) ---
+  // --- Web Vitals charts configs (Pie, Line, Column) ---
 
-  // fallback vitals array if nothing yet
   const vitalNames = ["LCP", "FID", "FCP", "TTFB"];
   const vitalValues = vitalNames.map((name) => getVital(name) || 0);
 
@@ -301,40 +341,78 @@ const Dashboard = () => {
     tooltip: { valueDecimals: 2 },
   };
 
-  const usageLine = {
+  // === Usage charts (Usage tab) ===
+
+  const usageCategories = usageWindow.map((d) => d.day);
+  const usageDailyValues = usageWindow.map((d) => d.visits);
+  let runningTotal = 0;
+  const usageCumulativeValues = usageDailyValues.map((v) => {
+    runningTotal += v;
+    return runningTotal;
+  });
+
+  const usageArea = {
     chart: {
-      type: "line",
+      type: "area",
       backgroundColor: "transparent",
       animation: true,
+      spacingTop: 20,
+      spacingRight: 10,
+      spacingBottom: 5,
+      spacingLeft: 5,
     },
     title: {
-      text: "Daily Visits (Last 7 Days)",
+      text: `Usage Timeline (${usageRangeLabel})`,
       style: { color: "var(--dash-text-main)" },
     },
     xAxis: {
-      categories: usageData.map((d) => d.day),
-      labels: { style: { color: "var(--dash-text-muted)" } },
+      categories: usageCategories,
+      tickInterval: Math.max(1, Math.floor(usageCategories.length / 8)),
+      labels: {
+        style: { color: "var(--dash-text-muted)", fontSize: "10px" },
+      },
     },
     yAxis: {
-      title: { text: "Visits", style: { color: "var(--dash-text-muted)" } },
+      title: {
+        text: "Daily Visits",
+        style: { color: "var(--dash-text-muted)" },
+      },
       labels: { style: { color: "var(--dash-text-muted)" } },
       gridLineColor: "rgba(148,163,184,0.28)",
     },
-    series: [
-      {
-        name: "Visits",
-        data: usageData.map((d) => d.visits),
-      },
-    ],
-    legend: { enabled: false },
+    tooltip: {
+      shared: true,
+      valueDecimals: 0,
+      headerFormat: "<span style='font-size:10px'>{point.key}</span><br/>",
+      pointFormat:
+        "<span style='color:{series.color}'>{series.name}</span>: <b>{point.y}</b><br/>",
+    },
+    legend: { enabled: true },
     credits: { enabled: false },
-    tooltip: { shared: true },
     plotOptions: {
+      area: {
+        fillOpacity: 0.35,
+        marker: {
+          radius: 3,
+        },
+        lineWidth: 2,
+      },
       series: {
         animation: { duration: 800 },
-        marker: { radius: 4 },
       },
     },
+    series: [
+      {
+        type: "area",
+        name: "Daily Visits",
+        data: usageDailyValues,
+      },
+      {
+        type: "line",
+        name: "Cumulative Visits",
+        data: usageCumulativeValues,
+      },
+    ],
   };
 
   const usageColumn = {
@@ -348,7 +426,8 @@ const Dashboard = () => {
       style: { color: "var(--dash-text-main)" },
     },
     xAxis: {
-      categories: usageData.map((d) => d.day),
+      categories: usageCategories,
+      tickInterval: Math.max(1, Math.floor(usageCategories.length / 12)),
       labels: {
         style: { color: "var(--dash-text-muted)", fontSize: "10px" },
         rotation: -30,
@@ -362,7 +441,7 @@ const Dashboard = () => {
     series: [
       {
         name: "Visits",
-        data: usageData.map((d) => d.visits),
+        data: usageDailyValues,
       },
     ],
     plotOptions: {
@@ -370,11 +449,11 @@ const Dashboard = () => {
         animation: { duration: 800 },
         borderRadius: 3,
         dataLabels: {
-          enabled: true,
+          enabled: usageCategories.length <= 14, // avoid clutter for long ranges
           style: {
             color: "var(--dash-text-main)",
             textOutline: "none",
-            fontSize: "10px",
+            fontSize: "9px",
           },
         },
       },
@@ -401,7 +480,7 @@ const Dashboard = () => {
         data: [
           { name: "Doctor AI", y: Math.round(usageKpis.total * 0.35) },
           { name: "Transcription", y: Math.round(usageKpis.total * 0.25) },
-          { name: "Reports", y: Math.round(usageKpis.total * 0.20) },
+          { name: "Reports", y: Math.round(usageKpis.total * 0.2) },
           { name: "IVF Assistant", y: Math.round(usageKpis.total * 0.12) },
           { name: "Other", y: Math.round(usageKpis.total * 0.08) },
         ],
@@ -476,7 +555,23 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Charts grid: Pie / Line / Column */}
+            {/* Usage time-range switcher (only on Usage tab) */}
+            {tab === "usage" && (
+              <div className="dashboard-range-switcher">
+                {USAGE_RANGES.map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    className={usageRange === r.key ? "active" : ""}
+                    onClick={() => setUsageRange(r.key)}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Charts grid: Pie / Line / Column (or Area / Column on Usage) */}
             <div className="dashboard-charts-grid">
               {tab === "webvitals" && (
                 <>
@@ -506,19 +601,19 @@ const Dashboard = () => {
                   <div className="dashboard-chart-card">
                     <HighchartsReact
                       highcharts={Highcharts}
-                      options={usagePie}
-                    />
-                  </div>
-                  <div className="dashboard-chart-card">
-                    <HighchartsReact
-                      highcharts={Highcharts}
-                      options={usageLine}
+                      options={usageArea}
                     />
                   </div>
                   <div className="dashboard-chart-card">
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={usageColumn}
+                    />
+                  </div>
+                  <div className="dashboard-chart-card">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={usagePie}
                     />
                   </div>
                 </>
@@ -532,6 +627,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
 
 
