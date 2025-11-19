@@ -1,22 +1,22 @@
 /* src/styles/Dashboard.css */
 
-/* Theme tokens for light & dark */
+/* Theme tokens for light & dark (glassmorphic tints) */
 :root {
-  --dash-bg: #ffffff;
-  --dash-border: rgba(148, 163, 184, 0.6);
+  --dash-bg: rgba(255, 255, 255, 0.18);
+  --dash-border: rgba(148, 163, 184, 0.65);
   --dash-text-main: #0f172a;
   --dash-text-muted: #6b7280;
-  --dash-card-bg: #f9fafb;
-  --dash-kpi-bg: #f3f4f6;
+  --dash-card-bg: rgba(255, 255, 255, 0.16);
+  --dash-kpi-bg: rgba(255, 255, 255, 0.12);
 }
 
 :root[data-theme="dark"] {
-  --dash-bg: #020617;              /* almost black */
-  --dash-border: rgba(30, 64, 175, 0.8);
+  --dash-bg: rgba(15, 23, 42, 0.82);      /* deep slate with transparency */
+  --dash-border: rgba(59, 130, 246, 0.7); /* blue accent border */
   --dash-text-main: #e5e7eb;
   --dash-text-muted: #9ca3af;
-  --dash-card-bg: #020617;
-  --dash-kpi-bg: #020617;
+  --dash-card-bg: rgba(15, 23, 42, 0.78);
+  --dash-kpi-bg: rgba(15, 23, 42, 0.72);
 }
 
 /* Fullscreen overlay for centering + drag bounds */
@@ -29,7 +29,7 @@
   justify-content: center;
 }
 
-/* Wide, Power BI–like shell */
+/* Wide, Power BI–like shell (now glassmorphic) */
 .dashboard-shell {
   width: min(1280px, 96vw);
   height: min(720px, 86vh);
@@ -38,7 +38,10 @@
 
   background: var(--dash-bg);
   border: 1px solid var(--dash-border);
-  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.7);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.75);
+
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 
   display: flex;
   flex-direction: column;
@@ -70,7 +73,7 @@
 }
 
 .dashboard-close-btn {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   color: var(--dash-text-main);
   border: 1px solid var(--dash-border);
@@ -83,8 +86,13 @@
     box-shadow 0.15s ease;
 }
 
+:root[data-theme="dark"] .dashboard-close-btn {
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--dash-text-main);
+}
+
 .dashboard-close-btn:hover {
-  background: rgba(148, 163, 184, 0.12);
+  background: rgba(148, 163, 184, 0.18);
   transform: translateY(-1px);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.7);
 }
@@ -103,10 +111,14 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--dash-text-muted);
   transition: background 0.15s ease, color 0.15s ease,
-    transform 0.12s ease, box-shadow 0.15s ease;
+    transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+:root[data-theme="dark"] .dashboard-tabs button {
+  background: rgba(15, 23, 42, 0.75);
 }
 
 .dashboard-tabs button.active,
@@ -118,22 +130,31 @@
   transform: translateY(-1px);
 }
 
-/* KPI marquee row */
+/* KPI marquee row (glass strip with hover-pause) */
 .dashboard-kpi-marquee {
   margin-top: 14px;
   position: relative;
   overflow: hidden;
   border-radius: 16px;
   background: var(--dash-kpi-bg);
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.55);
   padding: 8px 4px;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
 }
 
+/* Scrolling track */
 .dashboard-kpi-track {
   display: flex;
   gap: 10px;
   animation: kpi-marquee 25s linear infinite;
   will-change: transform;
+  animation-play-state: running;
+}
+
+/* Pause marquee on hover */
+.dashboard-kpi-marquee:hover .dashboard-kpi-track {
+  animation-play-state: paused;
 }
 
 @keyframes kpi-marquee {
@@ -151,13 +172,20 @@
   background: var(--dash-card-bg);
   border-radius: 12px;
   padding: 8px 10px;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
-  border: 1px solid rgba(148, 163, 184, 0.6);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(248, 250, 252, 0.45);
   flex-shrink: 0;
+
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
 
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+:root[data-theme="dark"] .kpi-card {
+  border-color: rgba(148, 163, 184, 0.55);
 }
 
 .kpi-label {
@@ -191,8 +219,8 @@
 .dashboard-chart-card {
   background: var(--dash-card-bg);
   border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(248, 250, 252, 0.5);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.35);
   padding: 8px 8px 4px;
   display: flex;
   flex-direction: column;
@@ -200,6 +228,13 @@
   min-height: 230px;
   max-height: 320px;
   overflow: hidden;
+
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+:root[data-theme="dark"] .dashboard-chart-card {
+  border-color: rgba(148, 163, 184, 0.55);
 }
 
 /* Stabilize Highcharts inside cards (no crazy expansion) */
