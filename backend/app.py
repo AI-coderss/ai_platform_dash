@@ -15,7 +15,8 @@ import qdrant_client
 from openai import OpenAI
 from prompts.prompt import engineeredprompt
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_qdrant import Qdrant
+from langchain_qdrant import QdrantVectorStore
+
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -48,13 +49,18 @@ openai_connections = {}
 
 # === VECTOR STORE & RAG ===
 def get_vector_store():
-    qdrant = qdrant_client.QdrantClient(
+    embeddings = OpenAIEmbeddings()
+
+    return QdrantVectorStore.from_existing_collection(
+        embedding=embeddings,
+        collection_name=collection_name,
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
-        timeout=60.0
+        # Optional extras:
+        # prefer_grpc=True,
+        # timeout=60,
     )
-    embeddings = OpenAIEmbeddings()
-    return Qdrant(client=qdrant, collection_name=collection_name, embeddings=embeddings)
+
 
 def get_context_retriever_chain():
     llm = ChatOpenAI(model="gpt-4o")
