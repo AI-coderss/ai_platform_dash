@@ -551,3 +551,248 @@
 .status.connected { color: #16a34a; }
 .status.connecting { color: #f59e0b; }
 .status.error { color: #ef4444; }
+/* ===================== Transcript Toggle Button (inside VoiceAssistant header) ===================== */
+
+.voice-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.va-transcript-toggle-btn {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #111111;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition:
+    background 0.18s ease,
+    transform 0.15s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.va-transcript-toggle-btn.on {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.32);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.va-transcript-toggle-btn.off {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.va-transcript-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.2);
+}
+
+.va-transcript-toggle-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+/* =============================== Floating Glass Transcript Drawer =============================== */
+
+.va-transcript-drawer {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000;
+
+  width: min(640px, 90vw);
+  max-height: 60vh;
+  padding: 14px 18px 10px;
+
+  border-radius: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+
+  /* Glass effect, but light + transparent, black text will be readable */
+  background: radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.80),
+      rgba(255, 255, 255, 0.75)
+    )
+    0 0 / cover no-repeat;
+  background-color: rgba(255, 255, 255, 0.7);
+
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+
+  color: #111111;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+
+/* Responsive tweak for small screens */
+@media (max-width: 480px) {
+  .va-transcript-drawer {
+    width: 94vw;
+    max-height: 65vh;
+    padding: 12px 14px 8px;
+    border-radius: 18px;
+  }
+}
+
+/* =============================== Header (Title + Live pill + Close) =============================== */
+
+.va-transcript-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.va-transcript-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #111111;
+}
+
+.va-transcript-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Small pill showing Live / Idle */
+
+.va-pill {
+  font-size: 0.68rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.va-pill-live {
+  background: rgba(0, 180, 80, 0.08);
+  color: #0b7a3e;
+  border-color: rgba(0, 180, 80, 0.6);
+}
+
+.va-pill-idle {
+  background: rgba(0, 0, 0, 0.03);
+  color: #444444;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Close button inside the drawer */
+
+.va-transcript-close-btn {
+  border: none;
+  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.75);
+  color: #111111;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  outline: none;
+  transition:
+    background 0.18s ease,
+    transform 0.15s ease,
+    box-shadow 0.18s ease;
+}
+
+.va-transcript-close-btn:hover {
+  background: rgba(255, 255, 255, 0.98);
+  transform: translateY(-1px);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.22);
+}
+
+.va-transcript-close-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* =============================== Body (scrollable text) =============================== */
+
+.va-transcript-body {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  max-height: 40vh;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #111111;
+}
+
+/* Scrollbar (WebKit) */
+.va-transcript-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.va-transcript-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.va-transcript-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+}
+
+/* Placeholder text when no transcript yet */
+
+.va-transcript-placeholder {
+  opacity: 0.7;
+  font-style: italic;
+  color: #444444;
+}
+
+/* Lines */
+
+.va-transcript-line {
+  margin: 0 0 4px;
+  color: #111111;
+}
+
+.va-transcript-line-live {
+  font-weight: 600;
+}
+
+/* =============================== Handle (bottom bar, decorative) =============================== */
+
+.va-transcript-handle {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  padding-bottom: 2px;
+}
+
+.va-transcript-handle-bar {
+  width: 52px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.35),
+    rgba(0, 0, 0, 0.15)
+  );
+  opacity: 0.9;
+}
