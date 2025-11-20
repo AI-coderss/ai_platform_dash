@@ -68,8 +68,8 @@ def home():
 @app.route("/api/session-context", methods=["POST", "OPTIONS"])
 def api_session_context():
     """
-    Optional endpoint to receive transcript/context from clients.
-    We simply log and return ok to keep parity with other frontends.
+    Optional endpoint to receive transcript/context and keep parity with clients
+    that may want to push context. We simply log and return ok.
     """
     try:
         data = request.get_json(silent=True) or {}
@@ -85,6 +85,7 @@ def api_session_context():
 
 
 # ------------------------ Function-calling tools ------------------------
+# Keep these in sync with the frontend's allowed lists.
 NAV_ALLOWED = [
     "home",
     "products",
@@ -92,8 +93,8 @@ NAV_ALLOWED = [
     "watch_tutorial",
     "contact",
     "footer",
-    "chat",
-    "doctor",
+    "chat",  # open/show chatbot
+    "doctor",  # open Doctor Assistant app
     "transcription",
     "analyst",
     "report",
@@ -102,6 +103,7 @@ NAV_ALLOWED = [
     "survey",
 ]
 
+# Tools used by the Realtime session (mirrored by the front-end session.update)
 TOOLS = [
     {
         "type": "function",
@@ -154,7 +156,7 @@ TOOLS = [
             "required": ["text"],
         },
     },
-    # Contact tools
+    # 🔥 New tools for Contact Section email flow
     {
         "type": "function",
         "name": "contact_fill",
@@ -216,6 +218,7 @@ TOOLS = [
             "required": ["visible"],
         },
     },
+    # In TOOLS list:
     {
         "type": "function",
         "name": "chat_toggle",
@@ -245,7 +248,7 @@ TOOLS = [
             "properties": {
                 "id": {
                     "type": "string",
-                    "enum": ["doctorai", "transcription", "medreport", "ivf", "meeting"],
+                    "enum": ["doctorai", "transcription", "medreport", "ivf"],
                 },
                 "open_modal": {"type": "boolean"},
             },
@@ -253,83 +256,85 @@ TOOLS = [
         },
     },
     {
-        "type": "function",
-        "name": "card_play",
-        "description": "Open the Card Console for a specific application and (optionally) autoplay the info audio.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "enum": [
-                        "ai_doctor",
-                        "transcription",
-                        "bi_dashboard",
-                        "report_enhance",
-                        "ivf_assistant",
-                        "meeting_assistant",
-                        "patient_avatar",
-                    ],
-                    "description": "Stable card ids in the Card Console UI.",
-                },
-                "autoplay": {
-                    "type": "boolean",
-                    "description": "If true (default), starts audio automatically after opening the card.",
-                },
+    "type": "function",
+    "name": "card_play",
+    "description": "Open the Card Console for a specific application and (optionally) autoplay the info audio.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "id": {
+                "type": "string",
+                "enum": [
+                    "ai_doctor",
+                    "transcription",
+                    "bi_dashboard",
+                    "report_enhance",
+                    "ivf_assistant",
+                    "meeting_assistant",
+                    "patient_avatar",
+                ],
+                "description": "Stable card ids in the Card Console UI."
             },
-            "required": ["id"],
+            "autoplay": {
+                "type": "boolean",
+                "description": "If true (default), starts audio automatically after opening the card."
+            }
         },
+        "required": ["id"]
+    }
+},
+{
+    "type": "function",
+    "name": "assistant_close",
+    "description": "Close/hide the on-screen voice assistant and end the session.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {}
+    }
+},
+# Add this near the bottom of the TOOLS list before assistant_close
+{
+    "type": "function",
+    "name": "show_dashboard",
+    "description": "Open the draggable dashboard displaying Web Vitals and platform usage statistics.",
+    "parameters": {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {}
     },
-    {
-        "type": "function",
-        "name": "assistant_close",
-        "description": "Close/hide the on-screen voice assistant and end the session.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {},
-        },
-    },
-    {
-        "type": "function",
-        "name": "show_dashboard",
-        "description": "Open the draggable dashboard displaying Web Vitals and platform usage statistics.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {},
-        },
-    },
+},
+
 ]
 
 
 @app.route("/api/rtc-connect", methods=["POST"])
 def connect_rtc():
-  try:
-      client_sdp = request.get_data(as_text=True)
-      if not client_sdp:
-          return Response("No SDP provided", status=400, mimetype="text/plain")
+    try:
+        client_sdp = request.get_data(as_text=True)
+        if not client_sdp:
+            return Response("No SDP provided", status=400, mimetype="text/plain")
 
-      session_id = (
-          request.args.get("session_id") or request.headers.get("X-Session-Id") or ""
-      )
+        # Optional client-provided session identifier (not strictly needed for OpenAI)
+        session_id = (
+            request.args.get("session_id") or request.headers.get("X-Session-Id") or ""
+        )
 
-      # Create the Realtime session with instructions + tools
-      session_payload = {
-          "model": MODEL_ID,
-          "voice": VOICE,
-          "instructions": (
-              DEFAULT_INSTRUCTIONS
-              + "\n\n"
-              "If the user wants to send an email via the Contact section, ask for any missing fields "
-              "(name, email, recipient if needed, and message). After confirming, call contact_fill with the collected "
-              "values, then call contact_submit to send. When the user asks you to open pages, click buttons, "
-              "or type into the chatbot, use the provided tools strictly with the allowed values."
-              "If the user asks to open or close the chatbot, call set_chat_visible with visible=true or visible=false respectively."
-              "if the user asks you to go the About section, use the navigate_to tool with section='about'. which is the top of the platform."
-              "If the user indicates they want to dismiss the assistant (e.g., “go now”, “go for now”, “thank you for now”, “you can go”, “dismiss”, “close assistant”, “hide”, “bye for now”),call assistant_close with no arguments.Do not ask for confirmation "
-              """When the user asks to show or play a tutorial video (e.g., “show me the Doctor AI tutorial”, 
+        # 1) Create the Realtime session with instructions + tools.
+        session_payload = {
+            "model": MODEL_ID,
+            "voice": VOICE,
+            "instructions": (
+                DEFAULT_INSTRUCTIONS + "\n\n"
+                "If the user wants to send an email via the Contact section, ask for any missing fields "
+                "(name, email, recipient if needed, and message). After confirming, call contact_fill with the collected "
+                "values, then call contact_submit to send. When the user asks you to open pages, click buttons, "
+                "or type into the chatbot, use the provided tools strictly with the allowed values."
+                "If the user asks to open or close the chatbot, call set_chat_visible with visible=true or visible=false respectively."
+                "if the user asks you to go the About section, use the navigate_to tool with section='about'. which is the top of the platform."
+                "If the user indicates they want to dismiss the assistant (e.g., “go now”, “go for now”, “thank you for now”, “you can go”, “dismiss”, “close assistant”, “hide”, “bye for now”),call assistant_close with no arguments.Do not ask for confirmation "
+                """When the user asks to show or play a tutorial video (e.g., “show me the Doctor AI tutorial”, 
                     “play the transcription tutorial”), call the function tutorial_play with the proper id:
 
                     - "Doctor AI" -> id "doctorai"
@@ -340,59 +345,56 @@ def connect_rtc():
 
                     Prefer calling tutorial_play over describing how to open the video.
                     If the user says “open it fullscreen”, pass open_modal=true."""
-              "if your are on the product section and the user asks you to play a video about a specific application use the help video button to play the video by using the help video button on the product card not the tutorial video on tutorial section."
-          ),
-          "tools": TOOLS,
-          "tool_choice": "auto",
-          "turn_detection": {"type": "server_vad"},
-      }
+                    "if your are on the product section and the user asks you to play a video about a specific application use the help video button to play the video by using the help video button on the product card not the tutorial video on tutorial section."
+            ),
+            "tools": TOOLS,
+            "tool_choice": "auto",
+            "turn_detection": {"type": "server_vad"},
+        }
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        session_resp = requests.post(
+            OPENAI_SESSION_URL, headers=headers, json=session_payload, timeout=30
+        )
+        if not session_resp.ok:
+            logger.error(
+                f"Session create failed: {session_resp.status_code} {session_resp.text}"
+            )
+            return Response(
+                "Failed to create realtime session", status=500, mimetype="text/plain"
+            )
 
-      headers = {
-          "Authorization": f"Bearer {OPENAI_API_KEY}",
-          "Content-Type": "application/json",
-      }
-      session_resp = requests.post(
-          OPENAI_SESSION_URL, headers=headers, json=session_payload, timeout=30
-      )
-      if not session_resp.ok:
-          logger.error(
-              f"Session create failed: {session_resp.status_code} {session_resp.text}"
-          )
-          return Response(
-              "Failed to create realtime session", status=500, mimetype="text/plain"
-          )
+        token_data = session_resp.json()
+        ephemeral_token = token_data.get("client_secret", {}).get("value")
+        if not ephemeral_token:
+            logger.error("Ephemeral token missing")
+            return Response(
+                "Missing ephemeral token", status=500, mimetype="text/plain"
+            )
 
-      token_data = session_resp.json()
-      ephemeral_token = token_data.get("client_secret", {}).get("value")
-      if not ephemeral_token:
-          logger.error("Ephemeral token missing")
-          return Response(
-              "Missing ephemeral token", status=500, mimetype="text/plain"
-          )
+        # 2) SDP exchange
+        sdp_headers = {
+            "Authorization": f"Bearer {ephemeral_token}",
+            "Content-Type": "application/sdp",
+        }
+        sdp_resp = requests.post(
+            OPENAI_API_URL,
+            headers=sdp_headers,
+            params={"model": MODEL_ID, "voice": VOICE},
+            data=client_sdp,
+            timeout=60,
+        )
+        if not sdp_resp.ok:
+            logger.error(f"SDP exchange failed: {sdp_resp.status_code} {sdp_resp.text}")
+            return Response("SDP exchange error", status=500, mimetype="text/plain")
 
-      # SDP exchange with OpenAI Realtime
-      sdp_headers = {
-          "Authorization": f"Bearer {ephemeral_token}",
-          "Content-Type": "application/sdp",
-      }
-      sdp_resp = requests.post(
-          OPENAI_API_URL,
-          headers=sdp_headers,
-          params={"model": MODEL_ID, "voice": VOICE},
-          data=client_sdp,
-          timeout=60,
-      )
-      if not sdp_resp.ok:
-          logger.error(
-              f"SDP exchange failed: {sdp_resp.status_code} {sdp_resp.text}"
-          )
-          return Response("SDP exchange error", status=500, mimetype="text/plain")
+        return Response(sdp_resp.content, status=200, mimetype="application/sdp")
 
-      return Response(sdp_resp.content, status=200, mimetype="application/sdp")
-
-  except Exception as e:
-      logger.exception("RTC connection error")
-      return Response(f"Error: {e}", status=500, mimetype="text/plain")
+    except Exception as e:
+        logger.exception("RTC connection error")
+        return Response(f"Error: {e}", status=500, mimetype="text/plain")
 
 
 @app.route("/api/search", methods=["POST"])
@@ -423,4 +425,3 @@ def search():
 
 if __name__ == "__main__":
     app.run(debug=True, port=8813)
-
