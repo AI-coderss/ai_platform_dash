@@ -129,7 +129,8 @@ const TOOL_SCHEMAS = [
 ];
 
 /* =====================================================================================
-   ReactiveOrb — unchanged (kept intact)
+   ReactiveOrb — keep your design; only enforce circle, lock canvas size, and
+   make rotation speed react to audio level.
 ===================================================================================== */
 const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
   const hostRef = useRef(null);
@@ -347,8 +348,9 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
 
     // 🔒 lock canvas size — no ResizeObserver, no layout-driven changes
     const d = size;
+    // AFTER: lock both drawing buffer AND CSS box size
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    renderer.setSize(d, d, true);
+    renderer.setSize(d, d, true);         // ✅ true = also sets canvas.style width/height
     const cvs = renderer.domElement;
     cvs.style.width = `${d}px`;
     cvs.style.height = `${d}px`;
@@ -357,7 +359,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     cvs.style.maxWidth = `${d}px`;
     cvs.style.maxHeight = `${d}px`;
     cvs.style.flex = "0 0 auto";
-    cvs.style.display = "block";
+    cvs.style.display = "block";          // avoid inline-canvas baseline quirks
 
     camera.aspect = 1;
     camera.updateProjectionMatrix();
@@ -370,6 +372,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     orbMatRef.current = orbMat;
     haloRef.current = halo;
 
+    // hover/tilt
     const onEnter = () => (hoverRef.current = 1);
     const onLeave = () => { hoverRef.current = 0; tiltTargetRef.current = { x: 0, y: 0 }; };
     const onMove = (e) => {
@@ -398,9 +401,11 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       const mat = orbMatRef.current;
       const halo = haloRef.current;
 
+      // audio analysis value from previous effect (smoothed in uniforms)
       const audioLevel = mat.uniforms.u_audio.value;
 
-      const boost = 1 + audioLevel * 2.5;
+      // 🎚️ rotation speed reacts to audio
+      const boost = 1 + audioLevel * 2.5;  // 1..3.5x
       if (orb) {
         orb.rotation.y += 0.02 * speed * boost;
         orb.rotation.x += (tiltTargetRef.current.x - orb.rotation.x) * 0.08;
@@ -408,9 +413,11 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       }
       if (halo) halo.rotation.y += 0.008 * speed * boost;
 
+      // uniforms
       mat.uniforms.u_time.value = t;
       halo.material.uniforms.u_time.value = t;
 
+      // halo tint blends blue→warm with audio/hover
       const mixK = Math.min(1, 0.7 * hoverRef.current + 0.5 * audioLevel);
       const tint = blue.clone().lerp(warm, mixK);
       halo.material.uniforms.u_tint.value.copy(tint);
@@ -434,6 +441,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     };
   }, [size, speed]);
 
+  // build AudioContext from remote stream (kept intact, just used for rotation/color)
   useEffect(() => {
     let ac, an, src;
     if (stream) {
@@ -461,6 +469,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     };
   }, [stream]);
 
+  // sample audio & push to uniforms (smoothing)
   useEffect(() => {
     let raf = 0;
     const tick = () => {
@@ -488,9 +497,9 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        minWidth: `${size}px`,
-        minHeight: `${size}px`,
-        flex: "0 0 auto",
+        minWidth: `${size}px`,       // ✅ new
+        minHeight: `${size}px`,      // ✅ new
+        flex: "0 0 auto",            // ✅ new (don’t let flexbox shrink it)
         margin: "10px auto 4px",
         background: "transparent",
         pointerEvents: "auto",
@@ -518,12 +527,6 @@ const VoiceAssistant = () => {
 
   const { hideVoiceBtn, chooseVoice, resetToggles } = useUiStore();
 
-  /* ==== NEW: AI transcript drawer state ==== */
-  const [showTranscript, setShowTranscript] = useState(false);
-  const [segments, setSegments] = useState([]); // [{id, text}]
-  const [liveLine, setLiveLine] = useState("");
-  const liveLineRef = useRef("");
-
   useEffect(() => {
     if (dragConstraintsRef.current == null) {
       dragConstraintsRef.current = document.body;
@@ -541,15 +544,7 @@ const VoiceAssistant = () => {
     setTranscript("");
     setResponseText("");
     setRemoteStream(null);
-    setSegments([]);
-    setLiveLine("");
-    liveLineRef.current = "";
     resetToggles();
-  };
-
-  const closeAssistantNow = () => {
-    setIsOpen(false);
-    cleanupWebRTC();
   };
 
   const handleToolCall = (name, args) => {
@@ -656,10 +651,12 @@ const VoiceAssistant = () => {
     }
     if (name === "card_play") {
       const id = String(args?.id || "").trim();
-      const autoplay = args?.autoplay !== false;
+      const autoplay = args?.autoplay !== false; // default true
 
+      // Navigate to the console first
       try { window.agentNavigate?.("card_console"); } catch { }
 
+      // Then open & play via bridge or event
       if (window.CardConsoleBridge?.play) {
         try { window.CardConsoleBridge.play(id, { autoplay }); } catch { }
       } else {
@@ -675,6 +672,8 @@ const VoiceAssistant = () => {
       window.dispatchEvent(new Event("dashboard:toggle"));
       return;
     }
+
+
   };
 
   const sendSessionUpdate = () => {
@@ -727,46 +726,13 @@ const VoiceAssistant = () => {
         setIsMicActive(true);
         sendSessionUpdate();
         try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch { }
-
-        // reset transcript buffers on new session
-        setSegments([]);
-        setLiveLine("");
-        liveLineRef.current = "";
       };
 
       channel.onmessage = (event) => {
         let msg; try { msg = JSON.parse(event.data); } catch { return; }
-
-        if (msg.type === "conversation.item.input_audio_transcription.completed") {
-          setTranscript(msg.transcript || "");
-          setResponseText("");
-          return;
-        }
-
-        if (msg.type === "response.text.delta") {
-          const d = msg.delta || "";
-          setResponseText((p) => p + d);
-          setLiveLine((prev) => {
-            const next = prev + d;
-            liveLineRef.current = next;
-            return next;
-          });
-          return;
-        }
-
-        if (msg.type === "response.done") {
-          setTranscript("");
-          const finalText = (liveLineRef.current || "").trim();
-          if (finalText) {
-            setSegments((prev) => [
-              ...prev,
-              { id: msg.response_id || `${Date.now()}-${prev.length}`, text: finalText },
-            ]);
-          }
-          liveLineRef.current = "";
-          setLiveLine("");
-          return;
-        }
+        if (msg.type === "conversation.item.input_audio_transcription.completed") { setTranscript(msg.transcript || ""); setResponseText(""); return; }
+        if (msg.type === "response.text.delta") { setResponseText((p) => p + (msg.delta || "")); return; }
+        if (msg.type === "response.done") { setTranscript(""); return; }
 
         if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
           const id = msg.item.call_id || msg.item.id || "default";
@@ -846,6 +812,11 @@ const VoiceAssistant = () => {
       try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch { }
     }
   };
+  // ⬇️ add this small helper
+  const closeAssistantNow = () => {
+    setIsOpen(false);
+    cleanupWebRTC();
+  };
 
   return (
     <>
@@ -868,20 +839,10 @@ const VoiceAssistant = () => {
 
             <div className="voice-header">
               <h3>Voice Assistant</h3>
-              <div className="voice-header-actions">
-                {/* 🔘 Transcript toggle button inside voice assistant */}
-                <button
-                  type="button"
-                  className={`va-transcript-toggle-btn ${showTranscript ? "on" : "off"}`}
-                  onClick={() => setShowTranscript((prev) => !prev)}
-                  title={showTranscript ? "Hide AI transcript" : "Show AI transcript"}
-                >
-                  CC
-                </button>
-                <button className="close-btn-green" onClick={toggleAssistant}>✖</button>
-              </div>
+              <button className="close-btn-green" onClick={toggleAssistant}>✖</button>
             </div>
 
+            {/* ✅ perfect-circle, locked size, audio-reactive rotation & color */}
             <ReactiveOrb stream={remoteStream} size={220} speed={2.2} />
 
             <div className="voice-visualizer-container">
@@ -906,63 +867,16 @@ const VoiceAssistant = () => {
                 {isMicActive ? <FaMicrophoneAlt /> : <FaMicrophoneSlash />}
               </button>
               <span className={`status ${connectionStatus}`}>{isMicActive ? "listening" : "mic off"}</span>
+
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ======= AI Transcript Drawer (centered, toggleable) ======= */}
-      {showTranscript && (
-        <div className="va-transcript-drawer">
-          <div className="va-transcript-header">
-            <div className="va-transcript-title">AI Transcript</div>
-            <div className="va-transcript-header-right">
-              <span className={`va-pill ${liveLine ? "va-pill-live" : "va-pill-idle"}`}>
-                {liveLine ? "Live" : "Idle"}
-              </span>
-              <button
-                type="button"
-                className="va-transcript-close-btn"
-                onClick={() => setShowTranscript(false)}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          <div className="va-transcript-body">
-            {segments.length === 0 && !liveLine ? (
-              <div className="va-transcript-placeholder">
-                No transcript yet. Start speaking with the assistant to see its replies here.
-              </div>
-            ) : (
-              <>
-                {segments.map((seg) => (
-                  <p key={seg.id} className="va-transcript-line">
-                    {seg.text}
-                  </p>
-                ))}
-                {liveLine && (
-                  <p className="va-transcript-line va-transcript-line-live">
-                    {liveLine}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="va-transcript-handle">
-            <div className="va-transcript-handle-bar" />
-          </div>
-        </div>
-      )}
-
       <Dashboard />
     </>
   );
 };
 
 export default VoiceAssistant;
-
 
