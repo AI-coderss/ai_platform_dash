@@ -54,6 +54,7 @@ const urls = {
   patient: "https://patient-ai-assistant-mulltimodal-app.onrender.com",
   meeting: "https://ai-meeting-assistant-frontend.onrender.com",
   survey: "https://forms.visme.co/formsPlayer/zzdk184y-ai-applications-usage-at-dsah",
+  announcement: "https://swift-echo-care.lovable.app",
 };
 const navItems = [
   { id: "home", label: "Home", icon: <FaHome />, onSelect: () => jump("hero") },
@@ -64,7 +65,9 @@ const navItems = [
   { id: "ivf", label: "IVF Assistant", icon: <FaBaby />, href: urls.ivf },
   { id: "patient", label: "Patient Assistant", icon: <FaHeadset />, href: urls.patient },
   { id: "meeting", label: "Meeting Assistant", icon: <FaHeadset />, href: urls.meeting },
+  { id: "announcement", label: "Announcement System", icon: <FaEnvelopeOpenText />, href: urls.announcement },
   { id: "survey", label: "Survey", icon: <FaClipboardCheck />, href: urls.survey },
+  
   // You can add more: { id: "contact", label: "Contact", icon: <FaEnvelope />, onSelect: () => jump("contact") },
 ];
 /* ------------------ Video Embed URL Parser ------------------ */
@@ -1172,6 +1175,14 @@ const App = () => {
       helpVideo: "./videos/unddev.mp4",
       agentKey: "meeting",
     },
+    {
+      id: 8, name: " Hospital Operator Announcement System",
+      description: "AI-powered system for hospital operator announcements and notifications",
+      icon: "/icons/speaker.svg",
+      link: "https://swift-echo-care.lovable.app",
+      helpVideo: null,
+      agentKey: "announcement",
+    }
     // Survey card shown via floating button
   ];
 
@@ -1197,6 +1208,7 @@ const App = () => {
       if (s === "ivf") { window.open(urls.ivf, "_blank", "noopener,noreferrer"); return; }
       if (s === "patient") { window.open(urls.patient, "_blank", "noopener,noreferrer"); return; }
       if (s === "meeting") { window.open(urls.meeting, "_blank", "noopener,noreferrer"); return; }
+      if (s === "announcement") { window.open(urls.announcement, "_blank", "noopener,noreferrer"); return; }
       if (s === "survey") { window.open(urls.survey, "_blank", "noopener,noreferrer"); return; }
 
       if (s === "chat") {
