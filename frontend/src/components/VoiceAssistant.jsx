@@ -6,6 +6,14 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-useless-concat */
 /* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from "react";
 import { FaMicrophoneAlt, FaMicrophoneSlash } from "react-icons/fa";
 
@@ -348,7 +356,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
 
     // 🔒 lock canvas size — no ResizeObserver, no layout-driven changes
     const d = size;
-    // AFTER: lock both drawing buffer AND CSS box size
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(d, d, true);         // ✅ true = also sets canvas.style width/height
     const cvs = renderer.domElement;
@@ -359,7 +366,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     cvs.style.maxWidth = `${d}px`;
     cvs.style.maxHeight = `${d}px`;
     cvs.style.flex = "0 0 auto";
-    cvs.style.display = "block";          // avoid inline-canvas baseline quirks
+    cvs.style.display = "block";
 
     camera.aspect = 1;
     camera.updateProjectionMatrix();
@@ -401,11 +408,9 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       const mat = orbMatRef.current;
       const halo = haloRef.current;
 
-      // audio analysis value from previous effect (smoothed in uniforms)
       const audioLevel = mat.uniforms.u_audio.value;
 
-      // 🎚️ rotation speed reacts to audio
-      const boost = 1 + audioLevel * 2.5;  // 1..3.5x
+      const boost = 1 + audioLevel * 2.5;
       if (orb) {
         orb.rotation.y += 0.02 * speed * boost;
         orb.rotation.x += (tiltTargetRef.current.x - orb.rotation.x) * 0.08;
@@ -413,11 +418,9 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       }
       if (halo) halo.rotation.y += 0.008 * speed * boost;
 
-      // uniforms
       mat.uniforms.u_time.value = t;
       halo.material.uniforms.u_time.value = t;
 
-      // halo tint blends blue→warm with audio/hover
       const mixK = Math.min(1, 0.7 * hoverRef.current + 0.5 * audioLevel);
       const tint = blue.clone().lerp(warm, mixK);
       halo.material.uniforms.u_tint.value.copy(tint);
@@ -441,7 +444,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     };
   }, [size, speed]);
 
-  // build AudioContext from remote stream (kept intact, just used for rotation/color)
   useEffect(() => {
     let ac, an, src;
     if (stream) {
@@ -469,7 +471,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     };
   }, [stream]);
 
-  // sample audio & push to uniforms (smoothing)
   useEffect(() => {
     let raf = 0;
     const tick = () => {
@@ -497,9 +498,9 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        minWidth: `${size}px`,       // ✅ new
-        minHeight: `${size}px`,      // ✅ new
-        flex: "0 0 auto",            // ✅ new (don’t let flexbox shrink it)
+        minWidth: `${size}px`,
+        minHeight: `${size}px`,
+        flex: "0 0 auto",
         margin: "10px auto 4px",
         background: "transparent",
         pointerEvents: "auto",
@@ -521,6 +522,8 @@ const VoiceAssistant = () => {
   const [remoteStream, setRemoteStream] = useState(null);
   const audioPlayerRef = useRef(null);
   const dragConstraintsRef = useRef(null);
+  const pendingTextRef = useRef([]); // ✅ used: queue text prompts from Announcement component
+  const bridgeFnsRef = useRef({ ask: null, open: null, close: null });
 
   const toolBuffersRef = useRef(new Map());
   const recentClicksRef = useRef(new Map());
@@ -651,12 +654,10 @@ const VoiceAssistant = () => {
     }
     if (name === "card_play") {
       const id = String(args?.id || "").trim();
-      const autoplay = args?.autoplay !== false; // default true
+      const autoplay = args?.autoplay !== false;
 
-      // Navigate to the console first
       try { window.agentNavigate?.("card_console"); } catch { }
 
-      // Then open & play via bridge or event
       if (window.CardConsoleBridge?.play) {
         try { window.CardConsoleBridge.play(id, { autoplay }); } catch { }
       } else {
@@ -672,8 +673,6 @@ const VoiceAssistant = () => {
       window.dispatchEvent(new Event("dashboard:toggle"));
       return;
     }
-
-
   };
 
   const sendSessionUpdate = () => {
@@ -690,6 +689,36 @@ const VoiceAssistant = () => {
         }
       }));
     } catch { }
+  };
+
+  /* ✅ NEW: send text prompt into the live session (keeps the rest intact) */
+  const sendTextToAssistant = (text) => {
+    const t = String(text || "").trim();
+    if (!t) return false;
+    const ch = dataChannelRef.current;
+    if (!ch || ch.readyState !== "open") return false;
+
+    try {
+      // Add user message
+      ch.send(JSON.stringify({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: t }]
+        }
+      }));
+
+      // Ask for response (audio + text)
+      ch.send(JSON.stringify({
+        type: "response.create",
+        response: { modalities: ["text", "audio"] }
+      }));
+
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const startWebRTC = async () => {
@@ -724,21 +753,46 @@ const VoiceAssistant = () => {
         setConnectionStatus("connected");
         setResponseText("Connected! Speak now...");
         setIsMicActive(true);
+
         sendSessionUpdate();
+
+        // ✅ NEW: flush any queued questions from the Announcement component
+        try {
+          const queued = pendingTextRef.current || [];
+          if (queued.length) {
+            pendingTextRef.current = [];
+            queued.forEach((q) => sendTextToAssistant(q));
+          }
+        } catch { }
+
         try { channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } })); } catch { }
       };
 
       channel.onmessage = (event) => {
         let msg; try { msg = JSON.parse(event.data); } catch { return; }
-        if (msg.type === "conversation.item.input_audio_transcription.completed") { setTranscript(msg.transcript || ""); setResponseText(""); return; }
-        if (msg.type === "response.text.delta") { setResponseText((p) => p + (msg.delta || "")); return; }
-        if (msg.type === "response.done") { setTranscript(""); return; }
+
+        if (msg.type === "conversation.item.input_audio_transcription.completed") {
+          setTranscript(msg.transcript || "");
+          setResponseText("");
+          return;
+        }
+
+        if (msg.type === "response.text.delta") {
+          setResponseText((p) => p + (msg.delta || ""));
+          return;
+        }
+
+        if (msg.type === "response.done") {
+          setTranscript("");
+          return;
+        }
 
         if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
           const id = msg.item.call_id || msg.item.id || "default";
           toolBuffersRef.current.set(id, { name: msg.item.name || "", argsText: "" });
           return;
         }
+
         if (msg.type === "response.function_call_arguments.delta" || msg.type === "tool_call.delta") {
           const id = msg.call_id || msg.id || "default";
           const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
@@ -746,6 +800,7 @@ const VoiceAssistant = () => {
           toolBuffersRef.current.set(id, prev);
           return;
         }
+
         if (
           msg.type === "response.function_call_arguments.done" ||
           msg.type === "tool_call_arguments.done" ||
@@ -812,11 +867,78 @@ const VoiceAssistant = () => {
       try { localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = next)); } catch { }
     }
   };
+
   // ⬇️ add this small helper
   const closeAssistantNow = () => {
     setIsOpen(false);
     cleanupWebRTC();
   };
+
+  /* ✅ NEW: VoiceAssistantBridge + events so the Announcement card can drive the agent */
+  useEffect(() => {
+    // Bridge API for any component (MeetingAssistantAnnouncement uses this)
+    window.VoiceAssistantBridge = {
+      open: () => {
+        // open assistant if closed
+        if (!isOpen) {
+          chooseVoice();
+          setIsOpen(true);
+          startWebRTC();
+        }
+        return true;
+      },
+      close: () => {
+        closeAssistantNow();
+        return true;
+      },
+      ask: async (text) => {
+        const q = String(text || "").trim();
+        if (!q) return false;
+
+        // ensure open
+        if (!isOpen) {
+          chooseVoice();
+          setIsOpen(true);
+          startWebRTC();
+        } else {
+          // if open but idle, ensure session
+          if (!peerConnectionRef.current && connectionStatus !== "connecting") {
+            startWebRTC();
+          }
+        }
+
+        // if channel ready, send now; else queue to send once connected
+        if (sendTextToAssistant(q)) return true;
+        pendingTextRef.current = [...(pendingTextRef.current || []), q];
+        return true;
+      },
+      status: () => ({
+        isOpen: !!isOpen,
+        connectionStatus,
+        isMicActive: !!isMicActive
+      }),
+    };
+
+    // Event listeners fallback (Announcement also dispatches events)
+    const onOpen = () => window.VoiceAssistantBridge?.open?.();
+    const onClose = () => window.VoiceAssistantBridge?.close?.();
+    const onAsk = (e) => {
+      const text = e?.detail?.text;
+      window.VoiceAssistantBridge?.ask?.(text);
+    };
+
+    window.addEventListener("assistant:open", onOpen);
+    window.addEventListener("assistant:close", onClose);
+    window.addEventListener("voice:ask", onAsk);
+
+    return () => {
+      try { window.removeEventListener("assistant:open", onOpen); } catch { }
+      try { window.removeEventListener("assistant:close", onClose); } catch { }
+      try { window.removeEventListener("voice:ask", onAsk); } catch { }
+      // keep bridge stable if other pages rely on it, but remove on unmount to avoid stale closures
+      try { delete window.VoiceAssistantBridge; } catch { }
+    };
+  }, [isOpen, connectionStatus, isMicActive]);
 
   return (
     <>
@@ -830,7 +952,15 @@ const VoiceAssistant = () => {
         {isOpen && (
           <motion.div
             className="voice-sidebar glassmorphic"
-            style={{ position: "fixed", top: 96, left: 96, zIndex: 1001, width: "380px", height: "600px", background: "transparent" }}
+            style={{
+              position: "fixed",
+              top: 96,
+              left: 96,
+              zIndex: 1001,
+              width: "380px",
+              height: "600px",
+              background: "transparent"
+            }}
             drag
             dragConstraints={dragConstraintsRef}
             dragElastic={0.2}
@@ -870,6 +1000,10 @@ const VoiceAssistant = () => {
 
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
+
+            {/* (Optional) show the last assistant text response inside the panel, if you want:
+                <div style={{ padding: "10px", fontSize: 12, opacity: .9 }}>{responseText}</div>
+            */}
           </motion.div>
         )}
       </AnimatePresence>
@@ -879,4 +1013,5 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
 

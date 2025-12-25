@@ -19,6 +19,8 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
+import MeetingAssistantAnnouncement from "./components/MeetingAssistantAnnouncement";
+
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 import VideoCarousel from "./components/VideoCarousel";
 import RadialNav from "./components/RadialNav";
@@ -1254,30 +1256,33 @@ const App = () => {
       {/* Header (kept) */}
       <div className="header">
         <div className="logo-container">
-          <img src="/assets/logo.png" alt="Hospital Logo" className="hospital-logo" />
+          <img
+            src="/assets/logo.png"
+            alt="Hospital Logo"
+            className="hospital-logo"
+          />
         </div>
         <div className="title-block">
           <div id="BrushCursor">
             <div className="container">
               <div className="p p1">DSAH AI PLATFORM 🧠</div>
               <div className="p p2">DSAH AI PLATFORM 🧠</div>
-              <div className="p p3">DSAH AI PLATFORM 🧠<div className="cursor"></div></div>
+              <div className="p p3">
+                DSAH AI PLATFORM 🧠<div className="cursor"></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
+      <MeetingAssistantAnnouncement />
       {/* Hero with text (left) + GLASS CUBE with heart (right) */}
       <HeroLogoParticles theme={theme} />
 
       {/* Video modal */}
-            {/* Video modal */}
+      {/* Video modal */}
       {isVideoOpen && (
         <div className="video-modal" onClick={closeHelpVideo}>
-          <div
-            className="video-wrapper"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="video-wrapper" onClick={(e) => e.stopPropagation()}>
             <button
               className="close-video"
               onClick={closeHelpVideo}
@@ -1316,7 +1321,9 @@ const App = () => {
       <section id="products" ref={productsRef} className="products-section">
         <h2 className="section-title">Our Products</h2>
         <div className="page-content">
-          {apps.map((app) => (<AppCard key={app.id} app={app} onPlay={openHelpVideo} />))}
+          {apps.map((app) => (
+            <AppCard key={app.id} app={app} onPlay={openHelpVideo} />
+          ))}
         </div>
       </section>
       <section id="card_console" className="card_console">
@@ -1326,33 +1333,65 @@ const App = () => {
         <LaptopSection3D />
       </section>
       {/* <TestimonialSection /> */}
-      <section className="section-title" href="#watch_tutorial" id="watch_tutorial" style={{ marginTop: '15rem' }}>
-
-
+      <section
+        className="section-title"
+        href="#watch_tutorial"
+        id="watch_tutorial"
+        style={{ marginTop: "15rem" }}
+      >
         <VideoCarousel />
       </section>
-      <a href={surveyUrl} className="btn survey-fab-button" target="_blank" rel="noopener noreferrer" title="Take our Survey" data-agent-id="products.launch:survey">
+      <a
+        href={surveyUrl}
+        className="btn survey-fab-button"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Take our Survey"
+        data-agent-id="products.launch:survey"
+      >
         Take Survey 📝
       </a>
-        
+
       <div className="contact" href="#contact" id="contact">
         <ContactSection />
       </div>
       <VoiceAssistant />
+      
       <RadialNav
         lift={140}
         items={[
           { id: "about", label: "About", icon: <FaHome />, targetId: "hero" },
-          { id: "products", label: "Products", icon: <FaThLarge />, targetId: "products" },
-          { id: "tutorial", label: "Tutorial", icon: <FaPlayCircle />, targetId: "watch_tutorial" },
-          { id: "policy", label: "Policy", icon: <FaShieldAlt />, targetId: "policy" },
-          { id: "contact", label: "Contact", icon: <FaEnvelopeOpenText />, targetId: "contact" },
-
+          {
+            id: "products",
+            label: "Products",
+            icon: <FaThLarge />,
+            targetId: "products",
+          },
+          {
+            id: "tutorial",
+            label: "Tutorial",
+            icon: <FaPlayCircle />,
+            targetId: "watch_tutorial",
+          },
+          {
+            id: "policy",
+            label: "Policy",
+            icon: <FaShieldAlt />,
+            targetId: "policy",
+          },
+          {
+            id: "contact",
+            label: "Contact",
+            icon: <FaEnvelopeOpenText />,
+            targetId: "contact",
+          },
         ]}
       />
 
       <ChatBot />
       <Footer />
+ 
+
     </div>
   );
 };
