@@ -1,31 +1,12 @@
-/* src/styles/MeetingAssistantAnnouncement.css */
-
-/* -------------------------
-   Theme tokens (light default)
-   Your app can toggle: <html data-theme="dark">
--------------------------- */
-/* src/styles/MeetingAssistantAnnouncement.css */
-
-/* -------------------------
-   Theme tokens (light default)
-   App can toggle: <html data-theme="dark">
--------------------------- */
-/* MeetingAssistantAnnouncement.css */
-
-/* ---------- Theme vars (light default) ---------- */
-/* MeetingAssistantAnnouncement.css */
-
-/* ---------- Theme vars (light default) ---------- */
-/* MeetingAssistantAnnouncement.css */
-/* MeetingAssistantAnnouncement.css */
-
-/* =========================================================
-   MeetingAssistantAnnouncement.css (FULL) — Light + Dark Mode
-   - Supports: [data-theme="dark"] on any ancestor OR
-               html.dark / body.dark / .dark on any ancestor OR
-               prefers-color-scheme: dark fallback
-   - Uses tokens so ALL parts flip correctly (tabs/panels/text/etc.)
-========================================================= */
+/* src/styles/MeetingAssistantAnnouncement.css
+   CLEAN UI — Light + Dark Mode
+   Update per your request:
+   ✅ Removed ALL internal borders/lines (tabs shell, nav, cards, FAQ, feedback, chat dock, separators)
+   ✅ Kept ONLY the OUTER border of the main component (.dsah-ann-card) as-is
+   ✅ Kept primary color: #3457ED
+   ✅ No shadows
+   ✅ Scrollbar hidden while keeping scroll
+*/
 
 /* ---------- Default (Light) tokens ---------- */
 :root {
@@ -42,113 +23,80 @@
   --dsah-text-2: #111827;
   --dsah-muted: #64748b;
 
-  /* Borders / shadows */
+  /* Outer border only */
   --dsah-border: rgba(15, 23, 42, 0.12);
-  --dsah-border-2: rgba(15, 23, 42, 0.08);
-  --dsah-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.20),
-    0 0 0 1px rgba(255, 255, 255, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.80);
 
   /* Accents / fills */
   --dsah-primary-soft: rgba(52, 87, 237, 0.10);
   --dsah-primary-soft-2: rgba(52, 87, 237, 0.08);
   --dsah-primary-soft-3: rgba(52, 87, 237, 0.06);
-  --dsah-primary-border: rgba(52, 87, 237, 0.22);
 
   /* Launch / caret */
   --dsah-caret: rgba(52, 87, 237, 0.78);
 
   /* Orbs */
-  --dsah-orb: rgba(255, 255, 255, 0.10);
-
-  /* Pills */
-  --dsah-pill-shadow: 0 16px 46px rgba(2, 8, 23, 0.18);
+  --dsah-orb: rgba(15, 23, 42, 0.05);
 
   /* Danger hover */
   --dsah-danger-bg: rgba(239, 68, 68, 0.14);
   --dsah-danger-border: rgba(239, 68, 68, 0.25);
-
-  /* Scrollbar */
-  --dsah-scroll-thumb: rgba(15, 23, 42, 0.18);
-  --dsah-scroll-track: rgba(15, 23, 42, 0.06);
 }
 
-/* ---------- Dark tokens (supports multiple toggles) ---------- */
+/* ---------- Dark tokens ---------- */
 [data-theme="dark"],
 html.dark,
 body.dark,
 .dark {
   --dsah-bg: #070B17;
-  --dsah-surface: rgba(10, 14, 28, 0.84);
-  --dsah-surface-2: rgba(10, 14, 28, 0.70);
-  --dsah-surface-3: rgba(10, 14, 28, 0.62);
+  --dsah-surface: rgba(10, 14, 28, 0.92);
+  --dsah-surface-2: rgba(10, 14, 28, 0.78);
+  --dsah-surface-3: rgba(10, 14, 28, 0.70);
 
   --dsah-text: rgba(245, 247, 255, 0.92);
   --dsah-text-2: rgba(245, 247, 255, 0.96);
   --dsah-muted: rgba(226, 232, 240, 0.70);
 
-  --dsah-border: rgba(148, 163, 184, 0.20);
-  --dsah-border-2: rgba(148, 163, 184, 0.14);
-
-  --dsah-shadow: 0 26px 70px rgba(0, 0, 0, 0.55);
+  --dsah-border: rgba(148, 163, 184, 0.24);
 
   --dsah-primary-soft: rgba(52, 87, 237, 0.18);
   --dsah-primary-soft-2: rgba(52, 87, 237, 0.14);
   --dsah-primary-soft-3: rgba(52, 87, 237, 0.10);
-  --dsah-primary-border: rgba(52, 87, 237, 0.32);
 
   --dsah-caret: rgba(120, 140, 255, 0.90);
-
-  --dsah-orb: rgba(255, 255, 255, 0.06);
-
-  --dsah-pill-shadow: 0 18px 56px rgba(0, 0, 0, 0.52);
+  --dsah-orb: rgba(255, 255, 255, 0.04);
 
   --dsah-danger-bg: rgba(239, 68, 68, 0.18);
   --dsah-danger-border: rgba(239, 68, 68, 0.30);
-
-  --dsah-scroll-thumb: rgba(226, 232, 240, 0.18);
-  --dsah-scroll-track: rgba(226, 232, 240, 0.06);
 }
 
-/* ---------- Prefers dark fallback (only if no explicit theme class/data) ---------- */
+/* ---------- Prefers dark fallback (only if no explicit theme) ---------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
     --dsah-bg: #070B17;
-    --dsah-surface: rgba(10, 14, 28, 0.84);
-    --dsah-surface-2: rgba(10, 14, 28, 0.70);
-    --dsah-surface-3: rgba(10, 14, 28, 0.62);
+    --dsah-surface: rgba(10, 14, 28, 0.92);
+    --dsah-surface-2: rgba(10, 14, 28, 0.78);
+    --dsah-surface-3: rgba(10, 14, 28, 0.70);
 
     --dsah-text: rgba(245, 247, 255, 0.92);
     --dsah-text-2: rgba(245, 247, 255, 0.96);
     --dsah-muted: rgba(226, 232, 240, 0.70);
 
-    --dsah-border: rgba(148, 163, 184, 0.20);
-    --dsah-border-2: rgba(148, 163, 184, 0.14);
-
-    --dsah-shadow: 0 26px 70px rgba(0, 0, 0, 0.55);
+    --dsah-border: rgba(148, 163, 184, 0.24);
 
     --dsah-primary-soft: rgba(52, 87, 237, 0.18);
     --dsah-primary-soft-2: rgba(52, 87, 237, 0.14);
     --dsah-primary-soft-3: rgba(52, 87, 237, 0.10);
-    --dsah-primary-border: rgba(52, 87, 237, 0.32);
 
     --dsah-caret: rgba(120, 140, 255, 0.90);
-
-    --dsah-orb: rgba(255, 255, 255, 0.06);
-
-    --dsah-pill-shadow: 0 18px 56px rgba(0, 0, 0, 0.52);
+    --dsah-orb: rgba(255, 255, 255, 0.04);
 
     --dsah-danger-bg: rgba(239, 68, 68, 0.18);
     --dsah-danger-border: rgba(239, 68, 68, 0.30);
-
-    --dsah-scroll-thumb: rgba(226, 232, 240, 0.18);
-    --dsah-scroll-track: rgba(226, 232, 240, 0.06);
   }
 }
 
 /* =========================================================
-   Card wrapper
+   Card wrapper (KEEP OUTER BORDER)
 ========================================================= */
 .dsah-ann-card {
   position: fixed;
@@ -160,12 +108,12 @@ body.dark,
   height: min(860px, calc(100vh - 36px));
 
   background: var(--dsah-surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 
-  border-radius: 25px;
-  box-shadow: var(--dsah-shadow);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow: none;
+  border: 1px solid var(--dsah-border); /* KEEP */
 
   display: flex;
   flex-direction: column;
@@ -179,9 +127,9 @@ body.dark,
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.06) 50%,
-    rgba(255, 255, 255, 0.12) 100%
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(255, 255, 255, 0.08) 100%
   );
   pointer-events: none;
 }
@@ -246,7 +194,7 @@ body.dark,
   color: var(--dsah-primary);
   margin: 0;
   line-height: 1.15;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  text-shadow: none;
 }
 
 .dsah-subtitle {
@@ -262,33 +210,24 @@ body.dark,
   width: 40px;
   height: 34px;
   border-radius: 12px;
-  border: 1px solid var(--dsah-border);
-  background: rgba(255,255,255,0.14);
+  border: none;              /* REMOVE internal borders */
+  background: transparent;
   color: var(--dsah-text);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease;
   position: relative;
   z-index: 3;
 }
-[data-theme="dark"] .dsah-icon,
-html.dark .dsah-icon,
-body.dark .dsah-icon,
-.dark .dsah-icon {
-  background: rgba(255,255,255,0.08);
-}
-
 .dsah-icon:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(0,0,0,0.16);
+  background: var(--dsah-primary-soft-3);
 }
-
 .dsah-danger:hover {
   background: var(--dsah-danger-bg);
-  border-color: var(--dsah-danger-border);
 }
 
 /* =========================================================
-   Launch typed line
+   Launch typed line (NO border)
 ========================================================= */
 .dsah-launch {
   position: relative;
@@ -304,12 +243,19 @@ body.dark .dsah-icon,
 }
 
 .dsah-launch-line {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 10px 12px;
-  border: 1px solid var(--dsah-primary-border);
-  box-shadow: inset 0 2px 10px rgba(0,0,0,0.10);
+  border: none;          /* REMOVE */
+  box-shadow: none;
   min-height: 42px;
+}
+
+[data-theme="dark"] .dsah-launch-line,
+html.dark .dsah-launch-line,
+body.dark .dsah-launch-line,
+.dark .dsah-launch-line {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .dsah-launch-text {
@@ -332,20 +278,18 @@ body.dark .dsah-icon,
 @keyframes dsahBlink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
 
 /* =========================================================
-   Tabs shell
+   Tabs shell (NO border)
 ========================================================= */
 .dsah-tabs-shell {
   position: relative;
   z-index: 2;
   margin: 0 22px;
-  padding: 14px 14px 12px;
+  padding: 12px 12px 12px;
 
   background: var(--dsah-surface-3);
-  border-radius: 22px;
-  box-shadow:
-    inset 0 2px 10px rgba(0,0,0,0.10),
-    0 5px 20px rgba(0,0,0,0.10);
+  border-radius: 20px;
 
+  box-shadow: none;
   overflow: hidden;
 
   display: flex;
@@ -353,41 +297,47 @@ body.dark .dsah-icon,
   flex: 1;
   min-height: 0;
 
-  border: 1px solid var(--dsah-border-2);
+  border: none; /* REMOVE internal border */
 }
 
 .dsah-tabs-heading {
   text-align: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 850;
   color: var(--dsah-primary);
   margin: 0 0 10px;
 }
 
-/* Navigation (compact) */
+/* Navigation (compact + clean, NO border) */
 .dsah-tab-nav {
   display: flex;
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 6px;
+  padding: 5px;
   margin-bottom: 10px;
   position: relative;
-  box-shadow:
-    inset 0 2px 10px rgba(0,0,0,0.12),
-    0 5px 20px rgba(0,0,0,0.12);
   overflow: hidden;
-  border: 1px solid var(--dsah-border-2);
+  border: none;      /* REMOVE */
+  box-shadow: none;
+}
+
+[data-theme="dark"] .dsah-tab-nav,
+html.dark .dsah-tab-nav,
+body.dark .dsah-tab-nav,
+.dark .dsah-tab-nav {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .dsah-tab-btn {
   flex: 1;
   background: none;
   border: none;
-  padding: 9px 10px;
+
+  padding: 7px 8px;
   cursor: pointer;
   border-radius: 10px;
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  transition: all 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 2;
 
@@ -407,44 +357,41 @@ body.dark .dsah-icon,
   inset: 0;
   background: var(--dsah-primary-soft-2);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.22s ease;
 }
 .dsah-tab-btn:hover::before { opacity: 1; }
 
 .dsah-tab-btn.is-active {
   color: rgba(255,255,255,0.98);
-  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  text-shadow: none;
 }
 
 .dsah-tab-ico {
-  font-size: 0.95rem;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.90rem;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.dsah-tab-btn:hover .dsah-tab-ico { transform: scale(1.15); }
-.dsah-tab-btn.is-active .dsah-tab-ico { transform: scale(1.05); }
+.dsah-tab-btn:hover .dsah-tab-ico { transform: scale(1.12); }
+.dsah-tab-btn.is-active .dsah-tab-ico { transform: scale(1.04); }
 
 .dsah-tab-lbl {
-  font-size: 0.82rem;
-  transition: transform 0.28s ease;
+  font-size: 0.80rem;
+  transition: transform 0.24s ease;
 }
 .dsah-tab-btn:hover .dsah-tab-lbl { transform: translateY(-1px); }
 
 /* Indicator */
 .dsah-tab-ind {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 6px;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
 
-  background: linear-gradient(135deg, var(--dsah-primary), rgba(52, 87, 237, 0.85));
+  background: linear-gradient(135deg, var(--dsah-primary), rgba(52, 87, 237, 0.86));
   border-radius: 10px;
-  transition: all 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.34s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 
-  box-shadow:
-    0 5px 15px rgba(52, 87, 237, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-
+  box-shadow: none;
   width: 33%;
 }
 
@@ -454,22 +401,22 @@ body.dark .dsah-icon,
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.16) 100%
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.10) 100%
   );
   border-radius: 10px;
   animation: dsahShimmer 2s infinite;
 }
 @keyframes dsahShimmer {
-  0%, 100% { opacity: 0.22; }
-  50% { opacity: 0.72; }
+  0%, 100% { opacity: 0.16; }
+  50% { opacity: 0.50; }
 }
 
 .dsah-ind-pulse { animation: dsahIndPulse 0.22s ease-out; }
 @keyframes dsahIndPulse {
   0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.04); }
   100% { transform: scale(1); }
 }
 
@@ -479,7 +426,7 @@ body.dark .dsah-icon,
   border-radius: 50%;
   transform: scale(0);
   opacity: 1;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.45);
   pointer-events: none;
   z-index: 10;
   animation: dsahRipple 0.6s ease-out forwards;
@@ -502,27 +449,14 @@ body.dark .dsah-icon,
   overscroll-behavior: contain;
 }
 
-/* Scrollbar (WebKit) */
-.dsah-panels::-webkit-scrollbar { width: 10px; }
-.dsah-panels::-webkit-scrollbar-track {
-  background: var(--dsah-scroll-track);
-  border-radius: 999px;
-}
-.dsah-panels::-webkit-scrollbar-thumb {
-  background: var(--dsah-scroll-thumb);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-.dsah-panels { scrollbar-color: var(--dsah-scroll-thumb) var(--dsah-scroll-track); }
-
+/* Panel transitions */
 .dsah-panel {
   position: absolute;
   inset: 0;
   opacity: 0;
   visibility: hidden;
   transform: translateY(16px);
-  transition: all 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dsah-panel.is-active {
@@ -532,27 +466,28 @@ body.dark .dsah-icon,
   position: relative;
 }
 
+/* =========================================================
+   Card blocks (NO border/lines)
+========================================================= */
 .dsah-card {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 18px;
-  box-shadow:
-    0 10px 30px rgba(0,0,0,0.14),
-    inset 0 1px 0 rgba(255,255,255,0.12);
+  box-shadow: none;
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--dsah-border-2);
+  border: none;          /* REMOVE */
+}
+[data-theme="dark"] .dsah-card,
+html.dark .dsah-card,
+body.dark .dsah-card,
+.dark .dsah-card {
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.dsah-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--dsah-primary);
-  border-radius: 18px 18px 0 0;
-}
+/* removed the top line */
+.dsah-card::before { content: none; }
 
 .dsah-card-h {
   font-size: 18px;
@@ -588,18 +523,17 @@ body.dark .dsah-icon,
 }
 
 .dsah-feature {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.14);
-  border: 1px solid var(--dsah-border-2);
-  transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+  box-shadow: none;
+  border: none; /* REMOVE */
+  transition: transform 0.18s ease, background 0.18s ease;
   color: var(--dsah-text);
 }
 .dsah-feature:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(0,0,0,0.18);
-  border-color: var(--dsah-primary-border);
+  transform: translateY(-2px);
+  background: var(--dsah-primary-soft-3);
 }
 
 .dsah-feature-ico {
@@ -612,7 +546,7 @@ body.dark .dsah-icon,
   place-items: center;
   background: var(--dsah-primary-soft);
   color: var(--dsah-primary);
-  border: 1px solid var(--dsah-primary-border);
+  border: none; /* REMOVE */
 }
 
 .dsah-feature-h {
@@ -633,7 +567,7 @@ body.dark .dsah-icon,
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 12px;
+  padding: 10px 10px;
 }
 .dsah-bullet-dot {
   width: 9px;
@@ -641,7 +575,7 @@ body.dark .dsah-icon,
   border-radius: 999px;
   margin-top: 4px;
   background: var(--dsah-primary);
-  box-shadow: 0 0 0 4px rgba(52,87,237,0.16);
+  box-shadow: none;
 }
 
 /* Note */
@@ -649,23 +583,29 @@ body.dark .dsah-icon,
   margin-top: 14px;
   font-size: 12px;
   color: var(--dsah-muted);
-  border: 1px dashed var(--dsah-primary-border);
+  border: none;                  /* REMOVE */
   background: var(--dsah-primary-soft-3);
   border-radius: 14px;
   padding: 10px 12px;
 }
 
 /* =========================================================
-   FAQ accordion
+   FAQ accordion (NO borders/lines, clickable feel)
 ========================================================= */
 .dsah-faq { display: grid; gap: 10px; margin-top: 12px; }
 
 .dsah-faq-group {
   border-radius: 16px;
-  background: rgba(255,255,255,0.12);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.14);
+  background: rgba(255,255,255,0.06);
+  box-shadow: none;
   overflow: hidden;
-  border: 1px solid var(--dsah-border-2);
+  border: none; /* REMOVE */
+}
+[data-theme="dark"] .dsah-faq-group,
+html.dark .dsah-faq-group,
+body.dark .dsah-faq-group,
+.dark .dsah-faq-group {
+  background: rgba(255,255,255,0.03);
 }
 
 .dsah-faq-head {
@@ -675,7 +615,7 @@ body.dark .dsah-icon,
   justify-content: space-between;
   gap: 12px;
 
-  padding: 13px 14px;
+  padding: 12px 14px;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -683,7 +623,7 @@ body.dark .dsah-icon,
   font-size: 13px;
   font-weight: 850;
   color: var(--dsah-text-2);
-  transition: background 0.2s ease;
+  transition: background 0.18s ease;
 }
 .dsah-faq-head:hover { background: var(--dsah-primary-soft-3); }
 
@@ -691,17 +631,24 @@ body.dark .dsah-icon,
   width: 28px;
   height: 28px;
   border-radius: 12px;
-  border: 1px solid var(--dsah-border);
+  border: none;      /* REMOVE */
   position: relative;
-  background: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
 }
+[data-theme="dark"] .dsah-faq-plus,
+html.dark .dsah-faq-plus,
+body.dark .dsah-faq-plus,
+.dark .dsah-faq-plus {
+  background: rgba(255,255,255,0.03);
+}
+
 .dsah-faq-plus::before,
 .dsah-faq-plus::after {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-  background: rgba(52,87,237,0.90);
+  background: rgba(52,87,237,0.95);
   border-radius: 2px;
   transform: translate(-50%,-50%);
 }
@@ -712,26 +659,27 @@ body.dark .dsah-icon,
 .dsah-faq-body {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.42s cubic-bezier(0.4,0,0.2,1);
-  border-top: 1px solid var(--dsah-border-2);
+  transition: max-height 0.36s cubic-bezier(0.4,0,0.2,1);
+  border-top: none; /* REMOVE separator line */
 }
 .dsah-faq-body.is-open { max-height: 520px; }
 
 .dsah-faq-list { padding: 12px; display: grid; gap: 10px; }
 
+/* Question buttons (NO border, still inviting) */
 .dsah-faq-btn {
   width: 100%;
   text-align: left;
 
   border-radius: 14px;
-  border: 1px solid var(--dsah-border);
-  background: rgba(255,255,255,0.10);
+  border: none; /* REMOVE */
+  background: rgba(255,255,255,0.06);
 
   padding: 12px 12px;
   cursor: pointer;
 
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--dsah-text-2);
 
   display: flex;
@@ -739,17 +687,24 @@ body.dark .dsah-icon,
   justify-content: space-between;
   gap: 10px;
 
-  transition: all 0.24s cubic-bezier(0.4,0,0.2,1);
+  transition: transform 0.16s ease, background 0.16s ease;
 }
+[data-theme="dark"] .dsah-faq-btn,
+html.dark .dsah-faq-btn,
+body.dark .dsah-faq-btn,
+.dark .dsah-faq-btn {
+  background: rgba(255,255,255,0.03);
+}
+
 .dsah-faq-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.18);
-  border-color: var(--dsah-primary-border);
+  transform: translateY(-1px);
+  background: var(--dsah-primary-soft-3);
 }
+
 .dsah-faq-btn.is-selected {
   background: var(--dsah-primary-soft);
-  border-color: var(--dsah-primary-border);
-  box-shadow: 0 0 0 3px rgba(52,87,237,0.22);
+  outline: 2px solid rgba(52,87,237,0.20);
+  outline-offset: 0;
 }
 
 .dsah-faq-tag {
@@ -758,34 +713,48 @@ body.dark .dsah-icon,
   padding: 6px 10px;
   border-radius: 999px;
   background: var(--dsah-primary-soft);
-  border: 1px solid var(--dsah-primary-border);
+  border: none; /* REMOVE */
   color: var(--dsah-primary);
   white-space: nowrap;
 }
 
 /* =========================================================
-   Feedback
+   Feedback (NO borders)
 ========================================================= */
 .dsah-feedback { display: grid; gap: 12px; margin-top: 12px; }
+
 .dsah-feedback-row {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  background: rgba(255,255,255,0.12);
+
+  background: rgba(255,255,255,0.06);
   border-radius: 15px;
   padding: 14px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.14);
-  transition: transform 0.24s ease;
-  border: 1px solid var(--dsah-border-2);
+
+  box-shadow: none;
+  border: none; /* REMOVE */
+
+  transition: transform 0.18s ease, background 0.18s ease;
 }
-.dsah-feedback-row:hover { transform: translateY(-3px); }
+[data-theme="dark"] .dsah-feedback-row,
+html.dark .dsah-feedback-row,
+body.dark .dsah-feedback-row,
+.dark .dsah-feedback-row {
+  background: rgba(255,255,255,0.03);
+}
+
+.dsah-feedback-row:hover {
+  transform: translateY(-2px);
+  background: var(--dsah-primary-soft-3);
+}
 
 .dsah-feedback-ico { font-size: 24px; }
 .dsah-feedback-h { font-weight: 850; color: var(--dsah-text-2); margin-bottom: 3px; }
 .dsah-feedback-p { color: var(--dsah-muted); font-size: 13px; line-height: 1.5; }
 
 /* =========================================================
-   Chat dock (Questions + Feedback only)
+   Chat dock (NO border)
 ========================================================= */
 .dsah-chatdock {
   position: relative;
@@ -794,15 +763,14 @@ body.dark .dsah-icon,
   padding: 12px 14px;
 
   background: var(--dsah-surface-3);
-  border-radius: 20px;
-  box-shadow:
-    inset 0 2px 10px rgba(0,0,0,0.10),
-    0 5px 20px rgba(0,0,0,0.10);
+  border-radius: 18px;
+  box-shadow: none;
 
   min-height: 150px;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--dsah-border-2);
+
+  border: none; /* REMOVE */
 }
 
 .dsah-chatlabel {
@@ -815,7 +783,7 @@ body.dark .dsah-icon,
 .dsah-chatbox { flex: 1; }
 
 /* =========================================================
-   Minimized pill
+   Minimized pill (unchanged layout, no internal borders)
 ========================================================= */
 .dsah-mini {
   position: fixed;
@@ -831,9 +799,9 @@ body.dark .dsah-icon,
   padding: 10px 12px;
   border-radius: 999px;
 
-  border: 1px solid var(--dsah-border);
+  border: none;
   background: var(--dsah-surface);
-  box-shadow: var(--dsah-pill-shadow);
+  box-shadow: none;
 
   color: var(--dsah-text);
   cursor: pointer;
@@ -844,7 +812,7 @@ body.dark .dsah-icon,
   height: 10px;
   border-radius: 999px;
   background: var(--dsah-primary);
-  box-shadow: 0 0 0 4px rgba(52,87,237,0.16);
+  box-shadow: none;
   animation: dsahPulse 1.15s infinite;
 }
 @keyframes dsahPulse {
@@ -856,13 +824,13 @@ body.dark .dsah-icon,
 .dsah-mini-cta { font-weight: 850; font-size: 12px; color: var(--dsah-primary); }
 
 /* =========================================================
-   External highlight target
+   External highlight target (outline only)
 ========================================================= */
 .dsah-ext-highlight {
   outline: 3px solid rgba(52, 87, 237, 0.36);
   outline-offset: 6px;
   border-radius: 18px;
-  box-shadow: 0 0 0 6px rgba(52, 87, 237, 0.10);
+  box-shadow: none;
 }
 
 /* =========================================================
@@ -881,22 +849,22 @@ body.dark .dsah-icon,
 
   .dsah-tab-nav { flex-direction: column; gap: 6px; }
   .dsah-tab-ind {
-    width: calc(100% - 12px);
-    left: 6px;
-    top: 6px;
+    width: calc(100% - 10px);
+    left: 5px;
+    top: 5px;
     bottom: auto;
-    height: 42px;
+    height: 40px;
   }
 }
+
 /* =========================================================
-   Hide the (left) scrollbar while KEEPING scroll
-   Apply to your scroll container: .dsah-panels
+   Hide scrollbar while KEEPING scroll (dsah-panels)
 ========================================================= */
 
 /* Firefox */
 .dsah-panels {
-  scrollbar-width: none;          /* hides scrollbar */
-  -ms-overflow-style: none;       /* IE/Edge legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* Chrome / Safari / Edge */
@@ -905,4 +873,3 @@ body.dark .dsah-icon,
   height: 0 !important;
   display: none;
 }
-
