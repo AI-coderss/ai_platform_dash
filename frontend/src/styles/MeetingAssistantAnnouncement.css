@@ -10,139 +10,139 @@
    Theme tokens (light default)
    App can toggle: <html data-theme="dark">
 -------------------------- */
+/* MeetingAssistantAnnouncement.css */
+
+/* ---------- Theme vars (light default) ---------- */
 :root {
   --maa-bg: #ffffff;
-  --maa-surface: #ffffff;
-  --maa-border: rgba(18, 24, 40, 0.10);
-  --maa-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
-
+  --maa-surface: rgba(255, 255, 255, 0.94);
+  --maa-surface-2: rgba(248, 250, 252, 0.94);
   --maa-text: #0f172a;
-  --maa-muted: rgba(15, 23, 42, 0.72);
-
+  --maa-muted: #475569;
+  --maa-border: rgba(15, 23, 42, 0.12);
+  --maa-shadow: 0 22px 60px rgba(2, 8, 23, 0.14);
+  --maa-shadow-2: 0 14px 40px rgba(2, 8, 23, 0.12);
   --maa-primary: #2563eb;
-  --maa-primary-weak: rgba(37, 99, 235, 0.10);
-
+  --maa-primary-2: #1d4ed8;
+  --maa-primary-soft: rgba(37, 99, 235, 0.12);
   --maa-danger: #ef4444;
-  --maa-danger-weak: rgba(239, 68, 68, 0.10);
-
-  --maa-btn: #0f172a;
-  --maa-btn-bg: rgba(15, 23, 42, 0.06);
-  --maa-btn-bg-hover: rgba(15, 23, 42, 0.10);
-
-  --maa-input-bg: rgba(15, 23, 42, 0.04);
-  --maa-focus: rgba(37, 99, 235, 0.35);
+  --maa-focus: rgba(37, 99, 235, 0.28);
 }
 
-html[data-theme="dark"] {
-  --maa-bg: rgba(20, 24, 33, 0.92);
-  --maa-surface: rgba(20, 24, 33, 0.92);
-  --maa-border: rgba(255, 255, 255, 0.12);
-  --maa-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
-
-  --maa-text: rgba(255, 255, 255, 0.92);
-  --maa-muted: rgba(255, 255, 255, 0.70);
-
+[data-theme="dark"] {
+  --maa-bg: #0b1220;
+  --maa-surface: rgba(15, 23, 42, 0.72);
+  --maa-surface-2: rgba(15, 23, 42, 0.58);
+  --maa-text: #e5e7eb;
+  --maa-muted: rgba(229, 231, 235, 0.70);
+  --maa-border: rgba(148, 163, 184, 0.18);
+  --maa-shadow: 0 26px 70px rgba(0, 0, 0, 0.40);
+  --maa-shadow-2: 0 16px 50px rgba(0, 0, 0, 0.34);
   --maa-primary: #60a5fa;
-  --maa-primary-weak: rgba(96, 165, 250, 0.14);
-
-  --maa-danger: #fb7185;
-  --maa-danger-weak: rgba(251, 113, 133, 0.14);
-
-  --maa-btn: rgba(255, 255, 255, 0.92);
-  --maa-btn-bg: rgba(255, 255, 255, 0.08);
-  --maa-btn-bg-hover: rgba(255, 255, 255, 0.12);
-
-  --maa-input-bg: rgba(255, 255, 255, 0.08);
-  --maa-focus: rgba(96, 165, 250, 0.40);
+  --maa-primary-2: #93c5fd;
+  --maa-primary-soft: rgba(96, 165, 250, 0.16);
+  --maa-focus: rgba(96, 165, 250, 0.26);
 }
 
-/* -------------------------
-   FULLSCREEN STAGE (overlay)
-   Click-through so UI behind remains usable
--------------------------- */
+/* ---------- Stage (click-through overlay) ---------- */
 .maa-stage {
   position: fixed;
   inset: 0;
-  z-index: 99998;
-  display: grid;
-  place-items: start center;
-  padding: 18px 14px;
-  background: rgba(2, 6, 23, 0.10);
-
-  /* ✅ key fix: do not block clicks behind */
-  pointer-events: none;
+  z-index: 2147483000;
+  pointer-events: none; /* click-through */
 }
 
-/* Ensure no accidental stretching */
-.maa-stage * { box-sizing: border-box; }
-
-/* -------------------------
-   CARD (interactive)
--------------------------- */
+/* ---------- Card ---------- */
 .maa-card {
-  pointer-events: auto; /* ✅ interactive even though stage is click-through */
+  pointer-events: auto;
+  position: fixed;
+  top: 18px;
+  right: 18px;
 
-  width: 520px;
-  max-width: min(92vw, 560px);
-  max-height: min(78vh, 640px);
-  overflow: hidden;
+  width: min(620px, calc(100vw - 36px));
+  max-height: min(780px, calc(100vh - 80px));
+
+  display: flex;
+  flex-direction: column;
 
   background: var(--maa-surface);
-  color: var(--maa-text);
   border: 1px solid var(--maa-border);
-  border-radius: 18px;
+  border-radius: 20px;
   box-shadow: var(--maa-shadow);
 
-  justify-self: center;
-  align-self: start;
+  overflow: hidden;
+  color: var(--maa-text);
+
+  /* subtle “polished” edge */
+  backdrop-filter: saturate(130%) blur(8px);
+  -webkit-backdrop-filter: saturate(130%) blur(8px);
 }
 
-/* -------------------------
-   HEADER
--------------------------- */
+/* breathing attention grab (pauses on hover) */
+.maa-breath {
+  animation: maaBreath 3.9s ease-in-out infinite;
+  transform-origin: 80% 10%;
+}
+.maa-card:hover {
+  animation-play-state: paused;
+}
+@keyframes maaBreath {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: var(--maa-shadow);
+  }
+  50% {
+    transform: translateY(2px) scale(1.012);
+    box-shadow: var(--maa-shadow-2);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: var(--maa-shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maa-breath {
+    animation: none !important;
+  }
+}
+
+/* ---------- Header ---------- */
 .maa-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 12px;
+  gap: 12px;
+  padding: 14px 14px;
+  background: linear-gradient(180deg, var(--maa-surface-2), var(--maa-surface));
   border-bottom: 1px solid var(--maa-border);
-  background: linear-gradient(to bottom, rgba(37, 99, 235, 0.06), rgba(37, 99, 235, 0.00));
-}
-
-html[data-theme="dark"] .maa-head {
-  background: linear-gradient(to bottom, rgba(96, 165, 250, 0.10), rgba(96, 165, 250, 0.00));
 }
 
 .maa-badge {
   font-size: 12px;
-  font-weight: 800;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--maa-primary-weak);
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  color: var(--maa-primary);
-  user-select: none;
-  white-space: nowrap;
-}
-
-html[data-theme="dark"] .maa-badge {
-  border-color: rgba(96, 165, 250, 0.20);
-}
-
-.maa-head-text { flex: 1; min-width: 0; }
-
-.maa-title {
-  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.2px;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--maa-primary-soft);
+  color: var(--maa-primary);
+  border: 1px solid rgba(37, 99, 235, 0.20);
+  user-select: none;
+}
+
+.maa-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.maa-title {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.05;
 }
 
 .maa-subtitle {
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: 12px;
   color: var(--maa-muted);
   white-space: nowrap;
@@ -157,49 +157,49 @@ html[data-theme="dark"] .maa-badge {
 }
 
 .maa-icon {
-  width: 34px;
+  width: 36px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--maa-border);
-  background: var(--maa-btn-bg);
-  color: var(--maa-btn);
+  background: rgba(255, 255, 255, 0.0);
+  color: var(--maa-text);
   cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: transform 160ms ease, background 160ms ease;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-
+[data-theme="dark"] .maa-icon {
+  background: rgba(255, 255, 255, 0.03);
+}
 .maa-icon:hover {
-  background: var(--maa-btn-bg-hover);
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
   transform: translateY(-1px);
 }
-
-.maa-icon:active { transform: translateY(0px); }
-
-.maa-icon.danger {
-  border-color: rgba(239, 68, 68, 0.22);
-  background: var(--maa-danger-weak);
-  color: var(--maa-danger);
+.maa-icon.danger:hover {
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.25);
 }
 
-.maa-icon.danger:hover { background: rgba(239, 68, 68, 0.14); }
-
-/* -------------------------
-   HERO (typed + hints)
--------------------------- */
+/* ---------- Hero ---------- */
 .maa-hero {
-  padding: 12px 12px 10px;
-  border-bottom: 1px solid var(--maa-border);
+  padding: 14px 14px 10px;
+  display: grid;
+  gap: 10px;
 }
 
 .maa-typed {
-  min-height: 56px;
+  min-height: 54px;
   font-size: 13px;
   line-height: 1.45;
   color: var(--maa-text);
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 16px;
+  padding: 10px 12px;
 }
 
-.maa-typed-text { white-space: pre-wrap; }
+.maa-typed-text {
+  white-space: pre-wrap;
+}
 
 .maa-caret {
   display: inline-block;
@@ -207,283 +207,245 @@ html[data-theme="dark"] .maa-badge {
   height: 14px;
   margin-left: 4px;
   border-radius: 2px;
-  background: currentColor;
-  opacity: 0.55;
+  background: rgba(37, 99, 235, 0.55);
   animation: maaBlink 1s infinite;
   vertical-align: -2px;
 }
-
 @keyframes maaBlink {
-  0%, 49% { opacity: 0.6; }
-  50%, 100% { opacity: 0; }
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .maa-note {
-  margin-top: 8px;
   font-size: 12px;
   color: var(--maa-muted);
 }
 
-.maa-soundhint {
-  margin-top: 8px;
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px dashed var(--maa-border);
-  color: var(--maa-muted);
-  background: rgba(15, 23, 42, 0.03);
-}
-
-html[data-theme="dark"] .maa-soundhint { background: rgba(255, 255, 255, 0.06); }
-
-/* -------------------------
-   TABS
--------------------------- */
+/* ---------- Tabs ---------- */
 .maa-tabs {
+  padding: 0 14px 10px;
   display: flex;
   gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--maa-border);
+  flex-wrap: wrap;
 }
 
 .maa-tab {
   flex: 1;
-  padding: 9px 10px;
-  border-radius: 12px;
+  min-width: 140px;
+  padding: 10px 12px;
+  border-radius: 14px;
   border: 1px solid var(--maa-border);
-  background: rgba(15, 23, 42, 0.03);
+  background: rgba(255, 255, 255, 0.0);
   color: var(--maa-text);
-  font-weight: 800;
-  font-size: 12px;
   cursor: pointer;
-  transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
+  font-weight: 900;
+  font-size: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
-
-html[data-theme="dark"] .maa-tab { background: rgba(255, 255, 255, 0.06); }
-
+[data-theme="dark"] .maa-tab {
+  background: rgba(255, 255, 255, 0.02);
+}
 .maa-tab:hover {
-  background: rgba(15, 23, 42, 0.06);
   transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.22);
+  background: rgba(37, 99, 235, 0.06);
 }
-
-html[data-theme="dark"] .maa-tab:hover { background: rgba(255, 255, 255, 0.10); }
-
 .maa-tab.active {
-  background: var(--maa-primary-weak);
-  border-color: rgba(37, 99, 235, 0.25);
-  color: var(--maa-primary);
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.26);
+  color: var(--maa-primary-2);
 }
 
-html[data-theme="dark"] .maa-tab.active { border-color: rgba(96, 165, 250, 0.26); }
-
-/* -------------------------
-   BODY
--------------------------- */
-.maa-body {
-  padding: 12px;
+/* ---------- Scrollable content ---------- */
+.maa-content {
+  padding: 0 14px 12px;
   overflow: auto;
-  max-height: calc(min(78vh, 640px) - 210px);
+  flex: 1;
 }
 
-.maa-panel { display: grid; gap: 10px; }
+.maa-panel {
+  background: rgba(255, 255, 255, 0.0);
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+}
 
 .maa-list {
   margin: 0;
   padding-left: 18px;
   color: var(--maa-text);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+.maa-list li {
+  margin: 6px 0;
+  color: var(--maa-text);
 }
 
-.maa-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.maa-ctaRow {
+  display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-@media (max-width: 520px) {
-  .maa-card { width: 92vw; max-width: 92vw; }
-  .maa-actions { grid-template-columns: 1fr; }
-}
-
-/* -------------------------
-   BUTTONS
--------------------------- */
 .maa-btn {
-  width: 100%;
+  flex: 1;
+  min-width: 160px;
   padding: 11px 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--maa-border);
-  background: var(--maa-btn-bg);
-  color: var(--maa-btn);
+  background: rgba(255, 255, 255, 0.0);
+  color: var(--maa-text);
   cursor: pointer;
   font-weight: 900;
   font-size: 12px;
-  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-
+[data-theme="dark"] .maa-btn {
+  background: rgba(255, 255, 255, 0.02);
+}
 .maa-btn:hover {
-  background: var(--maa-btn-bg-hover);
   transform: translateY(-1px);
+  background: rgba(37, 99, 235, 0.06);
+  border-color: rgba(37, 99, 235, 0.22);
 }
-
-.maa-btn:active { transform: translateY(0px); }
-
 .maa-btn.primary {
-  background: var(--maa-primary);
-  border-color: rgba(37, 99, 235, 0.55);
-  color: #fff;
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(37, 99, 235, 0.26);
+  color: var(--maa-primary-2);
 }
 
-.maa-btn.primary:hover { background: #1d4ed8; }
-
-html[data-theme="dark"] .maa-btn.primary:hover { background: #3b82f6; }
-
-.maa-btn.maa-audio { margin-top: 2px; }
-
-/* -------------------------
-   ACCORDION / QUESTIONS
--------------------------- */
-.maa-details {
+.maa-feedback {
+  font-size: 12px;
+  color: var(--maa-muted);
+  border: 1px dashed rgba(37, 99, 235, 0.22);
+  background: rgba(37, 99, 235, 0.05);
   border-radius: 14px;
+  padding: 10px 12px;
+}
+
+/* ---------- Questions (accordion) ---------- */
+.maa-details {
+  border-radius: 16px;
   border: 1px solid var(--maa-border);
-  background: rgba(15, 23, 42, 0.02);
+  background: rgba(255, 255, 255, 0.0);
   overflow: hidden;
 }
-
-html[data-theme="dark"] .maa-details { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .maa-details {
+  background: rgba(255, 255, 255, 0.02);
+}
 
 .maa-summary {
   cursor: pointer;
-  padding: 10px 12px;
-  font-weight: 900;
+  padding: 12px 12px;
+  font-weight: 1000;
   font-size: 12px;
   list-style: none;
-  user-select: none;
 }
-
-.maa-summary::-webkit-details-marker { display: none; }
+.maa-summary::-webkit-details-marker {
+  display: none;
+}
 
 .maa-questions {
   display: grid;
-  gap: 8px;
-  padding: 10px 12px 12px;
+  gap: 10px;
+  padding: 12px;
   border-top: 1px solid var(--maa-border);
 }
 
 .maa-q {
-  width: 100%;
   text-align: left;
-  padding: 10px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--maa-border);
-  background: var(--maa-input-bg);
-  cursor: pointer;
-  color: var(--maa-text);
-  font-weight: 800;
-  font-size: 12px;
-  transition: background 160ms ease, transform 160ms ease;
-}
-
-.maa-q:hover {
-  background: rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
-}
-
-html[data-theme="dark"] .maa-q:hover { background: rgba(255, 255, 255, 0.10); }
-
-/* -------------------------
-   INPUT ROW
--------------------------- */
-.maa-inputrow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.maa-input {
   width: 100%;
-  padding: 11px 12px;
-  border-radius: 12px;
+  padding: 12px 12px;
+  border-radius: 14px;
   border: 1px solid var(--maa-border);
-  background: var(--maa-input-bg);
-  color: var(--maa-text);
-  outline: none;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.maa-input:focus {
-  box-shadow: 0 0 0 4px var(--maa-focus);
-  border-color: rgba(37, 99, 235, 0.35);
-}
-
-.maa-send {
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  background: var(--maa-primary);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.0);
   cursor: pointer;
-  font-weight: 900;
-  transition: transform 160ms ease, background 160ms ease;
-}
-
-.maa-send:hover { background: #1d4ed8; transform: translateY(-1px); }
-.maa-send:active { transform: translateY(0px); }
-
-/* -------------------------
-   FOOTER
--------------------------- */
-.maa-foot {
+  color: var(--maa-text);
+  font-weight: 850;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
-  font-size: 12px;
-  color: var(--maa-muted);
-  border-top: 1px solid var(--maa-border);
-  background: rgba(15, 23, 42, 0.02);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+[data-theme="dark"] .maa-q {
+  background: rgba(255, 255, 255, 0.02);
+}
+.maa-q:hover {
+  transform: translateY(-1px);
+  background: rgba(37, 99, 235, 0.06);
+  border-color: rgba(37, 99, 235, 0.22);
 }
 
-html[data-theme="dark"] .maa-foot { background: rgba(255, 255, 255, 0.05); }
+.maa-q.active {
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(37, 99, 235, 0.30);
+  box-shadow: 0 0 0 3px var(--maa-focus);
+}
 
-.maa-foot-left { white-space: nowrap; }
+.maa-qText {
+  flex: 1;
+  min-width: 0;
+}
 
-.maa-link {
-  background: transparent;
-  border: none;
-  color: var(--maa-primary);
-  cursor: pointer;
-  text-decoration: underline;
-  font-weight: 900;
+.maa-qTag {
+  font-size: 11px;
+  font-weight: 1000;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(37, 99, 235, 0.24);
+  color: var(--maa-primary-2);
   white-space: nowrap;
 }
 
-/* -------------------------
-   MINI LAUNCHER (always clickable)
--------------------------- */
+/* ---------- Chat area pinned at bottom ---------- */
+.maa-chat {
+  border-top: 1px solid var(--maa-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.0), var(--maa-surface));
+  padding: 12px 14px 14px;
+}
+
+[data-theme="dark"] .maa-chat {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.0), var(--maa-surface));
+}
+
+.maa-chatHint {
+  font-size: 12px;
+  color: var(--maa-muted);
+  margin-bottom: 10px;
+}
+
+/* ---------- Minimized pill ---------- */
 .maa-mini {
   position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 99999;
-  width: 240px;
-  max-width: calc(100vw - 32px);
+  top: 14px;
+  right: 14px;
+  z-index: 2147483001;
+  pointer-events: auto;
+
+  width: min(360px, calc(100vw - 28px));
   display: flex;
   align-items: center;
   gap: 10px;
+
   padding: 10px 12px;
   border-radius: 999px;
+
   border: 1px solid var(--maa-border);
   background: var(--maa-surface);
-  color: var(--maa-text);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
-  cursor: pointer;
+  box-shadow: 0 16px 46px rgba(2, 8, 23, 0.18);
 
-  pointer-events: auto;
+  color: var(--maa-text);
+  cursor: pointer;
 }
 
 .maa-mini-dot {
@@ -491,50 +453,39 @@ html[data-theme="dark"] .maa-foot { background: rgba(255, 255, 255, 0.05); }
   height: 10px;
   border-radius: 999px;
   background: var(--maa-primary);
-  box-shadow: 0 0 0 4px var(--maa-primary-weak);
-  flex: 0 0 auto;
-  animation: maaPulse 1.1s ease-in-out infinite;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  animation: maaPulse 1.15s infinite;
 }
 
 @keyframes maaPulse {
-  0%, 100% { transform: scale(0.92); opacity: 0.75; }
-  50% { transform: scale(1.05); opacity: 1; }
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
 }
 
 .maa-mini-title {
   flex: 1;
-  font-weight: 950;
+  font-weight: 1000;
   font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .maa-mini-cta {
-  font-weight: 900;
+  font-weight: 1000;
   font-size: 12px;
-  color: var(--maa-primary);
-  white-space: nowrap;
+  color: var(--maa-primary-2);
 }
 
-/* -------------------------
-   External highlight (if an element gets the class)
--------------------------- */
+/* ---------- External highlight target (if found) ---------- */
 .maa-external-highlight {
-  outline: 2px solid rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12), 0 18px 50px rgba(0, 0, 0, 0.18);
-  border-radius: 16px;
-  transition: box-shadow 200ms ease, outline 200ms ease;
-}
-
-html[data-theme="dark"] .maa-external-highlight {
-  outline-color: rgba(96, 165, 250, 0.55);
-  box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.14), 0 22px 60px rgba(0, 0, 0, 0.50);
-}
-
-/* Short screens */
-@media (max-height: 700px) {
-  .maa-card { max-height: 84vh; }
-  .maa-body { max-height: calc(84vh - 210px); }
+  outline: 3px solid rgba(37, 99, 235, 0.40);
+  outline-offset: 6px;
+  border-radius: 18px;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.10);
 }
 
