@@ -8,30 +8,38 @@
 // src/components/MeetingAssistantAnnouncement.jsx
 // src/components/MeetingAssistantAnnouncement.jsx
 // MeetingAssistantAnnouncement.jsx
+// MeetingAssistantAnnouncement.jsx
+// MeetingAssistantAnnouncement.jsx
+// MeetingAssistantAnnouncement.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import gsap from "gsap";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import "../styles/MeetingAssistantAnnouncement.css";
 import ChatInputWidget from "./ChatInputWidget";
 
-const DEFAULT_QUESTIONS = [
-  "What is the AI Meeting Assistant and who should use it?",
-  "How do I schedule a meeting and invite attendees?",
-  "Can it record and transcribe meetings automatically?",
-  "How do I generate minutes, summaries, and action items?",
-  "How can I share minutes and follow up on tasks?",
-  "Where can I see upcoming meetings and meeting history?",
-  "How do I give feedback or report an issue to improve it?",
-];
-
+/* ---------------- Animated launch messages ---------------- */
 const MESSAGES = [
-  "🚀 New tool is live: AI Meeting Assistant",
+  "✨ AI Meeting Assistant is live.",
   "Schedule meetings with real-time notifications.",
-  "Record & transcribe meetings, then generate minutes.",
-  "Extract action items, assign owners, and track follow-ups.",
-  "Revisit meeting history anytime to stay aligned.",
+  "Record & transcribe, then generate minutes automatically.",
+  "Extract action items and track follow-ups.",
+  "Open Questions to ask instantly.",
 ];
 
+/* ---------------- FAQ grouped accordions ---------------- */
+const FAQ_GROUPS = [
+  { id: "basics", title: "Basics", items: ["What is the AI Meeting Assistant and who should use it?"] },
+  { id: "scheduling", title: "Scheduling & invitations", items: ["How do I schedule a meeting and invite attendees?"] },
+  { id: "recording", title: "Recording & transcription", items: ["Can it record and transcribe meetings automatically?"] },
+  {
+    id: "minutes",
+    title: "Minutes, summaries & action items",
+    items: ["How do I generate minutes, summaries, and action items?", "How can I share minutes and follow up on tasks?"],
+  },
+  { id: "history", title: "History & tracking", items: ["Where can I see upcoming meetings and meeting history?"] },
+  { id: "support", title: "Support & feedback", items: ["How do I give feedback or report an issue to improve it?"] },
+];
+
+/* ---------------- Voice Agent bridge (NO external audio) ---------------- */
 const safeOpenVoice = () => {
   if (window.VoiceAssistantBridge?.open) {
     try {
@@ -56,24 +64,14 @@ const safeAskVoice = async (text) => {
   }
 
   try {
-    window.dispatchEvent(
-      new CustomEvent("voice:ask", {
-        detail: {
-          text: q,
-          meta: { source: "meeting_announcement" },
-        },
-      })
-    );
+    window.dispatchEvent(new CustomEvent("voice:ask", { detail: { text: q, meta: { source: "meeting_announcement" } } }));
   } catch {}
 };
 
+/* ---------------- Highlight WITHOUT triggering audio ---------------- */
 const highlightMeetingAssistant = (on) => {
   try {
-    window.dispatchEvent(
-      new CustomEvent("card:highlight", {
-        detail: { id: "meeting_assistant", active: !!on },
-      })
-    );
+    window.dispatchEvent(new CustomEvent("card:highlight", { detail: { id: "meeting_assistant", active: !!on } }));
   } catch {}
 
   const selectors = [
@@ -101,8 +99,9 @@ const highlightMeetingAssistant = (on) => {
 };
 
 export default function MeetingAssistantAnnouncement() {
-  const rootRef = useRef(null);
-  const dragConstraintsRef = useRef(null);
+  const dragBoundsRef = useRef(null);
+  const dragControls = useDragControls();
+
   const inputRef = useRef(null);
 
   const [open, setOpen] = useState(true);
@@ -114,59 +113,43 @@ export default function MeetingAssistantAnnouncement() {
   const [charIdx, setCharIdx] = useState(0);
   const [deleting, setDeleting] = useState(false);
 
-  const [activeSection, setActiveSection] = useState("overview"); // overview | faq
+  // tabs: overview | questions
+  const [tab, setTab] = useState("overview");
+
   const [selectedQ, setSelectedQ] = useState("");
+
+  // ChatInputWidget (free text only)
   const [inputText, setInputText] = useState("");
 
-  const questions = useMemo(() => DEFAULT_QUESTIONS, []);
+  // accordion open/close
+  const [openGroups, setOpenGroups] = useState(() => new Set(["basics"]));
+  const groups = useMemo(() => FAQ_GROUPS, []);
 
-  useEffect(() => {
-    dragConstraintsRef.current = document.body;
-  }, []);
-
-  // highlight the external card while visible
+  // highlight external card while visible
   useEffect(() => {
     if (!open) return;
     highlightMeetingAssistant(!minimized);
     return () => highlightMeetingAssistant(false);
   }, [open, minimized]);
 
-  // fly-in from top (slow, noticeable)
-  useEffect(() => {
-    if (!open || minimized) return;
-    const el = rootRef.current;
-    if (!el) return;
-
-    gsap.killTweensOf(el);
-    gsap.fromTo(
-      el,
-      { y: -140, opacity: 0, scale: 0.985 },
-      { y: 0, opacity: 1, scale: 1, duration: 1.45, ease: "power3.out" }
-    );
-  }, [open, minimized]);
-
-  // continuous typing loop
+  // slower visible typing loop
   useEffect(() => {
     if (!open || minimized) return;
 
     const current = MESSAGES[msgIdx];
-    const typingSpeed = deleting ? 22 : 36;
-    const pauseAtEnd = 900;
+    const typingSpeed = deleting ? 18 : 36;
+    const pauseAtEnd = 1100;
 
     const t = setTimeout(() => {
       if (!deleting) {
         const next = charIdx + 1;
         setTyped(current.slice(0, next));
         setCharIdx(next);
-
-        if (next >= current.length) {
-          setTimeout(() => setDeleting(true), pauseAtEnd);
-        }
+        if (next >= current.length) setTimeout(() => setDeleting(true), pauseAtEnd);
       } else {
         const next = charIdx - 1;
         setTyped(current.slice(0, Math.max(0, next)));
         setCharIdx(next);
-
         if (next <= 0) {
           setDeleting(false);
           setMsgIdx((i) => (i + 1) % MESSAGES.length);
@@ -186,13 +169,20 @@ export default function MeetingAssistantAnnouncement() {
       `Question: ${q}`,
     ].join("\n");
 
+  // Predefined question: highlight + ask instantly
+  const askPredefinedInstant = async (q) => {
+    const text = String(q || "").trim();
+    if (!text) return;
+
+    setSelectedQ(text);
+    safeOpenVoice();
+    await safeAskVoice(buildMeetingPrompt(text));
+  };
+
+  // Free text send from ChatInputWidget ONLY
   const handleSendMessage = async (payload) => {
     const text =
-      typeof payload === "string"
-        ? payload
-        : typeof payload?.text === "string"
-        ? payload.text
-        : inputText;
+      typeof payload === "string" ? payload : typeof payload?.text === "string" ? payload.text : inputText;
 
     const q = String(text || "").trim();
     if (!q) return;
@@ -202,14 +192,13 @@ export default function MeetingAssistantAnnouncement() {
     await safeAskVoice(buildMeetingPrompt(q));
   };
 
-  const onQuestionClick = (q) => {
-    setSelectedQ(q);
-    setInputText(q);
-    setActiveSection("faq");
-    // focus input if the widget exposes focus
-    try {
-      inputRef.current?.focus?.();
-    } catch {}
+  const toggleGroup = (id) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const close = () => {
@@ -217,9 +206,7 @@ export default function MeetingAssistantAnnouncement() {
     setMinimized(false);
     highlightMeetingAssistant(false);
     try {
-      window.dispatchEvent(
-        new CustomEvent("announcement:closed", { detail: { id: "meeting_assistant" } })
-      );
+      window.dispatchEvent(new CustomEvent("announcement:closed", { detail: { id: "meeting_assistant" } }));
     } catch {}
   };
 
@@ -229,31 +216,60 @@ export default function MeetingAssistantAnnouncement() {
     setMinimized(false);
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.16,
-        delayChildren: 0.40,
-      },
+  /* ---------------- “Build in front of user” animation ---------------- */
+  const shellVariants = {
+    hidden: {
+      opacity: 0,
+      y: -22,
+      scale: 0.985,
+      filter: "blur(8px)",
+      clipPath: "inset(0 0 100% 0 round 22px)",
     },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: -14, scale: 0.992 },
     show: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { duration: 0.54, ease: "easeOut" },
+      filter: "blur(0px)",
+      clipPath: "inset(0 0 0% 0 round 22px)",
+      transition: {
+        duration: 1.05,
+        ease: [0.16, 1, 0.3, 1],
+        when: "beforeChildren",
+        delayChildren: 0.45,
+        staggerChildren: 0.22,
+      },
     },
+    exit: {
+      opacity: 0,
+      y: -12,
+      scale: 0.985,
+      transition: { duration: 0.22, ease: [0.2, 0.9, 0.2, 1] },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 14, scale: 0.995 },
+    show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
+  };
+
+  const panelVariants = {
+    initial: { opacity: 0, y: 10, filter: "blur(6px)" },
+    animate: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
+    exit: { opacity: 0, y: -8, filter: "blur(8px)", transition: { duration: 0.22, ease: [0.2, 0.9, 0.2, 1] } },
+  };
+
+  const accBodyVariants = {
+    closed: { height: 0, opacity: 0 },
+    open: { height: "auto", opacity: 1, transition: { duration: 0.46, ease: [0.16, 1, 0.3, 1] } },
   };
 
   if (!open) return null;
 
   return (
     <>
+      {/* Drag bounds (invisible) */}
+      <div ref={dragBoundsRef} className="maa-dragBounds" />
+
       {/* Minimized pill */}
       <AnimatePresence>
         {minimized && (
@@ -266,7 +282,7 @@ export default function MeetingAssistantAnnouncement() {
             title="Open announcement"
           >
             <span className="maa-mini-dot" />
-            <span className="maa-mini-title">AI Meeting Assistant</span>
+            <span className="maa-mini-title">Announcements</span>
             <span className="maa-mini-cta">Open</span>
           </motion.button>
         )}
@@ -275,154 +291,214 @@ export default function MeetingAssistantAnnouncement() {
       <AnimatePresence>
         {!minimized && (
           <motion.div
-            className="maa-stage"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="maa-card maa-breath"
+            drag
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={dragBoundsRef}
+            dragElastic={0.14}
+            dragMomentum={false}
+            variants={shellVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            role="dialog"
+            aria-label="Dr. Samir Abbas Hospital announcements"
           >
-            {/* Click-through stage; only the card captures clicks */}
+            {/* DRAG ZONE: header + launch animation + tabs */}
             <motion.div
-              ref={rootRef}
-              className="maa-card maa-breath"
-              style={{ zIndex: 99999 }}
-              drag
-              dragElastic={0.16}
-              dragConstraints={dragConstraintsRef}
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              role="dialog"
-              aria-label="AI Meeting Assistant announcement"
+              className="maa-dragZone"
+              variants={itemVariants}
+              onPointerDown={(e) => dragControls.start(e)}
+              title="Drag"
             >
               {/* Header */}
-              <motion.div className="maa-head" variants={itemVariants}>
-                <div className="maa-badge">New</div>
-
+              <div className="maa-head">
                 <div className="maa-head-text">
-                  <div className="maa-title">AI Meeting Assistant</div>
-                  <div className="maa-subtitle">Dr. Samir Abbas Hospital • internal release</div>
+                  <div className="maa-headTitle">Dr. Samir Abbas Hospital Announcements</div>
+                  <div className="maa-headSub">Internal release</div>
                 </div>
 
                 <div className="maa-head-actions">
-                  <button className="maa-icon" onClick={minimize} aria-label="Minimize">
+                  <button
+                    className="maa-icon"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={minimize}
+                    aria-label="Minimize"
+                  >
                     —
                   </button>
-                  <button className="maa-icon danger" onClick={close} aria-label="Close">
+                  <button
+                    className="maa-icon danger"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={close}
+                    aria-label="Close"
+                  >
                     ✕
                   </button>
                 </div>
-              </motion.div>
+              </div>
 
-              {/* Hero / typed */}
-              <motion.div className="maa-hero" variants={itemVariants}>
+              {/* Animated launch line */}
+              <div className="maa-hero">
+                <div className="maa-launchLabel">Launch:</div>
                 <div className="maa-typed">
                   <span className="maa-typed-text">{typed}</span>
                   <span className="maa-caret" />
                 </div>
+              </div>
 
-                <div className="maa-note">
-                  Ask questions at the bottom using <b>ChatInputWidget</b>. Clicking a predefined
-                  question will highlight it and load it into the input.
-                </div>
-              </motion.div>
-
-              {/* Tabs */}
-              <motion.div className="maa-tabs" variants={itemVariants}>
+              {/* ✅ Smooth tabs (Overview | Questions) */}
+              <div className="maa-tabs" onPointerDown={(e) => e.stopPropagation()}>
                 <button
-                  className={`maa-tab ${activeSection === "overview" ? "active" : ""}`}
-                  onClick={() => setActiveSection("overview")}
+                  className={`maa-tab ${tab === "overview" ? "active" : ""}`}
+                  onClick={() => setTab("overview")}
+                  type="button"
                 >
                   Overview
                 </button>
                 <button
-                  className={`maa-tab ${activeSection === "faq" ? "active" : ""}`}
-                  onClick={() => setActiveSection("faq")}
+                  className={`maa-tab ${tab === "questions" ? "active" : ""}`}
+                  onClick={() => setTab("questions")}
+                  type="button"
                 >
                   Questions
                 </button>
-              </motion.div>
 
-              {/* Scrollable content */}
-              <motion.div className="maa-content" variants={itemVariants}>
-                {activeSection === "overview" && (
-                  <div className="maa-panel">
-                    <ul className="maa-list">
-                      <li>Schedule meetings & send invitations faster.</li>
-                      <li>Real-time reminders and notifications.</li>
-                      <li>Record + transcribe meetings automatically.</li>
-                      <li>Generate minutes, summaries, and action items.</li>
-                      <li>Track follow-ups and revisit meeting history anytime.</li>
-                    </ul>
+                <motion.div
+                  className="maa-tabIndicator"
+                  layout
+                  transition={{ type: "spring", stiffness: 520, damping: 34 }}
+                  style={{ left: tab === "overview" ? "6px" : "calc(50% + 4px)" }}
+                />
+              </div>
+            </motion.div>
 
-                    <div className="maa-ctaRow">
-                      <button
-                        className="maa-btn primary"
-                        onClick={() => {
-                          setActiveSection("faq");
-                          onQuestionClick("How do I start using the AI Meeting Assistant today?");
-                        }}
-                      >
-                        Start now
-                      </button>
+            {/* Content */}
+            <motion.div className="maa-content" variants={itemVariants}>
+              <AnimatePresence mode="wait">
+                {tab === "overview" && (
+                  <motion.div
+                    key="overview"
+                    className="maa-panel"
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                  >
+                    <div className="maa-overviewTitle">AI Meeting Assistant</div>
 
-                      <button
-                        className="maa-btn"
-                        onClick={() => {
-                          setActiveSection("faq");
-                          onQuestionClick("Where do I submit feedback and feature requests?");
-                        }}
-                      >
-                        Give feedback
-                      </button>
+                    <div className="maa-overviewText">
+                      The AI Meeting Assistant helps hospital teams plan meetings faster, stay aligned during discussions,
+                      and close meetings with clear outputs. It supports scheduling, real-time reminders, transcription,
+                      and structured minutes so everyone leaves with the same understanding and next steps.
                     </div>
 
-                    <div className="maa-feedback">
-                      We’re actively improving it — your feedback helps the next release become even
-                      stronger.
-                    </div>
-                  </div>
-                )}
-
-                {activeSection === "faq" && (
-                  <div className="maa-panel">
-                    <details className="maa-details" open>
-                      <summary className="maa-summary">Predefined questions</summary>
-
-                      <div className="maa-questions">
-                        {questions.map((q) => {
-                          const active = selectedQ === q;
-                          return (
-                            <button
-                              key={q}
-                              className={`maa-q ${active ? "active" : ""}`}
-                              onClick={() => onQuestionClick(q)}
-                              title="Load into input"
-                            >
-                              <span className="maa-qText">{q}</span>
-                              {active && <span className="maa-qTag">Selected</span>}
-                            </button>
-                          );
-                        })}
+                    <div className="maa-overviewBlock">
+                      <div className="maa-overviewHeading">What it does</div>
+                      <div className="maa-overviewText">
+                        It can record and transcribe meetings, generate summaries and minutes, extract action items with
+                        owners, and preserve meeting history so teams can review decisions at any time.
                       </div>
-                    </details>
-                  </div>
+                    </div>
+
+                    <div className="maa-overviewBlock">
+                      <div className="maa-overviewHeading">Who should use it</div>
+                      <div className="maa-overviewText">
+                        Department heads, coordinators, committee members, and anyone running recurring meetings (quality,
+                        operations, clinical, admin, IT, finance).
+                      </div>
+                    </div>
+
+                    <div className="maa-overviewBlock">
+                      <div className="maa-overviewHeading">How to start</div>
+                      <div className="maa-overviewText">
+                        Open the <b>Questions</b> tab and click a question to get an instant answer, or type your own
+                        question at the bottom. The voice agent responds immediately without triggering extra media.
+                      </div>
+                    </div>
+
+                    <div className="maa-hint">
+                      Tip: Ask about scheduling, transcription, minutes, action items, meeting history, and best practices.
+                    </div>
+                  </motion.div>
                 )}
-              </motion.div>
 
-              {/* Chat input pinned at bottom */}
-              <motion.div className="maa-chat" variants={itemVariants}>
-                <div className="maa-chatHint">
-                  Type your question below and send — it will be answered by the assistant.
-                </div>
+                {tab === "questions" && (
+                  <motion.div
+                    key="questions"
+                    className="maa-panel"
+                    variants={panelVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                  >
+                    <div className="maa-accList">
+                      {groups.map((g) => {
+                        const isOpen = openGroups.has(g.id);
+                        return (
+                          <motion.div key={g.id} className="maa-acc" variants={itemVariants}>
+                            <button
+                              className={`maa-accHead ${isOpen ? "open" : ""}`}
+                              onClick={() => toggleGroup(g.id)}
+                              aria-expanded={isOpen}
+                              type="button"
+                            >
+                              <span className="maa-accTitle">{g.title}</span>
+                              <span className={`maa-accIcon ${isOpen ? "open" : ""}`} aria-hidden="true" />
+                            </button>
 
+                            <AnimatePresence initial={false}>
+                              {isOpen && (
+                                <motion.div
+                                  className="maa-accBody"
+                                  key="body"
+                                  initial="closed"
+                                  animate="open"
+                                  exit="closed"
+                                  variants={accBodyVariants}
+                                >
+                                  <div className="maa-questions">
+                                    {g.items.map((q) => {
+                                      const active = selectedQ === q;
+                                      return (
+                                        <button
+                                          key={q}
+                                          className={`maa-q ${active ? "active" : ""}`}
+                                          onClick={() => askPredefinedInstant(q)}
+                                          title="Ask instantly"
+                                          type="button"
+                                        >
+                                          <span className="maa-qText">{q}</span>
+                                          {active && <span className="maa-qTag">Selected</span>}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Chat input dock */}
+            <motion.div className="maa-chatDock" variants={itemVariants}>
+              <div className="maa-chatHint">Ask freely (text):</div>
+
+              <div onPointerDown={(e) => e.stopPropagation()}>
                 <ChatInputWidget
                   ref={inputRef}
                   onSendMessage={handleSendMessage}
                   inputText={inputText}
                   setInputText={setInputText}
                 />
-              </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -430,4 +506,5 @@ export default function MeetingAssistantAnnouncement() {
     </>
   );
 }
+
 
