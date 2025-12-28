@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react/jsx-no-duplicate-props */
+/* eslint-disable no-unused-vars */
+// src/components/MeetingAssistantAnnouncement.jsx
 /* eslint-disable react/jsx-no-duplicate-props */
 /* eslint-disable no-unused-vars */
 // src/components/MeetingAssistantAnnouncement.jsx
@@ -135,6 +139,11 @@ function raf2(cb) {
   requestAnimationFrame(() => requestAnimationFrame(cb));
 }
 
+const uid = () =>
+  (typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}_${Math.random().toString(16).slice(2)}`);
+
 export default function MeetingAssistantAnnouncement() {
   const rootRef = useRef(null);
 
@@ -171,6 +180,103 @@ export default function MeetingAssistantAnnouncement() {
   const [inputText, setInputText] = useState("");
 
   const [isSwitching, setIsSwitching] = useState(false);
+
+  /* ===========================
+     ✅ Live Stream (Answer Transcript)
+  ============================ */
+  const streamRef = useRef(null);
+  const streamArmedRef = useRef(false); // only capture deltas after we asked
+  const streamingAssistantIdRef = useRef(null);
+
+  const [streamMessages, setStreamMessages] = useState(() => []);
+  const [streamState, setStreamState] = useState("idle"); // idle | streaming | done
+
+  const limitStream = (arr) => (arr.length > 20 ? arr.slice(arr.length - 20) : arr);
+
+  const ensureScrollBottom = () => {
+    const el = streamRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  };
+
+  const startNewStreamTurn = (questionText) => {
+    const q = String(questionText || "").trim();
+    if (!q) return;
+
+    const userId = uid();
+    const assistantId = uid();
+    streamingAssistantIdRef.current = assistantId;
+    streamArmedRef.current = true;
+    setStreamState("streaming");
+
+    setStreamMessages((prev) =>
+      limitStream([
+        ...prev,
+        { id: userId, role: "user", text: q, ts: Date.now() },
+        { id: assistantId, role: "assistant", text: "", ts: Date.now() },
+      ])
+    );
+
+    setTimeout(ensureScrollBottom, 0);
+  };
+
+  const appendAssistantDelta = (delta) => {
+    const d = String(delta || "");
+    if (!d) return;
+
+    setStreamMessages((prev) => {
+      const aId = streamingAssistantIdRef.current;
+
+      // If we somehow missed creating the assistant placeholder, create it.
+      let next = [...prev];
+      const idx = aId ? next.findIndex((m) => m.id === aId) : -1;
+
+      if (idx === -1) {
+        const fallbackId = aId || uid();
+        streamingAssistantIdRef.current = fallbackId;
+        next = limitStream([
+          ...next,
+          { id: fallbackId, role: "assistant", text: d, ts: Date.now() },
+        ]);
+      } else {
+        next[idx] = { ...next[idx], text: (next[idx].text || "") + d };
+      }
+
+      return next;
+    });
+
+    setTimeout(ensureScrollBottom, 0);
+  };
+
+  const finishAssistantStream = () => {
+    streamArmedRef.current = false;
+    setStreamState("done");
+    setTimeout(ensureScrollBottom, 0);
+  };
+
+  // Listen to VoiceAssistant streamed events
+  useEffect(() => {
+    const onDelta = (e) => {
+      if (!open || minimized) return;
+      if (!streamArmedRef.current) return; // only when we asked from this UI
+      const delta = e?.detail?.delta ?? "";
+      appendAssistantDelta(delta);
+    };
+
+    const onDone = (e) => {
+      if (!open || minimized) return;
+      if (!streamArmedRef.current) return;
+      finishAssistantStream();
+    };
+
+    window.addEventListener("assistant:response.delta", onDelta);
+    window.addEventListener("assistant:response.done", onDone);
+
+    return () => {
+      window.removeEventListener("assistant:response.delta", onDelta);
+      window.removeEventListener("assistant:response.done", onDone);
+    };
+  }, [open, minimized]);
 
   /* ---------------- Highlight external card while visible ---------------- */
   useEffect(() => {
@@ -259,7 +365,7 @@ export default function MeetingAssistantAnnouncement() {
     if (!panel) return;
 
     const items = panel.querySelectorAll(
-      ".dsah-feature, .dsah-step, .dsah-faq-btn, .dsah-feedback-row"
+      ".dsah-feature, .dsah-step, .dsah-faq-btn, .dsah-feedback-row, .dsah-stream"
     );
 
     items.forEach((el, i) => {
@@ -358,6 +464,10 @@ export default function MeetingAssistantAnnouncement() {
     if (!text) return;
 
     setSelectedQ(text);
+
+    // ✅ start the live transcript turn in the UI
+    startNewStreamTurn(text);
+
     safeOpenVoice();
     await safeAskVoice(buildVoicePrompt(text));
   };
@@ -369,6 +479,10 @@ export default function MeetingAssistantAnnouncement() {
     if (!q) return;
 
     setInputText("");
+
+    // ✅ start the live transcript turn in the UI
+    startNewStreamTurn(q);
+
     safeOpenVoice();
     await safeAskVoice(buildVoicePrompt(q));
   };
@@ -412,7 +526,7 @@ export default function MeetingAssistantAnnouncement() {
       transition: {
         duration: 0.85,
         ease: [0.16, 1, 0.3, 1],
-        delayChildren: 0.10,
+        delayChildren: 0.1,
         staggerChildren: 0.11,
       },
     },
@@ -427,8 +541,7 @@ export default function MeetingAssistantAnnouncement() {
   if (!open) return null;
 
   const showChatDock = activeTab === "questions" || activeTab === "feedback";
-  const chatLabel =
-    activeTab === "feedback" ? "Send feedback (text):" : "Ask freely (text):";
+  const chatLabel = activeTab === "feedback" ? "Send feedback (text):" : "Ask freely (text):";
 
   return (
     <>
@@ -496,6 +609,31 @@ export default function MeetingAssistantAnnouncement() {
               </div>
             </motion.div>
 
+            {/* ✅ Live Stream Panel (always visible) */}
+            <motion.div className="dsah-stream" variants={buildItem}>
+              <div className="dsah-stream-top">
+                <div className="dsah-stream-title">Live Stream</div>
+                <div className={`dsah-stream-pill is-${streamState}`}>
+                  {streamState === "streaming" ? "Streaming" : streamState === "done" ? "Done" : "Idle"}
+                </div>
+              </div>
+
+              <div ref={streamRef} className="dsah-stream-body" aria-label="Live transcript">
+                {streamMessages.length === 0 ? (
+                  <div className="dsah-stream-empty">
+                    Select a question (or type one) and the AI answer will stream here in real time.
+                  </div>
+                ) : (
+                  streamMessages.map((m) => (
+                    <div key={m.id} className={`dsah-stream-msg is-${m.role}`}>
+                      <div className="dsah-stream-role">{m.role === "user" ? "You" : "AI"}</div>
+                      <div className="dsah-stream-text">{m.text || (m.role === "assistant" ? "…" : "")}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+
             {/* Tabs */}
             <motion.div ref={tabsWrapRef} className="dsah-tabs-shell" variants={buildItem}>
               <h2 className="dsah-tabs-heading">AI Meeting Assistant</h2>
@@ -526,7 +664,7 @@ export default function MeetingAssistantAnnouncement() {
                 <div ref={indicatorRef} className="dsah-tab-ind" aria-hidden="true" />
               </div>
 
-              {/* Tab Content (scroll happens here) */}
+              {/* Tab Content */}
               <div className="dsah-panels" role="region" aria-label="Tab content">
                 {/* OVERVIEW */}
                 <div
@@ -596,8 +734,8 @@ export default function MeetingAssistantAnnouncement() {
                     </div>
 
                     <div className="dsah-note">
-                      Go to the <b>Questions</b> tab to select predefined questions instantly.  
-                      The chat input is available only in <b>Questions</b> and <b>Feedback</b>.
+                      Go to the <b>Questions</b> tab to select predefined questions instantly. The response will stream in
+                      the <b>Live Stream</b> panel above.
                     </div>
                   </div>
                 </div>

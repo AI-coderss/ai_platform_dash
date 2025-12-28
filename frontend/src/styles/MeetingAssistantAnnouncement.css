@@ -873,3 +873,82 @@ body.dark .dsah-feedback-row,
   height: 0 !important;
   display: none;
 }
+/* ===========================
+   Live Stream (Transcript)
+=========================== */
+.dsah-stream {
+  margin: 10px 0 6px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] .dsah-stream {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.dsah-stream-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dsah-stream-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.dsah-stream-pill {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  opacity: 0.95;
+}
+
+.dsah-stream-pill.is-streaming { opacity: 1; }
+.dsah-stream-pill.is-done { opacity: 0.85; }
+.dsah-stream-pill.is-idle { opacity: 0.75; }
+
+.dsah-stream-body {
+  max-height: 150px;
+  overflow: auto;
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html[data-theme="dark"] .dsah-stream-body {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.dsah-stream-empty {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.dsah-stream-msg {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.dsah-stream-role {
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 700;
+}
+
+.dsah-stream-text {
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dsah-stream-msg.is-user .dsah-stream-text { opacity: 0.95; }
+.dsah-stream-msg.is-assistant .dsah-stream-text { opacity: 0.92; }
