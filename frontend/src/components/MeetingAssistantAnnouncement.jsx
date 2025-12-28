@@ -5,9 +5,6 @@
 /* eslint-disable react/jsx-no-duplicate-props */
 /* eslint-disable no-unused-vars */
 // src/components/MeetingAssistantAnnouncement.jsx
-/* eslint-disable react/jsx-no-duplicate-props */
-/* eslint-disable no-unused-vars */
-// src/components/MeetingAssistantAnnouncement.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "../styles/MeetingAssistantAnnouncement.css";
@@ -54,7 +51,7 @@ const FAQ_GROUPS = [
   },
 ];
 
-/* ---------------- Voice Agent bridge ---------------- */
+/* ---------------- Voice Agent bridge (NO external audio) ---------------- */
 const safeOpenVoice = () => {
   if (window.VoiceAssistantBridge?.open) {
     try {
@@ -142,6 +139,11 @@ function raf2(cb) {
   requestAnimationFrame(() => requestAnimationFrame(cb));
 }
 
+const uid = () =>
+  (typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}_${Math.random().toString(16).slice(2)}`);
+
 export default function MeetingAssistantAnnouncement() {
   const rootRef = useRef(null);
 
@@ -157,7 +159,10 @@ export default function MeetingAssistantAnnouncement() {
   const [minimized, setMinimized] = useState(true);
 
   const [activeTab, setActiveTab] = useState("overview");
-  const activeIdx = useMemo(() => TABS.findIndex((t) => t.key === activeTab), [activeTab]);
+  const activeIdx = useMemo(
+    () => TABS.findIndex((t) => t.key === activeTab),
+    [activeTab]
+  );
 
   // typed launch line
   const [typed, setTyped] = useState("");
@@ -170,16 +175,108 @@ export default function MeetingAssistantAnnouncement() {
   const groups = useMemo(() => FAQ_GROUPS, []);
   const [selectedQ, setSelectedQ] = useState("");
 
-  // ChatInputWidget
+  // ChatInputWidget: free text only (only rendered on questions/feedback)
   const inputRef = useRef(null);
   const [inputText, setInputText] = useState("");
 
   const [isSwitching, setIsSwitching] = useState(false);
 
-  // ✅ NEW: live stream content to show inside the announcement UI
-  const [liveUser, setLiveUser] = useState("");
-  const [liveAssistantText, setLiveAssistantText] = useState("");
-  const [liveAssistantSpoken, setLiveAssistantSpoken] = useState("");
+  /* ===========================
+     ✅ Live Stream (Answer Transcript)
+  ============================ */
+  const streamRef = useRef(null);
+  const streamArmedRef = useRef(false); // only capture deltas after we asked
+  const streamingAssistantIdRef = useRef(null);
+
+  const [streamMessages, setStreamMessages] = useState(() => []);
+  const [streamState, setStreamState] = useState("idle"); // idle | streaming | done
+
+  const limitStream = (arr) => (arr.length > 20 ? arr.slice(arr.length - 20) : arr);
+
+  const ensureScrollBottom = () => {
+    const el = streamRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  };
+
+  const startNewStreamTurn = (questionText) => {
+    const q = String(questionText || "").trim();
+    if (!q) return;
+
+    const userId = uid();
+    const assistantId = uid();
+    streamingAssistantIdRef.current = assistantId;
+    streamArmedRef.current = true;
+    setStreamState("streaming");
+
+    setStreamMessages((prev) =>
+      limitStream([
+        ...prev,
+        { id: userId, role: "user", text: q, ts: Date.now() },
+        { id: assistantId, role: "assistant", text: "", ts: Date.now() },
+      ])
+    );
+
+    setTimeout(ensureScrollBottom, 0);
+  };
+
+  const appendAssistantDelta = (delta) => {
+    const d = String(delta || "");
+    if (!d) return;
+
+    setStreamMessages((prev) => {
+      const aId = streamingAssistantIdRef.current;
+
+      // If we somehow missed creating the assistant placeholder, create it.
+      let next = [...prev];
+      const idx = aId ? next.findIndex((m) => m.id === aId) : -1;
+
+      if (idx === -1) {
+        const fallbackId = aId || uid();
+        streamingAssistantIdRef.current = fallbackId;
+        next = limitStream([
+          ...next,
+          { id: fallbackId, role: "assistant", text: d, ts: Date.now() },
+        ]);
+      } else {
+        next[idx] = { ...next[idx], text: (next[idx].text || "") + d };
+      }
+
+      return next;
+    });
+
+    setTimeout(ensureScrollBottom, 0);
+  };
+
+  const finishAssistantStream = () => {
+    streamArmedRef.current = false;
+    setStreamState("done");
+    setTimeout(ensureScrollBottom, 0);
+  };
+
+  // Listen to VoiceAssistant streamed events
+  useEffect(() => {
+    const onDelta = (e) => {
+      if (!open || minimized) return;
+      if (!streamArmedRef.current) return; // only when we asked from this UI
+      const delta = e?.detail?.delta ?? "";
+      appendAssistantDelta(delta);
+    };
+
+    const onDone = (e) => {
+      if (!open || minimized) return;
+      if (!streamArmedRef.current) return;
+      finishAssistantStream();
+    };
+
+    window.addEventListener("assistant:response.delta", onDelta);
+    window.addEventListener("assistant:response.done", onDone);
+
+    return () => {
+      window.removeEventListener("assistant:response.delta", onDelta);
+      window.removeEventListener("assistant:response.done", onDone);
+    };
+  }, [open, minimized]);
 
   /* ---------------- Highlight external card while visible ---------------- */
   useEffect(() => {
@@ -187,32 +284,6 @@ export default function MeetingAssistantAnnouncement() {
     highlightMeetingAssistant(!minimized);
     return () => highlightMeetingAssistant(false);
   }, [open, minimized]);
-
-  /* ---------------- Listen to VoiceAssistant live stream events ---------------- */
-  useEffect(() => {
-    const onUser = (e) => {
-      const text = e?.detail?.text ?? e?.detail?.transcript ?? "";
-      if (typeof text === "string") setLiveUser(text);
-    };
-    const onAssistantText = (e) => {
-      const text = e?.detail?.text ?? "";
-      if (typeof text === "string") setLiveAssistantText(text);
-    };
-    const onAssistantSpoken = (e) => {
-      const text = e?.detail?.text ?? "";
-      if (typeof text === "string") setLiveAssistantSpoken(text);
-    };
-
-    window.addEventListener("assistant:input_transcript", onUser);
-    window.addEventListener("assistant:output_text", onAssistantText);
-    window.addEventListener("assistant:output_audio_transcript", onAssistantSpoken);
-
-    return () => {
-      window.removeEventListener("assistant:input_transcript", onUser);
-      window.removeEventListener("assistant:output_text", onAssistantText);
-      window.removeEventListener("assistant:output_audio_transcript", onAssistantSpoken);
-    };
-  }, []);
 
   /* ---------------- Typed “launch” line ---------------- */
   useEffect(() => {
@@ -293,7 +364,9 @@ export default function MeetingAssistantAnnouncement() {
     const panel = panelRefs.current[tabKey];
     if (!panel) return;
 
-    const items = panel.querySelectorAll(".dsah-feature, .dsah-step, .dsah-faq-btn, .dsah-feedback-row");
+    const items = panel.querySelectorAll(
+      ".dsah-feature, .dsah-step, .dsah-faq-btn, .dsah-feedback-row, .dsah-stream"
+    );
 
     items.forEach((el, i) => {
       el.style.opacity = "0";
@@ -385,17 +458,15 @@ export default function MeetingAssistantAnnouncement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, minimized, activeIdx, activeTab, isSwitching]);
 
-  /* ---------------- Predefined question: ask instantly + stream to UI ---------------- */
+  /* ---------------- Predefined question: highlight + ask instantly ---------------- */
   const askPredefinedInstant = async (q) => {
     const text = String(q || "").trim();
     if (!text) return;
 
     setSelectedQ(text);
 
-    // ✅ Reset live stream panels for new question
-    setLiveUser(text);
-    setLiveAssistantText("");
-    setLiveAssistantSpoken("");
+    // ✅ start the live transcript turn in the UI
+    startNewStreamTurn(text);
 
     safeOpenVoice();
     await safeAskVoice(buildVoicePrompt(text));
@@ -409,10 +480,8 @@ export default function MeetingAssistantAnnouncement() {
 
     setInputText("");
 
-    // ✅ Reset live stream panels for new message
-    setLiveUser(q);
-    setLiveAssistantText("");
-    setLiveAssistantSpoken("");
+    // ✅ start the live transcript turn in the UI
+    startNewStreamTurn(q);
 
     safeOpenVoice();
     await safeAskVoice(buildVoicePrompt(q));
@@ -439,13 +508,14 @@ export default function MeetingAssistantAnnouncement() {
     setOpen(true);
     setMinimized(false);
 
+    // refresh indicator + animate items once visible
     setTimeout(() => {
       updateIndicator(activeIdx, { pulse: false });
       animatePanelItems(activeTab);
     }, 60);
   };
 
-  /* ---------------- Staggered build-in animation ---------------- */
+  /* ---------------- Staggered build-in animation (ELEMENT BY ELEMENT) ---------------- */
   const buildContainer = {
     hidden: { opacity: 0, y: -22, scale: 0.988, filter: "blur(10px)" },
     show: {
@@ -539,10 +609,36 @@ export default function MeetingAssistantAnnouncement() {
               </div>
             </motion.div>
 
+            {/* ✅ Live Stream Panel (always visible) */}
+            <motion.div className="dsah-stream" variants={buildItem}>
+              <div className="dsah-stream-top">
+                <div className="dsah-stream-title">Live Stream</div>
+                <div className={`dsah-stream-pill is-${streamState}`}>
+                  {streamState === "streaming" ? "Streaming" : streamState === "done" ? "Done" : "Idle"}
+                </div>
+              </div>
+
+              <div ref={streamRef} className="dsah-stream-body" aria-label="Live transcript">
+                {streamMessages.length === 0 ? (
+                  <div className="dsah-stream-empty">
+                    Select a question (or type one) and the AI answer will stream here in real time.
+                  </div>
+                ) : (
+                  streamMessages.map((m) => (
+                    <div key={m.id} className={`dsah-stream-msg is-${m.role}`}>
+                      <div className="dsah-stream-role">{m.role === "user" ? "You" : "AI"}</div>
+                      <div className="dsah-stream-text">{m.text || (m.role === "assistant" ? "…" : "")}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+
             {/* Tabs */}
             <motion.div ref={tabsWrapRef} className="dsah-tabs-shell" variants={buildItem}>
               <h2 className="dsah-tabs-heading">AI Meeting Assistant</h2>
 
+              {/* Tab Navigation */}
               <div ref={navRef} className="dsah-tab-nav" role="tablist" aria-label="Announcement tabs">
                 {TABS.map((t) => {
                   const isActive = t.key === activeTab;
@@ -564,9 +660,11 @@ export default function MeetingAssistantAnnouncement() {
                     </button>
                   );
                 })}
+
                 <div ref={indicatorRef} className="dsah-tab-ind" aria-hidden="true" />
               </div>
 
+              {/* Tab Content */}
               <div className="dsah-panels" role="region" aria-label="Tab content">
                 {/* OVERVIEW */}
                 <div
@@ -636,8 +734,8 @@ export default function MeetingAssistantAnnouncement() {
                     </div>
 
                     <div className="dsah-note">
-                      Go to the <b>Questions</b> tab to select predefined questions instantly. The selected question and
-                      the assistant’s response will stream live inside the UI.
+                      Go to the <b>Questions</b> tab to select predefined questions instantly. The response will stream in
+                      the <b>Live Stream</b> panel above.
                     </div>
                   </div>
                 </div>
@@ -691,39 +789,6 @@ export default function MeetingAssistantAnnouncement() {
                         );
                       })}
                     </div>
-
-                    {/* ✅ NEW: Live stream area (transcript + streamed answer) */}
-                    <div className="dsah-section" style={{ marginTop: 14 }}>
-                      <div className="dsah-section-h">Live Stream</div>
-
-                      <div className="dsah-feature-grid" style={{ gridTemplateColumns: "1fr", gap: 10 }}>
-                        <div className="dsah-feature" style={{ padding: 12 }}>
-                          <div className="dsah-feature-h">Selected question / Transcript</div>
-                          <div className="dsah-feature-p" style={{ whiteSpace: "pre-wrap" }}>
-                            {liveUser || <span style={{ opacity: 0.7 }}>No question selected yet…</span>}
-                          </div>
-                        </div>
-
-                        <div className="dsah-feature" style={{ padding: 12 }}>
-                          <div className="dsah-feature-h">Assistant answer (streaming text)</div>
-                          <div className="dsah-feature-p" style={{ whiteSpace: "pre-wrap" }}>
-                            {liveAssistantText || <span style={{ opacity: 0.7 }}>Waiting for the assistant reply…</span>}
-                          </div>
-                        </div>
-
-                        <div className="dsah-feature" style={{ padding: 12 }}>
-                          <div className="dsah-feature-h">Assistant speech transcript (optional)</div>
-                          <div className="dsah-feature-p" style={{ whiteSpace: "pre-wrap" }}>
-                            {liveAssistantSpoken || <span style={{ opacity: 0.7 }}>Will appear as the assistant speaks…</span>}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="dsah-note" style={{ marginTop: 10 }}>
-                        This is the same answer that is being generated by the live voice agent — shown as a transcript for
-                        call center staff.
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -745,7 +810,9 @@ export default function MeetingAssistantAnnouncement() {
                         <div className="dsah-feedback-ico">🧩</div>
                         <div className="dsah-feedback-body">
                           <div className="dsah-feedback-h">Feature request</div>
-                          <div className="dsah-feedback-p">Describe the workflow and benefit (time saved, quality, compliance).</div>
+                          <div className="dsah-feedback-p">
+                            Describe the workflow and benefit (time saved, quality, compliance).
+                          </div>
                         </div>
                       </div>
 
@@ -753,7 +820,9 @@ export default function MeetingAssistantAnnouncement() {
                         <div className="dsah-feedback-ico">🐞</div>
                         <div className="dsah-feedback-body">
                           <div className="dsah-feedback-h">Bug report</div>
-                          <div className="dsah-feedback-p">Steps to reproduce + expected vs actual result + screenshot if possible.</div>
+                          <div className="dsah-feedback-p">
+                            Steps to reproduce + expected vs actual result + screenshot if possible.
+                          </div>
                         </div>
                       </div>
 
@@ -761,18 +830,22 @@ export default function MeetingAssistantAnnouncement() {
                         <div className="dsah-feedback-ico">⭐</div>
                         <div className="dsah-feedback-body">
                           <div className="dsah-feedback-h">Quality improvement</div>
-                          <div className="dsah-feedback-p">Suggest better minutes format, wording, or action tracking improvements.</div>
+                          <div className="dsah-feedback-p">
+                            Suggest better minutes format, wording, or action tracking improvements.
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="dsah-note">Tip: Start your message with <b>Feedback:</b> so it’s easy to route internally.</div>
+                    <div className="dsah-note">
+                      Tip: Start your message with <b>Feedback:</b> so it’s easy to route internally.
+                    </div>
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Chat input dock */}
+            {/* ✅ Chat input dock ONLY on Questions + Feedback */}
             <AnimatePresence>
               {showChatDock && (
                 <motion.div
