@@ -952,3 +952,39 @@ html[data-theme="dark"] .dsah-stream-body {
 
 .dsah-stream-msg.is-user .dsah-stream-text { opacity: 0.95; }
 .dsah-stream-msg.is-assistant .dsah-stream-text { opacity: 0.92; }
+/* ================================
+   Live Stream (tiny additions)
+   ================================ */
+
+/* Keep Live Stream boxes identical to existing card elements */
+.dsah-panel .dsah-section .dsah-feature-grid {
+  gap: 10px; /* matches your spacing rhythm */
+}
+
+/* Ensure the 3 live boxes look like the rest of your feature cards */
+.dsah-panel .dsah-section .dsah-feature {
+  border: none !important;               /* remove any inner borders */
+  outline: none !important;
+  box-shadow: var(--dsah-shadow-soft, var(--shadow-soft, 0 10px 30px rgba(0, 0, 0, 0.12)));
+  background: var(--dsah-card-bg, var(--card-bg, rgba(255, 255, 255, 0.06)));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Make streamed text readable and consistent */
+.dsah-panel .dsah-section .dsah-feature-p {
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Dim placeholder states in the Live Stream panels */
+.dsah-panel .dsah-section .dsah-feature-p span {
+  opacity: 0.7;
+}
+
+/* Slightly tighten the Live Stream block top margin so it blends */
+.dsah-panel .dsah-section[style*="margin-top"] {
+  margin-top: 12px !important;
+}

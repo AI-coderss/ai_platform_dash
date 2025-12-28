@@ -21,7 +21,7 @@ CORS(
         r"/api/*": {
             "origins": "https://ai-platform-dash.onrender.com",
             "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Session-Id"],
         }
     },
 )
@@ -35,11 +35,17 @@ if not OPENAI_API_KEY:
     logger.error("OPENAI_API_KEY not set.")
     raise EnvironmentError("OPENAI_API_KEY environment variable not set.")
 
-OPENAI_SESSION_URL = "https://api.openai.com/v1/realtime/sessions"
-OPENAI_API_URL = "https://api.openai.com/v1/realtime"
+# ✅ Current Realtime endpoints
+OPENAI_CLIENT_SECRETS_URL = "https://api.openai.com/v1/realtime/client_secrets"
+OPENAI_CALLS_URL = "https://api.openai.com/v1/realtime/calls"
+
 MODEL_ID = "gpt-4o-realtime-preview-2024-12-17"
 VOICE = "ballad"
 DEFAULT_INSTRUCTIONS = SYSTEM_PROMPT
+
+# ✅ Input transcription model (for streaming transcripts of the user's speech)
+# Use one of the models supported by Realtime transcription in your account/docs.
+INPUT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe"
 
 
 def get_vector_store():
@@ -64,7 +70,6 @@ def home():
     return "Flask API is running!"
 
 
-# ---- Optional: simple context endpoint (noop/passthrough for now) ----
 @app.route("/api/session-context", methods=["POST", "OPTIONS"])
 def api_session_context():
     """
@@ -75,9 +80,7 @@ def api_session_context():
         data = request.get_json(silent=True) or {}
         session_id = (data.get("session_id") or "").strip()
         transcript = (data.get("transcript") or "").strip()
-        logger.info(
-            f"[session-context] session_id={session_id} chars={len(transcript)}"
-        )
+        logger.info(f"[session-context] session_id={session_id} chars={len(transcript)}")
         return jsonify({"ok": True}), 200
     except Exception as e:
         logger.exception("session-context error")
@@ -85,16 +88,16 @@ def api_session_context():
 
 
 # ------------------------ Function-calling tools ------------------------
-# Keep these in sync with the frontend's allowed lists.
 NAV_ALLOWED = [
     "home",
+    "about",  # ✅ add to match your instructions
     "products",
     "policy",
     "watch_tutorial",
     "contact",
     "footer",
-    "chat",  # open/show chatbot
-    "doctor",  # open Doctor Assistant app
+    "chat",
+    "doctor",
     "transcription",
     "analyst",
     "report",
@@ -103,7 +106,6 @@ NAV_ALLOWED = [
     "survey",
 ]
 
-# Tools used by the Realtime session (mirrored by the front-end session.update)
 TOOLS = [
     {
         "type": "function",
@@ -156,7 +158,6 @@ TOOLS = [
             "required": ["text"],
         },
     },
-    # 🔥 New tools for Contact Section email flow
     {
         "type": "function",
         "name": "contact_fill",
@@ -167,10 +168,7 @@ TOOLS = [
             "properties": {
                 "name": {"type": "string", "description": "Sender's name"},
                 "email": {"type": "string", "description": "Sender's email address"},
-                "recipient": {
-                    "type": "string",
-                    "description": "Person/department to reach (optional)",
-                },
+                "recipient": {"type": "string", "description": "Person/department to reach (optional)"},
                 "message": {"type": "string", "description": "Message body"},
             },
         },
@@ -179,11 +177,7 @@ TOOLS = [
         "type": "function",
         "name": "contact_submit",
         "description": "Submit the contact form after required fields are present.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {},
-        },
+        "parameters": {"type": "object", "additionalProperties": False, "properties": {}},
     },
     {
         "type": "function",
@@ -209,35 +203,21 @@ TOOLS = [
         "parameters": {
             "type": "object",
             "additionalProperties": False,
-            "properties": {
-                "visible": {
-                    "type": "boolean",
-                    "description": "true to open, false to close",
-                }
-            },
+            "properties": {"visible": {"type": "boolean", "description": "true to open, false to close"}},
             "required": ["visible"],
         },
     },
-    # In TOOLS list:
     {
         "type": "function",
         "name": "chat_toggle",
         "description": "Toggle the on-page chatbot open/closed.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {},
-        },
+        "parameters": {"type": "object", "additionalProperties": False, "properties": {}},
     },
     {
         "type": "function",
         "name": "chat_close",
         "description": "Close (hide) the on-page chatbot if it is open.",
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {},
-        },
+        "parameters": {"type": "object", "additionalProperties": False, "properties": {}},
     },
     {
         "type": "function",
@@ -248,7 +228,7 @@ TOOLS = [
             "properties": {
                 "id": {
                     "type": "string",
-                    "enum": ["doctorai", "transcription", "medreport", "ivf"],
+                    "enum": ["doctorai", "transcription", "medreport", "ivf", "meeting"],  # ✅ add meeting
                 },
                 "open_modal": {"type": "boolean"},
             },
@@ -256,133 +236,133 @@ TOOLS = [
         },
     },
     {
-    "type": "function",
-    "name": "card_play",
-    "description": "Open the Card Console for a specific application and (optionally) autoplay the info audio.",
-    "parameters": {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "id": {
-                "type": "string",
-                "enum": [
-                    "ai_doctor",
-                    "transcription",
-                    "bi_dashboard",
-                    "report_enhance",
-                    "ivf_assistant",
-                    "meeting_assistant",
-                    "patient_avatar",
-                ],
-                "description": "Stable card ids in the Card Console UI."
+        "type": "function",
+        "name": "card_play",
+        "description": "Open the Card Console for a specific application and (optionally) autoplay the info audio.",
+        "parameters": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "enum": [
+                        "ai_doctor",
+                        "transcription",
+                        "bi_dashboard",
+                        "report_enhance",
+                        "ivf_assistant",
+                        "meeting_assistant",
+                        "patient_avatar",
+                    ],
+                    "description": "Stable card ids in the Card Console UI.",
+                },
+                "autoplay": {"type": "boolean", "description": "If true (default), starts audio automatically."},
             },
-            "autoplay": {
-                "type": "boolean",
-                "description": "If true (default), starts audio automatically after opening the card."
-            }
+            "required": ["id"],
         },
-        "required": ["id"]
-    }
-},
-{
-    "type": "function",
-    "name": "assistant_close",
-    "description": "Close/hide the on-screen voice assistant and end the session.",
-    "parameters": {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {}
-    }
-},
-# Add this near the bottom of the TOOLS list before assistant_close
-{
-    "type": "function",
-    "name": "show_dashboard",
-    "description": "Open the draggable dashboard displaying Web Vitals and platform usage statistics.",
-    "parameters": {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {}
     },
-},
-
+    {
+        "type": "function",
+        "name": "show_dashboard",
+        "description": "Open the draggable dashboard displaying Web Vitals and platform usage statistics.",
+        "parameters": {"type": "object", "additionalProperties": False, "properties": {}},
+    },
+    {
+        "type": "function",
+        "name": "assistant_close",
+        "description": "Close/hide the on-screen voice assistant and end the session.",
+        "parameters": {"type": "object", "additionalProperties": False, "properties": {}},
+    },
 ]
 
 
 @app.route("/api/rtc-connect", methods=["POST"])
 def connect_rtc():
+    """
+    Receives SDP offer from the browser and returns SDP answer from OpenAI Realtime (WebRTC).
+
+    This version:
+    - uses /v1/realtime/client_secrets to create an ephemeral token with full session config
+    - uses /v1/realtime/calls for the SDP exchange
+    - enables input transcription so the client can stream user speech transcript in real-time
+    """
     try:
         client_sdp = request.get_data(as_text=True)
         if not client_sdp:
             return Response("No SDP provided", status=400, mimetype="text/plain")
 
-        # Optional client-provided session identifier (not strictly needed for OpenAI)
-        session_id = (
-            request.args.get("session_id") or request.headers.get("X-Session-Id") or ""
-        )
+        session_id = request.args.get("session_id") or request.headers.get("X-Session-Id") or ""
 
-        # 1) Create the Realtime session with instructions + tools.
-        session_payload = {
-            "model": MODEL_ID,
-            "voice": VOICE,
-            "instructions": (
-                DEFAULT_INSTRUCTIONS + "\n\n"
-                "If the user wants to send an email via the Contact section, ask for any missing fields "
-                "(name, email, recipient if needed, and message). After confirming, call contact_fill with the collected "
-                "values, then call contact_submit to send. When the user asks you to open pages, click buttons, "
-                "or type into the chatbot, use the provided tools strictly with the allowed values."
-                "If the user asks to open or close the chatbot, call set_chat_visible with visible=true or visible=false respectively."
-                "if the user asks you to go the About section, use the navigate_to tool with section='about'. which is the top of the platform."
-                "If the user indicates they want to dismiss the assistant (e.g., “go now”, “go for now”, “thank you for now”, “you can go”, “dismiss”, “close assistant”, “hide”, “bye for now”),call assistant_close with no arguments.Do not ask for confirmation "
-                """When the user asks to show or play a tutorial video (e.g., “show me the Doctor AI tutorial”, 
-                    “play the transcription tutorial”), call the function tutorial_play with the proper id:
-
-                    - "Doctor AI" -> id "doctorai"
-                    - "Transcription App" -> id "transcription"
-                    - "Medical Reports Platform" -> id "medreport"
-                    - "IVF Assistant" -> id "ivf"
-                    - "Meeting Assistant" -> id "meeting"
-
-                    Prefer calling tutorial_play over describing how to open the video.
-                    If the user says “open it fullscreen”, pass open_modal=true."""
-                    "if your are on the product section and the user asks you to play a video about a specific application use the help video button to play the video by using the help video button on the product card not the tutorial video on tutorial section."
-            ),
-            "tools": TOOLS,
-            "tool_choice": "auto",
-            "turn_detection": {"type": "server_vad"},
+        # ✅ Session config for Realtime (WebRTC + tools + voice + transcription)
+        session_config = {
+            "session": {
+                "type": "realtime",
+                "model": MODEL_ID,
+                "output_modalities": ["audio", "text"],
+                "audio": {
+                    "input": {
+                        "turn_detection": {"type": "server_vad"},
+                        "transcription": {"model": INPUT_TRANSCRIPTION_MODEL},
+                    },
+                    "output": {"voice": VOICE},
+                },
+                "instructions": (
+                    DEFAULT_INSTRUCTIONS
+                    + "\n\n"
+                    + "If the user wants to send an email via the Contact section, ask for any missing fields "
+                      "(name, email, recipient if needed, and message). After confirming, call contact_fill with "
+                      "the collected values, then call contact_submit to send. "
+                      "When the user asks you to open pages, click buttons, or type into the chatbot, "
+                      "use the provided tools strictly with the allowed values. "
+                      "If the user asks you to open or close the chatbot, call set_chat_visible with visible=true "
+                      "or visible=false respectively. "
+                      "If the user asks you to go to the About section, use navigate_to section='about'. "
+                      "If the user indicates they want to dismiss the assistant (e.g., “dismiss”, “close assistant”, “hide”), "
+                      "call assistant_close with no arguments and do not ask for confirmation. "
+                      "When the user asks to show or play a tutorial video, call tutorial_play with the proper id."
+                ),
+                "tools": TOOLS,
+                "tool_choice": "auto",
+                # (optional) store your own metadata
+                "metadata": {"app_session_id": session_id} if session_id else {},
+            }
         }
+
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json",
         }
-        session_resp = requests.post(
-            OPENAI_SESSION_URL, headers=headers, json=session_payload, timeout=30
+
+        # 1) Create client secret (ephemeral token) with session config
+        secret_resp = requests.post(
+            OPENAI_CLIENT_SECRETS_URL,
+            headers=headers,
+            json=session_config,
+            timeout=30,
         )
-        if not session_resp.ok:
-            logger.error(
-                f"Session create failed: {session_resp.status_code} {session_resp.text}"
-            )
-            return Response(
-                "Failed to create realtime session", status=500, mimetype="text/plain"
-            )
+        if not secret_resp.ok:
+            logger.error(f"client_secrets failed: {secret_resp.status_code} {secret_resp.text}")
+            return Response("Failed to create realtime client secret", status=500, mimetype="text/plain")
 
-        token_data = session_resp.json()
-        ephemeral_token = token_data.get("client_secret", {}).get("value")
+        secret_data = secret_resp.json()
+
+        # Some older responses used client_secret.value; newer docs use value directly.
+        ephemeral_token = (
+            secret_data.get("value")
+            or (secret_data.get("client_secret") or {}).get("value")
+        )
         if not ephemeral_token:
-            logger.error("Ephemeral token missing")
-            return Response(
-                "Missing ephemeral token", status=500, mimetype="text/plain"
-            )
+            logger.error(f"Ephemeral token missing: {secret_data}")
+            return Response("Missing ephemeral token", status=500, mimetype="text/plain")
 
-        # 2) SDP exchange
+        # 2) SDP exchange (offer -> answer)
         sdp_headers = {
             "Authorization": f"Bearer {ephemeral_token}",
             "Content-Type": "application/sdp",
         }
         sdp_resp = requests.post(
-            OPENAI_API_URL,
+            OPENAI_CALLS_URL,
             headers=sdp_headers,
-            params={"model": MODEL_ID, "voice": VOICE},
             data=client_sdp,
             timeout=60,
         )
@@ -425,3 +405,4 @@ def search():
 
 if __name__ == "__main__":
     app.run(debug=True, port=8813)
+

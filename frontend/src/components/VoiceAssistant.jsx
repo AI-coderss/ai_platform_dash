@@ -19,7 +19,10 @@
 /* eslint-disable no-unused-vars */
 // src/components/VoiceAssistant.jsx
 
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-useless-concat */
+/* eslint-disable no-unused-vars */
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { FaMicrophoneAlt, FaMicrophoneSlash } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import AudioWave from "./AudioWave";
@@ -27,11 +30,6 @@ import Dashboard from "./Dashboard";
 import "../styles/VoiceAssistant.css";
 import useUiStore from "./store/useUiStore";
 import * as THREE from "three";
-
-/* ---------- WebRTC refs ---------- */
-const peerConnectionRef = React.createRef();
-const dataChannelRef = React.createRef();
-const localStreamRef = React.createRef();
 
 /* ---------- Whitelists / tools (kept intact) ---------- */
 const ALLOWED_SECTIONS = new Set([
@@ -52,7 +50,6 @@ const ALLOWED_SECTIONS = new Set([
   "card_console",
   "meeting",
 ]);
-
 const ALLOWED_CONTROL_IDS = new Set([
   "nav.about",
   "nav.products",
@@ -86,7 +83,9 @@ const TOOL_SCHEMAS = [
     parameters: {
       type: "object",
       additionalProperties: false,
-      properties: { section: { type: "string", enum: Array.from(ALLOWED_SECTIONS) } },
+      properties: {
+        section: { type: "string", enum: Array.from(ALLOWED_SECTIONS) },
+      },
       required: ["section"],
     },
   },
@@ -135,7 +134,9 @@ const TOOL_SCHEMAS = [
     parameters: {
       type: "object",
       additionalProperties: false,
-      properties: { theme: { type: "string", enum: ["light", "dark", "system", "toggle"] } },
+      properties: {
+        theme: { type: "string", enum: ["light", "dark", "system", "toggle"] },
+      },
       required: ["theme"],
     },
   },
@@ -159,7 +160,7 @@ const TOOL_SCHEMAS = [
       additionalProperties: false,
       properties: {
         id: { type: "string", enum: ["doctorai", "transcription", "medreport", "ivf", "meeting"] },
-        open_modal: { type: "boolean" }, // optional
+        open_modal: { type: "boolean" },
       },
       required: ["id"],
     },
@@ -183,20 +184,17 @@ const TOOL_SCHEMAS = [
             "patient_avatar",
           ],
         },
-        autoplay: { type: "boolean" }, // default true
+        autoplay: { type: "boolean" },
       },
       required: ["id"],
     },
   },
-  {
-    type: "function",
-    name: "assistant_close",
-    parameters: { type: "object", additionalProperties: false, properties: {} },
-  },
+  { type: "function", name: "assistant_close", parameters: { type: "object", additionalProperties: false, properties: {} } },
+  { type: "function", name: "show_dashboard", parameters: { type: "object", additionalProperties: false, properties: {} } },
 ];
 
 /* =====================================================================================
-   ReactiveOrb — keep design; enforce circle, lock canvas size, react to audio level.
+   ReactiveOrb — unchanged (your shader orb)
 ===================================================================================== */
 const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
   const hostRef = useRef(null);
@@ -363,15 +361,10 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 50);
     camera.position.set(0, 0, 3.0);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      premultipliedAlpha: true,
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
     renderer.setClearAlpha(0);
     host.appendChild(renderer.domElement);
 
-    // perfect circle mask on both wrapper and canvas
     host.style.borderRadius = "50%";
     host.style.overflow = "hidden";
     renderer.domElement.style.borderRadius = "50%";
@@ -384,7 +377,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
         u_hover: { value: 0 },
         u_res: { value: new THREE.Vector2(1, 1) },
         u_hotDir: { value: new THREE.Vector2(1, 0) },
-        u_dispBase: { value: 0.1 },
+        u_dispBase: { value: 0.10 },
         u_dispAudio: { value: 0.22 },
         u_dispHover: { value: 0.16 },
       },
@@ -398,11 +391,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
 
     const haloGeo = new THREE.SphereGeometry(1.08, 160, 160);
     const haloMat = new THREE.ShaderMaterial({
-      uniforms: {
-        u_time: { value: 0 },
-        u_audio: { value: 0 },
-        u_tint: { value: new THREE.Color(0x00b7ff) },
-      },
+      uniforms: { u_time: { value: 0 }, u_audio: { value: 0 }, u_tint: { value: new THREE.Color(0x00b7ff) } },
       vertexShader: `
         varying vec3 vNormal; varying vec3 vViewDir;
         void main(){
@@ -422,10 +411,10 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
 
     scene.add(new THREE.AmbientLight(0x2244ff, 0.08));
 
-    // lock canvas size — no ResizeObserver, no layout-driven changes
     const d = size;
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(d, d, true);
+
     const cvs = renderer.domElement;
     cvs.style.width = `${d}px`;
     cvs.style.height = `${d}px`;
@@ -447,7 +436,6 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     orbMatRef.current = orbMat;
     haloRef.current = halo;
 
-    // hover/tilt
     const onEnter = () => (hoverRef.current = 1);
     const onLeave = () => {
       hoverRef.current = 0;
@@ -464,6 +452,7 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       const ny = dy / (rect.height / 2);
       tiltTargetRef.current = { x: ny * 0.12, y: -nx * 0.12 };
     };
+
     renderer.domElement.addEventListener("pointerenter", onEnter);
     renderer.domElement.addEventListener("pointerleave", onLeave);
     renderer.domElement.addEventListener("pointermove", onMove);
@@ -475,30 +464,29 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
     const loop = () => {
       rafRef.current = requestAnimationFrame(loop);
       const t = clock.getElapsedTime();
-      const orbMesh = orbRef.current;
+      const orb = orbRef.current;
       const mat = orbMatRef.current;
-      const haloMesh = haloRef.current;
+      const halo = haloRef.current;
 
       const audioLevel = mat.uniforms.u_audio.value;
       const boost = 1 + audioLevel * 2.5;
 
-      if (orbMesh) {
-        orbMesh.rotation.y += 0.02 * speed * boost;
-        orbMesh.rotation.x += (tiltTargetRef.current.x - orbMesh.rotation.x) * 0.08;
-        orbMesh.rotation.z += (tiltTargetRef.current.y - orbMesh.rotation.z) * 0.08;
+      if (orb) {
+        orb.rotation.y += 0.02 * speed * boost;
+        orb.rotation.x += (tiltTargetRef.current.x - orb.rotation.x) * 0.08;
+        orb.rotation.z += (tiltTargetRef.current.y - orb.rotation.z) * 0.08;
       }
-      if (haloMesh) haloMesh.rotation.y += 0.008 * speed * boost;
+      if (halo) halo.rotation.y += 0.008 * speed * boost;
 
       mat.uniforms.u_time.value = t;
-      haloMesh.material.uniforms.u_time.value = t;
+      halo.material.uniforms.u_time.value = t;
 
       const mixK = Math.min(1, 0.7 * hoverRef.current + 0.5 * audioLevel);
       const tint = blue.clone().lerp(warm, mixK);
-      haloMesh.material.uniforms.u_tint.value.copy(tint);
+      halo.material.uniforms.u_tint.value.copy(tint);
 
       renderer.render(sceneRef.current, cameraRef.current);
     };
-
     rafRef.current = requestAnimationFrame(loop);
 
     return () => {
@@ -566,13 +554,11 @@ const ReactiveOrb = ({ stream, size = 200, speed = 2.0 }) => {
       const buf = freqRef.current;
       const mat = orbMatRef.current;
       if (!an || !buf || !mat) return;
-
       an.getByteFrequencyData(buf);
       const end = Math.floor(buf.length * 0.6);
       let s = 0;
       for (let i = 0; i < end; i++) s += buf[i];
       const level = end ? s / (end * 255) : 0;
-
       mat.uniforms.u_audio.value = mat.uniforms.u_audio.value * 0.85 + level * 0.15;
       mat.uniforms.u_hover.value = mat.uniforms.u_hover.value * 0.8 + hoverRef.current * 0.2;
       mat.uniforms.u_hotDir.value.set(Math.cos(hotAngleRef.current), Math.sin(hotAngleRef.current));
@@ -606,27 +592,35 @@ const VoiceAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMicActive, setIsMicActive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("idle");
-  const [transcript, setTranscript] = useState("");
-  const [responseText, setResponseText] = useState("");
-  const responseTextRef = useRef(""); // ✅ NEW: keeps latest response for "done" event
+  const [transcript, setTranscript] = useState(""); // ✅ user transcript (streaming + final)
+  const [responseText, setResponseText] = useState(""); // ✅ assistant text (streaming)
+  const [assistantSpoken, setAssistantSpoken] = useState(""); // ✅ assistant audio transcript (streaming)
   const [remoteStream, setRemoteStream] = useState(null);
 
   const audioPlayerRef = useRef(null);
   const dragConstraintsRef = useRef(null);
 
-  const pendingTextRef = useRef([]); // ✅ queue text prompts from Announcement component
+  const peerConnectionRef = useRef(null);
+  const dataChannelRef = useRef(null);
+  const localStreamRef = useRef(null);
+
+  const pendingTextRef = useRef([]); // queue prompts from Announcement component
   const toolBuffersRef = useRef(new Map());
   const recentClicksRef = useRef(new Map());
 
   const { hideVoiceBtn, chooseVoice, resetToggles } = useUiStore();
 
   useEffect(() => {
-    if (dragConstraintsRef.current == null) {
-      dragConstraintsRef.current = document.body;
-    }
+    if (dragConstraintsRef.current == null) dragConstraintsRef.current = document.body;
   }, []);
 
-  const cleanupWebRTC = () => {
+  const dispatch = useCallback((type, detail) => {
+    try {
+      window.dispatchEvent(new CustomEvent(type, { detail }));
+    } catch {}
+  }, []);
+
+  const cleanupWebRTC = useCallback(() => {
     if (peerConnectionRef.current) {
       try {
         peerConnectionRef.current.close();
@@ -653,229 +647,358 @@ const VoiceAssistant = () => {
     setIsMicActive(false);
     setTranscript("");
     setResponseText("");
-    responseTextRef.current = "";
+    setAssistantSpoken("");
     setRemoteStream(null);
     resetToggles();
-  };
 
-  // helper
-  const closeAssistantNow = () => {
+    dispatch("assistant:status", { status: "idle" });
+  }, [dispatch, resetToggles]);
+
+  const closeAssistantNow = useCallback(() => {
     setIsOpen(false);
     cleanupWebRTC();
-  };
+  }, [cleanupWebRTC]);
 
-  const handleToolCall = (name, args) => {
-    if (!name) return;
+  const handleToolCall = useCallback(
+    (name, args) => {
+      if (!name) return;
 
-    if (name === "navigate_to") {
-      const section = String(args?.section || "").trim();
-      if (!ALLOWED_SECTIONS.has(section)) return;
-      if (window.agentNavigate) {
-        try {
-          window.agentNavigate(section);
-        } catch {}
-      } else {
-        window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } }));
+      if (name === "navigate_to") {
+        const section = String(args?.section || "").trim();
+        if (!ALLOWED_SECTIONS.has(section)) return;
+        if (window.agentNavigate) {
+          try {
+            window.agentNavigate(section);
+          } catch {}
+        } else {
+          window.dispatchEvent(new CustomEvent("agent:navigate", { detail: { section } }));
+        }
+        return;
       }
-      return;
-    }
 
-    if (name === "click_control") {
-      const id = String(args?.control_id || "").trim();
-      if (!ALLOWED_CONTROL_IDS.has(id)) return;
+      if (name === "click_control") {
+        const id = String(args?.control_id || "").trim();
+        if (!ALLOWED_CONTROL_IDS.has(id)) return;
 
-      const now = Date.now();
-      const last = recentClicksRef.current.get(id) || 0;
-      if (now - last < 400) return;
-      recentClicksRef.current.set(id, now);
+        const now = Date.now();
+        const last = recentClicksRef.current.get(id) || 0;
+        if (now - last < 400) return;
+        recentClicksRef.current.set(id, now);
 
-      const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
-      if (el) {
-        try {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch {}
-        try {
-          el.focus({ preventScroll: true });
-        } catch {}
-        try {
-          el.click();
-        } catch {}
+        const el = document.querySelector(`[data-agent-id="${CSS.escape(id)}"]`);
+        if (el) {
+          try {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch {}
+          try {
+            el.focus({ preventScroll: true });
+          } catch {}
+          try {
+            el.click();
+          } catch {}
+        }
+        return;
       }
-      return;
-    }
 
-    if (name === "chat_ask") {
-      const text = String(args?.text || "").trim();
-      if (!text) return;
-      if (window.ChatBotBridge?.sendMessage) {
-        try {
-          window.ChatBotBridge.sendMessage(text);
-        } catch {}
-      } else {
-        window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } }));
+      if (name === "chat_ask") {
+        const text = String(args?.text || "").trim();
+        if (!text) return;
+        if (window.ChatBotBridge?.sendMessage) {
+          try {
+            window.ChatBotBridge.sendMessage(text);
+          } catch {}
+        } else {
+          window.dispatchEvent(new CustomEvent("agent:chat.ask", { detail: { text } }));
+        }
+        return;
       }
-      return;
-    }
 
-    if (name === "contact_fill") {
-      const payload = {
-        name: typeof args?.name === "string" ? args.name : undefined,
-        email: typeof args?.email === "string" ? args.email : undefined,
-        recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
-        message: typeof args?.message === "string" ? args.message : undefined,
-      };
-
-      try {
-        window.agentNavigate?.("contact");
-      } catch {}
-
-      if (window.ContactBridge?.fill) {
-        try {
-          window.ContactBridge.fill(payload);
-        } catch {}
-      } else {
-        const setVal = (sel, val) => {
-          if (val == null) return;
-          const el = document.querySelector(sel);
-          if (!el) return;
-          el.value = val;
-          el.dispatchEvent(new Event("input", { bubbles: true }));
+      if (name === "contact_fill") {
+        const payload = {
+          name: typeof args?.name === "string" ? args.name : undefined,
+          email: typeof args?.email === "string" ? args.email : undefined,
+          recipient: typeof args?.recipient === "string" ? args.recipient : undefined,
+          message: typeof args?.message === "string" ? args.message : undefined,
         };
-        setVal('[data-agent-id="contact.name"]', payload.name);
-        setVal('[data-agent-id="contact.email"]', payload.email);
-        setVal('[data-agent-id="contact.recipient"]', payload.recipient);
-        setVal('[data-agent-id="contact.message"]', payload.message);
-      }
-      return;
-    }
-
-    if (name === "contact_submit") {
-      try {
-        window.agentNavigate?.("contact");
-      } catch {}
-      if (window.ContactBridge?.submit) {
         try {
-          window.ContactBridge.submit();
+          window.agentNavigate?.("contact");
         } catch {}
-      } else {
-        const btn = document.querySelector('[data-agent-id="contact.submit"]');
-        if (btn) {
+        if (window.ContactBridge?.fill) {
           try {
-            btn.click();
+            window.ContactBridge.fill(payload);
           } catch {}
         } else {
-          document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.();
+          const setVal = (sel, val) => {
+            if (val == null) return;
+            const el = document.querySelector(sel);
+            if (!el) return;
+            el.value = val;
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          };
+          setVal('[data-agent-id="contact.name"]', payload.name);
+          setVal('[data-agent-id="contact.email"]', payload.email);
+          setVal('[data-agent-id="contact.recipient"]', payload.recipient);
+          setVal('[data-agent-id="contact.message"]', payload.message);
         }
+        return;
       }
-      return;
-    }
 
-    if (name === "toggle_theme") {
-      const mode = String(args?.theme || "toggle").toLowerCase();
-      const STORAGE_KEY = "app-theme";
-      const getSystemPrefersDark = () =>
-        window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-      const applyThemeAttr = (m) => {
-        const root = document.documentElement;
-        const isDark = m === "dark" || (m === "system" && getSystemPrefersDark());
-        if (isDark) root.setAttribute("data-theme", "dark");
-        else root.removeAttribute("data-theme");
-        window.dispatchEvent(new CustomEvent("theme:changed", { detail: { mode: m, isDark } }));
-      };
-
-      const current = localStorage.getItem(STORAGE_KEY) || "light";
-      const next = mode === "toggle" ? (current === "dark" ? "light" : "dark") : mode;
-
-      localStorage.setItem(STORAGE_KEY, next);
-      applyThemeAttr(next);
-      return;
-    }
-
-    if (name === "set_chat_visible") {
-      const on = !!args?.visible;
-      if (on) {
-        if (window.ChatBot?.open) {
+      if (name === "contact_submit") {
+        try {
+          window.agentNavigate?.("contact");
+        } catch {}
+        if (window.ContactBridge?.submit) {
           try {
-            window.ChatBot.open();
+            window.ContactBridge.submit();
           } catch {}
         } else {
-          window.dispatchEvent(new CustomEvent("chatbot:open"));
+          const btn = document.querySelector('[data-agent-id="contact.submit"]');
+          if (btn) {
+            try {
+              btn.click();
+            } catch {}
+          } else {
+            document.querySelector('[data-agent-id="contact.form"]')?.requestSubmit?.();
+          }
         }
-      } else {
-        if (window.ChatBot?.close) {
+        return;
+      }
+
+      if (name === "toggle_theme") {
+        const mode = String(args?.theme || "toggle").toLowerCase();
+        const STORAGE_KEY = "app-theme";
+        const getSystemPrefersDark = () =>
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        const applyThemeAttr = (m) => {
+          const root = document.documentElement;
+          const isDark = m === "dark" || (m === "system" && getSystemPrefersDark());
+          if (isDark) root.setAttribute("data-theme", "dark");
+          else root.removeAttribute("data-theme");
+          window.dispatchEvent(new CustomEvent("theme:changed", { detail: { mode: m, isDark } }));
+        };
+
+        const current = localStorage.getItem(STORAGE_KEY) || "light";
+        const next = mode === "toggle" ? (current === "dark" ? "light" : "dark") : mode;
+
+        localStorage.setItem(STORAGE_KEY, next);
+        applyThemeAttr(next);
+        return;
+      }
+
+      if (name === "set_chat_visible") {
+        const on = !!args?.visible;
+        if (on) {
+          if (window.ChatBot?.open) {
+            try {
+              window.ChatBot.open();
+            } catch {}
+          } else {
+            window.dispatchEvent(new CustomEvent("chatbot:open"));
+          }
+        } else {
+          if (window.ChatBot?.close) {
+            try {
+              window.ChatBot.close();
+            } catch {}
+          } else {
+            window.dispatchEvent(new CustomEvent("chatbot:close"));
+          }
+        }
+        return;
+      }
+
+      if (name === "chat_toggle") {
+        if (window.ChatBot?.toggle) window.ChatBot.toggle();
+        else window.dispatchEvent(new Event("chatbot:toggle"));
+        return;
+      }
+
+      if (name === "chat_close") {
+        if (window.ChatBot?.close) window.ChatBot.close();
+        else window.dispatchEvent(new Event("chatbot:close"));
+        return;
+      }
+
+      if (name === "tutorial_play") {
+        const id = String(args?.id || "").trim();
+        const openModal = !!args?.open_modal;
+        try {
+          window.agentNavigate?.("watch_tutorial");
+        } catch {}
+        if (window.TutorialsBridge?.play) {
           try {
-            window.ChatBot.close();
+            window.TutorialsBridge.play(id, { openModal });
           } catch {}
         } else {
-          window.dispatchEvent(new CustomEvent("chatbot:close"));
+          window.dispatchEvent(new CustomEvent("tutorial:play", { detail: { id, openModal } }));
         }
+        return;
       }
-      return;
-    }
 
-    if (name === "chat_toggle") {
-      if (window.ChatBot?.toggle) window.ChatBot.toggle();
-      else window.dispatchEvent(new Event("chatbot:toggle"));
-      return;
-    }
-
-    if (name === "chat_close") {
-      if (window.ChatBot?.close) window.ChatBot.close();
-      else window.dispatchEvent(new Event("chatbot:close"));
-      return;
-    }
-
-    if (name === "tutorial_play") {
-      const id = String(args?.id || "").trim();
-      const openModal = !!args?.open_modal;
-
-      try {
-        window.agentNavigate?.("watch_tutorial");
-      } catch {}
-
-      if (window.TutorialsBridge?.play) {
+      if (name === "card_play") {
+        const id = String(args?.id || "").trim();
+        const autoplay = args?.autoplay !== false;
         try {
-          window.TutorialsBridge.play(id, { openModal });
+          window.agentNavigate?.("card_console");
         } catch {}
-      } else {
-        window.dispatchEvent(new CustomEvent("tutorial:play", { detail: { id, openModal } }));
+
+        if (window.CardConsoleBridge?.play) {
+          try {
+            window.CardConsoleBridge.play(id, { autoplay });
+          } catch {}
+        } else {
+          window.dispatchEvent(new CustomEvent("card:play", { detail: { id, autoplay } }));
+        }
+        return;
       }
-      return;
-    }
 
-    if (name === "card_play") {
-      const id = String(args?.id || "").trim();
-      const autoplay = args?.autoplay !== false;
+      if (name === "assistant_close") {
+        closeAssistantNow();
+        return;
+      }
 
-      try {
-        window.agentNavigate?.("card_console");
-      } catch {}
+      if (name === "show_dashboard") {
+        window.dispatchEvent(new Event("dashboard:toggle"));
+        return;
+      }
+    },
+    [closeAssistantNow]
+  );
 
-      if (window.CardConsoleBridge?.play) {
+  /**
+   * ✅ Important:
+   * - Use updated Realtime event types:
+   *   - assistant text: response.output_text.delta / response.output_text.done
+   *   - assistant audio transcript: response.output_audio_transcript.delta / done
+   *   - user input transcript: conversation.item.input_audio_transcription.delta / completed
+   */
+  const handleRealtimeEvent = useCallback(
+    (msg) => {
+      const t = msg?.type;
+
+      // ✅ User input transcription (streaming)
+      if (t === "conversation.item.input_audio_transcription.delta") {
+        const delta = msg.delta || msg.transcript || "";
+        if (!delta) return;
+        setTranscript((prev) => {
+          const next = prev + delta;
+          dispatch("assistant:input_transcript", { text: next, isFinal: false });
+          return next;
+        });
+        return;
+      }
+
+      if (
+        t === "conversation.item.input_audio_transcription.completed" ||
+        t === "conversation.item.input_audio_transcription.done"
+      ) {
+        const finalText = msg.transcript || msg.text || "";
+        if (finalText) {
+          setTranscript(finalText);
+          dispatch("assistant:input_transcript", { text: finalText, isFinal: true });
+        } else {
+          dispatch("assistant:input_transcript", { text: transcript, isFinal: true });
+        }
+        return;
+      }
+
+      // ✅ Assistant text output (streaming) — UPDATED EVENT NAMES
+      if (t === "response.output_text.delta") {
+        const delta = msg.delta || msg.text || "";
+        if (!delta) return;
+        setResponseText((prev) => {
+          const next = prev + delta;
+          dispatch("assistant:output_text", { text: next, isFinal: false });
+          return next;
+        });
+        return;
+      }
+
+      if (t === "response.output_text.done") {
+        const finalText = msg.text;
+        if (typeof finalText === "string" && finalText.length) {
+          setResponseText(finalText);
+          dispatch("assistant:output_text", { text: finalText, isFinal: true });
+        } else {
+          dispatch("assistant:output_text", { text: responseText, isFinal: true });
+        }
+        return;
+      }
+
+      // ✅ Assistant spoken transcript (streaming)
+      if (t === "response.output_audio_transcript.delta") {
+        const delta = msg.delta || msg.transcript || "";
+        if (!delta) return;
+        setAssistantSpoken((prev) => {
+          const next = prev + delta;
+          dispatch("assistant:output_audio_transcript", { text: next, isFinal: false });
+          return next;
+        });
+        return;
+      }
+
+      if (t === "response.output_audio_transcript.done") {
+        const finalText = msg.transcript;
+        if (typeof finalText === "string" && finalText.length) {
+          setAssistantSpoken(finalText);
+          dispatch("assistant:output_audio_transcript", { text: finalText, isFinal: true });
+        } else {
+          dispatch("assistant:output_audio_transcript", { text: assistantSpoken, isFinal: true });
+        }
+        return;
+      }
+
+      // Tool call buffering (kept)
+      if (t === "response.output_item.added" && msg.item?.type === "function_call") {
+        const id = msg.item.call_id || msg.item.id || "default";
+        toolBuffersRef.current.set(id, { name: msg.item.name || "", argsText: "" });
+        return;
+      }
+
+      if (t === "response.function_call_arguments.delta" || t === "tool_call.delta") {
+        const id = msg.call_id || msg.id || "default";
+        const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
+        prev.argsText += msg.delta || msg.arguments_delta || "";
+        toolBuffersRef.current.set(id, prev);
+        return;
+      }
+
+      if (
+        t === "response.function_call_arguments.done" ||
+        t === "tool_call_arguments.done" ||
+        t === "response.function_call.completed" ||
+        t === "tool_call.completed"
+      ) {
+        const id = msg.call_id || msg.id || "default";
+        const buf = toolBuffersRef.current.get(id);
+        toolBuffersRef.current.delete(id);
+        if (!buf) return;
+        let args = {};
         try {
-          window.CardConsoleBridge.play(id, { autoplay });
-        } catch {}
-      } else {
-        window.dispatchEvent(new CustomEvent("card:play", { detail: { id, autoplay } }));
+          args = JSON.parse(buf.argsText || "{}");
+        } catch {
+          args = {};
+        }
+        handleToolCall(buf.name || "unknown_tool", args);
+        return;
       }
-      return;
-    }
 
-    if (name === "assistant_close") {
-      closeAssistantNow();
-      return;
-    }
+      // Optional: errors
+      if (t === "error") {
+        dispatch("assistant:error", msg);
+        return;
+      }
+    },
+    [assistantSpoken, dispatch, handleToolCall, responseText, transcript]
+  );
 
-    if (name === "show_dashboard") {
-      window.dispatchEvent(new Event("dashboard:toggle"));
-      return;
-    }
-  };
-
-  const sendSessionUpdate = () => {
+  const sendSessionUpdate = useCallback(() => {
     const ch = dataChannelRef.current;
     if (!ch || ch.readyState !== "open") return;
+
+    // Keep it compatible with your backend config.
+    // The important fix is client-side event handling (above).
     try {
       ch.send(
         JSON.stringify({
@@ -883,67 +1006,72 @@ const VoiceAssistant = () => {
           session: {
             modalities: ["text", "audio"],
             turn_detection: { type: "server_vad" },
+            // Safe to include (backend also configures transcription)
+            input_audio_transcription: { model: "gpt-4o-mini-transcribe" },
             tools: TOOL_SCHEMAS,
             tool_choice: { type: "auto" },
           },
         })
       );
     } catch {}
-  };
+  }, []);
 
-  /* ✅ send text prompt into the live session */
-  const sendTextToAssistant = (text) => {
-    const t = String(text || "").trim();
-    if (!t) return false;
+  const sendTextToAssistant = useCallback(
+    (text) => {
+      const t = String(text || "").trim();
+      if (!t) return false;
 
-    const ch = dataChannelRef.current;
-    if (!ch || ch.readyState !== "open") return false;
+      const ch = dataChannelRef.current;
+      if (!ch || ch.readyState !== "open") return false;
 
-    try {
-      // ✅ clear last response locally (and for "done" event accuracy)
-      responseTextRef.current = "";
+      // ✅ Reset streaming UI for a new turn
       setResponseText("");
+      setAssistantSpoken("");
 
-      // Add user message
-      ch.send(
-        JSON.stringify({
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "user",
-            content: [{ type: "input_text", text: t }],
-          },
-        })
-      );
+      // ✅ Also show the selected question immediately as "user transcript"
+      setTranscript(t);
+      dispatch("assistant:input_transcript", { text: t, isFinal: true });
 
-      // Ask for response (audio + text)
-      ch.send(
-        JSON.stringify({
-          type: "response.create",
-          response: { modalities: ["text", "audio"] },
-        })
-      );
+      try {
+        // Add user message
+        ch.send(
+          JSON.stringify({
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [{ type: "input_text", text: t }],
+            },
+          })
+        );
 
-      return true;
-    } catch {
-      return false;
-    }
-  };
+        // Ask for response (audio + text)
+        ch.send(
+          JSON.stringify({
+            type: "response.create",
+            response: { modalities: ["text", "audio"] },
+          })
+        );
 
-  const startWebRTC = async () => {
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [dispatch]
+  );
+
+  const startWebRTC = useCallback(async () => {
     if (peerConnectionRef.current || connectionStatus === "connecting") return;
 
     setConnectionStatus("connecting");
-    setResponseText("Connecting to assistant...");
-    responseTextRef.current = "";
+    dispatch("assistant:status", { status: "connecting" });
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
 
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
       peerConnectionRef.current = pc;
 
       pc.ontrack = (event) => {
@@ -964,23 +1092,19 @@ const VoiceAssistant = () => {
 
       channel.onopen = () => {
         setConnectionStatus("connected");
-        setResponseText("Connected! Speak now...");
-        responseTextRef.current = "";
         setIsMicActive(true);
+        dispatch("assistant:status", { status: "connected" });
 
+        // Push session.update (tools + transcription)
         sendSessionUpdate();
 
-        // flush any queued questions from other components
+        // Flush queued question prompts
         try {
           const queued = pendingTextRef.current || [];
           if (queued.length) {
             pendingTextRef.current = [];
             queued.forEach((q) => sendTextToAssistant(q));
           }
-        } catch {}
-
-        try {
-          channel.send(JSON.stringify({ type: "response.create", response: { modalities: ["text", "audio"] } }));
         } catch {}
       };
 
@@ -991,89 +1115,13 @@ const VoiceAssistant = () => {
         } catch {
           return;
         }
-
-        if (msg.type === "conversation.item.input_audio_transcription.completed") {
-          setTranscript(msg.transcript || "");
-          setResponseText("");
-          responseTextRef.current = "";
-          return;
-        }
-
-        // ✅ STREAM TEXT DELTAS + BROADCAST FOR ANNOUNCEMENT UI
-        if (msg.type === "response.text.delta") {
-          const delta = msg.delta || "";
-          setResponseText((p) => {
-            const next = p + delta;
-            responseTextRef.current = next;
-
-            try {
-              window.dispatchEvent(
-                new CustomEvent("assistant:response.delta", {
-                  detail: { delta, text: next },
-                })
-              );
-            } catch {}
-
-            return next;
-          });
-          return;
-        }
-
-        // ✅ DONE EVENT (broadcast)
-        if (msg.type === "response.done") {
-          setTranscript("");
-
-          try {
-            window.dispatchEvent(
-              new CustomEvent("assistant:response.done", {
-                detail: { text: responseTextRef.current || "" },
-              })
-            );
-          } catch {}
-
-          return;
-        }
-
-        if (msg.type === "response.output_item.added" && msg.item?.type === "function_call") {
-          const id = msg.item.call_id || msg.item.id || "default";
-          toolBuffersRef.current.set(id, { name: msg.item.name || "", argsText: "" });
-          return;
-        }
-
-        if (msg.type === "response.function_call_arguments.delta" || msg.type === "tool_call.delta") {
-          const id = msg.call_id || msg.id || "default";
-          const prev = toolBuffersRef.current.get(id) || { name: "", argsText: "" };
-          prev.argsText += msg.delta || msg.arguments_delta || "";
-          toolBuffersRef.current.set(id, prev);
-          return;
-        }
-
-        if (
-          msg.type === "response.function_call_arguments.done" ||
-          msg.type === "tool_call_arguments.done" ||
-          msg.type === "response.function_call.completed" ||
-          msg.type === "tool_call.completed"
-        ) {
-          const id = msg.call_id || msg.id || "default";
-          const buf = toolBuffersRef.current.get(id);
-          toolBuffersRef.current.delete(id);
-          if (!buf) return;
-
-          let args = {};
-          try {
-            args = JSON.parse(buf.argsText || "{}");
-          } catch {}
-
-          handleToolCall(buf.name || "unknown_tool", args);
-          return;
-        }
+        handleRealtimeEvent(msg);
       };
 
       channel.onerror = () => {
         setConnectionStatus("error");
-        setResponseText("Connection error.");
+        dispatch("assistant:status", { status: "error" });
       };
-
       channel.onclose = () => {
         cleanupWebRTC();
       };
@@ -1084,18 +1132,14 @@ const VoiceAssistant = () => {
       };
 
       let offer = await pc.createOffer({ offerToReceiveAudio: true });
-      offer.sdp = offer.sdp.replace(
-        /a=rtpmap:\d+ opus\/48000\/2/g,
-        "a=rtpmap:111 opus/48000/2\r\n" + "a=fmtp:111 minptime=10;useinbandfec=1"
-      );
       await pc.setLocalDescription(offer);
 
+      // Your existing endpoint
       const res = await fetch("https://ai-platform-dash-voice-chatbot-togglabe.onrender.com/api/rtc-connect", {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: offer.sdp,
       });
-
       if (!res.ok) throw new Error(`Server responded with ${res.status}`);
 
       const answer = await res.text();
@@ -1103,10 +1147,10 @@ const VoiceAssistant = () => {
     } catch (err) {
       console.error("WebRTC error:", err);
       setConnectionStatus("error");
-      setResponseText("Failed to start session.");
+      dispatch("assistant:status", { status: "error" });
       cleanupWebRTC();
     }
-  };
+  }, [cleanupWebRTC, connectionStatus, dispatch, handleRealtimeEvent, sendSessionUpdate, sendTextToAssistant]);
 
   const toggleAssistant = () => {
     setIsOpen((prev) => {
@@ -1131,7 +1175,7 @@ const VoiceAssistant = () => {
     }
   };
 
-  /* ✅ VoiceAssistantBridge + events so other UIs can drive the agent */
+  /* ✅ Bridge for other components (Announcement UI) */
   useEffect(() => {
     window.VoiceAssistantBridge = {
       open: () => {
@@ -1150,18 +1194,16 @@ const VoiceAssistant = () => {
         const q = String(text || "").trim();
         if (!q) return false;
 
-        // ensure open
+        // ensure open + session
         if (!isOpen) {
           chooseVoice();
           setIsOpen(true);
           startWebRTC();
         } else {
-          if (!peerConnectionRef.current && connectionStatus !== "connecting") {
-            startWebRTC();
-          }
+          if (!peerConnectionRef.current && connectionStatus !== "connecting") startWebRTC();
         }
 
-        // if channel ready, send now; else queue
+        // if ready, send now; else queue
         if (sendTextToAssistant(q)) return true;
         pendingTextRef.current = [...(pendingTextRef.current || []), q];
         return true;
@@ -1198,7 +1240,7 @@ const VoiceAssistant = () => {
         delete window.VoiceAssistantBridge;
       } catch {}
     };
-  }, [isOpen, connectionStatus, isMicActive]);
+  }, [isOpen, connectionStatus, isMicActive, chooseVoice, startWebRTC, closeAssistantNow, sendTextToAssistant]);
 
   return (
     <>
@@ -1234,7 +1276,6 @@ const VoiceAssistant = () => {
               </button>
             </div>
 
-            {/* perfect-circle, locked size, audio-reactive rotation & color */}
             <ReactiveOrb stream={remoteStream} size={220} speed={2.2} />
 
             <div className="voice-visualizer-container">
@@ -1265,9 +1306,11 @@ const VoiceAssistant = () => {
               <span className={`status ${connectionStatus}`}>{connectionStatus}</span>
             </div>
 
-            {/* Optional debug text
-            <div style={{ padding: "10px", fontSize: 12, opacity: 0.9 }}>
-              {responseText}
+            {/* Optional debug panels (uncomment if you want inside assistant window)
+            <div style={{ padding: 10, fontSize: 12, opacity: 0.9 }}>
+              <div style={{ marginBottom: 8 }}><b>User transcript:</b> {transcript}</div>
+              <div style={{ marginBottom: 8 }}><b>Assistant text:</b> {responseText}</div>
+              <div><b>Assistant spoken:</b> {assistantSpoken}</div>
             </div>
             */}
           </motion.div>
@@ -1280,6 +1323,7 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
 
 
 
