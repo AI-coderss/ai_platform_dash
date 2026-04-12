@@ -19,7 +19,6 @@ import ContactSection from "./components/ContactSection";
 import VoiceAssistant from "./components/VoiceAssistant";
 import CardCarousel from "./components/CardCarousel";
 import LaptopSection3D from "./components/LaptopSection3D";
-import MeetingAssistantAnnouncement from "./components/MeetingAssistantAnnouncement";
 
 /* import DIDAvatarWidget from "./components/DIDAvatarWidget"; */
 import VideoCarousel from "./components/VideoCarousel";
@@ -1125,7 +1124,7 @@ const App = () => {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
-      link: "https://dsahdoctoraiassistantbot.onrender.com",
+      link: "https://ai-doctor-assistant-app-dev.onrender.com",
       helpVideo: "./videos/doctorai.mp4",
       agentKey: "doctor",
     },
@@ -1173,7 +1172,7 @@ const App = () => {
       id: 7, name: "📅 AI Meeting Assistant",
       description: "Schedule meetings and appointments using Artificial Intelligence",
       icon: "/icons/meeting.svg",
-      link: "https://ai-meeting-assistant-frontend.onrender.com/authpage",
+      link: "https://dsah.info/",
       helpVideo: "./videos/unddev.mp4",
       agentKey: "meeting",
     },
@@ -1181,7 +1180,7 @@ const App = () => {
       id: 8, name: " Hospital Operator Announcement System",
       description: "AI-powered system for hospital operator announcements and notifications",
       icon: "/icons/speaker.svg",
-      link: "https://swift-echo-care.lovable.app",
+      link: "https://dsah-annoucement.lovable.app/",
       helpVideo: null,
       agentKey: "announcement",
     }
@@ -1274,7 +1273,6 @@ const App = () => {
           </div>
         </div>
       </div>
-      <MeetingAssistantAnnouncement />
       {/* Hero with text (left) + GLASS CUBE with heart (right) */}
       <HeroLogoParticles theme={theme} />
 
