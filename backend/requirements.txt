@@ -1,5 +1,5 @@
 # requirements.txt
-langchain==0.3.25
+langchain
 langchain-community
 langchain-core
 langchain-qdrant
@@ -17,4 +17,5 @@ asyncio
 gunicorn
 tiktoken
 resend
+langchain-classic
 
