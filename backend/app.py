@@ -1,32 +1,32 @@
-import os, json, logging, requests
-import tempfile
-from uuid import uuid4
+import os
 import json
+import logging
 import re
 import base64
+import tempfile
+from uuid import uuid4
 import requests
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, Response, stream_with_context
-
-
 from flask_cors import CORS
-import qdrant_client
 from openai import OpenAI
-from prompts.prompt import engineeredprompt
+
+import qdrant_client
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
-
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-# NEW IMPORTS
+
+# Cleaned up and deduplicated LangChain Classic imports
 from langchain_classic.chains import (
     create_history_aware_retriever,
-    create_retrieval_chain
+    create_retrieval_chain,
+)
+from langchain_classic.chains.combine_documents import (
+    create_stuff_documents_chain,
 )
 
-from langchain.chains.combine_documents import create_stuff_documents_chain
-
-
+from prompts.prompt import engineeredprompt
 
 # Load env vars
 load_dotenv()
@@ -61,9 +61,6 @@ def get_vector_store():
         collection_name=collection_name,
         url=os.getenv("QDRANT_HOST"),
         api_key=os.getenv("QDRANT_API_KEY"),
-        # Optional extras:
-        # prefer_grpc=True,
-        # timeout=60,
     )
 
 
@@ -81,13 +78,19 @@ def get_conversational_rag_chain():
     retriever_chain = get_context_retriever_chain()
     llm = ChatOpenAI(model="gpt-4o")
     prompt = ChatPromptTemplate.from_messages([
-        ("system", engineeredprompt),
+        ("system", engineeredprompt + "\n\nContext:\n{context}"),
         MessagesPlaceholder("chat_history"),
         ("user", "{input}"),
     ])
     return create_retrieval_chain(retriever_chain, create_stuff_documents_chain(llm, prompt))
 
-conversation_rag_chain = get_conversational_rag_chain()
+conversation_rag_chain = None
+
+def get_chain():
+    global conversation_rag_chain
+    if conversation_rag_chain is None:
+        conversation_rag_chain = get_conversational_rag_chain()
+    return conversation_rag_chain
 
 # === Standard HTTP Routes ===
 @app.route("/")
@@ -108,7 +111,9 @@ def stream():
     def generate():
         answer = ""
         try:
-            for chunk in conversation_rag_chain.stream(
+            # Safely fetching initialized chain instance
+            chain = get_chain()
+            for chunk in chain.stream(
                 {"chat_history": chat_sessions[session_id], "input": user_input}
             ):
                 token = chunk.get("answer", "")
@@ -132,7 +137,10 @@ def generate():
         return jsonify({"error": "No input message"}), 400
     if session_id not in chat_sessions:
         chat_sessions[session_id] = []
-    response = conversation_rag_chain.invoke(
+    
+    # Safely fetching initialized chain instance
+    chain = get_chain()
+    response = chain.invoke(
         {"chat_history": chat_sessions[session_id], "input": user_input}
     )
     answer = response["answer"]
@@ -151,7 +159,6 @@ def tts():
         voice="fable",
         input=text
     )
-    # Using a temporary file to handle the audio stream
     with tempfile.NamedTemporaryFile(delete=True, suffix='.mp3') as fp:
         response.stream_to_file(fp.name)
         fp.seek(0)
@@ -191,7 +198,6 @@ def generate_followups():
         )
 
         text = completion.choices[0].message.content.strip()
-        # A more robust way to find and parse the JSON array
         match = re.search(r'\[.*?\]', text, re.DOTALL)
         if match:
             questions = json.loads(match.group(0))
@@ -241,7 +247,6 @@ Response: {ai_response}
 
     return jsonify({"card_id": card_id})
 
-# === Real-Time Transcription with OpenAI's API Using WebRTC ===
 OAI_BASE = "https://api.openai.com/v1"
 COMMON_JSON_HEADERS = {
     "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -255,20 +260,10 @@ def health():
 
 @app.post("/api/rtc-transcribe-connect")
 def rtc_transcribe_connect():
-    """
-    Browser sends an SDP offer (text).
-    We:
-      1) Create a Realtime Transcription Session -> ephemeral client_secret
-      2) POST the browser SDP to OpenAI Realtime WebRTC endpoint with ?intent=transcription
-         (Do NOT pass model here; model is defined by the session)
-      3) Return the answer SDP (application/sdp) back to the browser **as raw bytes** (no decoding/strip)
-    """
-    offer_sdp = request.get_data()  # raw bytes; don't decode here
+    offer_sdp = request.get_data()
     if not offer_sdp:
         return Response(b"No SDP provided", status=400, mimetype="text/plain")
 
-    # 1) Create ephemeral transcription session
-    # NOTE: Do NOT force input_audio_format here; WebRTC uses RTP/Opus.
     session_payload = {
         "input_audio_transcription": {
             "model": "gpt-4o-transcribe"
@@ -304,7 +299,6 @@ def rtc_transcribe_connect():
         log.error("Missing client_secret in session response")
         return Response(b"Missing client_secret", status=502, mimetype="text/plain")
 
-    # 2) Exchange SDP with Realtime endpoint using ephemeral secret
     sdp_headers = {
         "Authorization": f"Bearer {client_secret}",
         "Content-Type": "application/sdp",
@@ -321,7 +315,7 @@ def rtc_transcribe_connect():
             upstream_url,
             params=params,
             headers=sdp_headers,
-            data=offer_sdp,   # send EXACT bytes we received
+            data=offer_sdp,
             timeout=30
         )
     except Exception as e:
@@ -330,17 +324,14 @@ def rtc_transcribe_connect():
 
     if not ans.ok:
         log.error("SDP exchange failed (%s): %s", ans.status_code, ans.text)
-        # surface upstream body (could be helpful error text)
         return Response(ans.content or b"SDP exchange failed",
                         status=ans.status_code,
                         mimetype=ans.headers.get("Content-Type", "text/plain"))
 
-    # 3) Return the raw SDP answer bytes exactly as received (no text decode/strip)
     answer_bytes = ans.content or b""
     log.info("Upstream answered SDP (%d bytes)", len(answer_bytes))
 
     if not answer_bytes.startswith(b"v="):
-        # Not an SDP body; return it verbatim for debugging
         preview = answer_bytes[:2000]
         log.error("Upstream returned non-SDP body (first bytes): %r", preview)
         return Response(answer_bytes, status=502, mimetype="text/plain")
@@ -350,10 +341,7 @@ def rtc_transcribe_connect():
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
-# === Main Execution ===
 if __name__ == "__main__":
-     # No Socket.IO / WS server here; just REST.
     app.run(host="0.0.0.0", port=5050, debug=True)
-
 
 
