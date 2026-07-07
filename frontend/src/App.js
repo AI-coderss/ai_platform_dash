@@ -1124,7 +1124,7 @@ const App = () => {
       id: 1, name: "🧠 AI Doctor Assistant",
       description: "Get instant AI-powered medical opinions, based on the latest RAG technology",
       icon: "/icons/doctorAI.svg",
-      link: "https://ai-doctor-assistant-app-dev.onrender.com",
+      link: "https://clinicare-companion-hub.lovable.app",
       helpVideo: "./videos/doctorai.mp4",
       agentKey: "doctor",
     },
